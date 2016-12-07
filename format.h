@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <cstring>
+#include <cstddef>
 #include <string>
 
 
@@ -43,21 +43,22 @@ inline void format_impl(std::string& result, const char* fmt)
 template <typename Arg, typename... Args>
 void format_impl(std::string& result, const char* fmt, Arg value, Args... args)
 {
-	std::size_t len = std::strlen(fmt);
-	for (std::size_t i = 0; i < len; ++i)
+	std::size_t i = 0;
+	for (; fmt[i] != '\0'; ++i)
 	{
 		if (fmt[i] == '{' &&
-			i + 1 < len &&
+			fmt[i+1] != '\0' &&
 			fmt[i+1] == '}')
 		{
-			append(result, value);
-			format_impl(result, fmt + i + 2, args...);
 			break;
 		}
-		else
-		{
-			result.push_back(fmt[i]);
-		}
+	}
+
+	result.append(fmt, i);
+	if (fmt[i] != '\0')
+	{
+		append(result, value);
+		format_impl(result, fmt + i + 2, args...);
 	}
 }
 
