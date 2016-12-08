@@ -13,10 +13,33 @@
 namespace lights {
 namespace details {
 
+inline void to_string(std::string& sink, bool is)
+{
+	sink.append(is ? "true" : "false");
+}
+
+inline void to_string(std::string& sink, char ch)
+{
+	sink.push_back(ch);
+}
+
+void to_string(std::string& sink, short n);
+void to_string(std::string& sink, unsigned short n);
+void to_string(std::string& sink, int n);
+void to_string(std::string& sink, unsigned int n);
+void to_string(std::string& sink, long n);
+void to_string(std::string& sink, unsigned long n);
+void to_string(std::string& sink, long long n);
+void to_string(std::string& sink, unsigned long long n);
+void to_string(std::string& sink, float n);
+void to_string(std::string& sink, double n);
+void to_string(std::string& sink, long double n);
+
+
 template <typename T>
 inline void append(std::string& sink, T arg)
 {
-	sink.append(std::to_string(arg));
+	to_string(sink, arg);
 }
 
 inline void append(std::string& sink, char* arg)
