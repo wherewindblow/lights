@@ -164,11 +164,11 @@ inline std::string format(const char* fmt)
 	return std::string(fmt);
 }
 
-template <typename Arg, typename... Args>
-inline std::string format(const char* fmt, Arg value, Args... args)
+template <typename... Args>
+inline std::string format(const char* fmt, Args... args)
 {
 	std::string result;
-	details::format_impl(result, fmt, value, args...);
+	details::format_impl(result, fmt, args...);
 	return result;
 }
 
