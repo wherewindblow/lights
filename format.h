@@ -15,13 +15,35 @@
 namespace lights {
 namespace details {
 
+class StringBuffer: public std::streambuf
+{
+public:
+	StringBuffer(std::string& sink) :
+		m_sink(sink) {}
+
+	virtual int_type overflow(int_type ch) override
+	{
+		m_sink.push_back(static_cast<char>(ch));
+		return ch;
+	}
+
+	virtual std::streamsize	xsputn(const char* s, std::streamsize n) override
+	{
+		m_sink.append(s, static_cast<std::size_t>(n));
+		return n;
+	}
+
+private:
+	std::string& m_sink;
+};
+
+
 template <typename T>
 void to_string(std::string& sink, T value)
 {
-	std::stringbuf buf;
+	StringBuffer buf(sink);
 	std::ostream ostream(&buf);
 	ostream << value;
-	sink.append(buf.str());
 }
 
 inline void to_string(std::string& sink, bool is)
