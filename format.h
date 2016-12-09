@@ -9,10 +9,20 @@
 #include <cstddef>
 #include <string>
 #include <limits>
+#include <sstream>
 
 
 namespace lights {
 namespace details {
+
+template <typename T>
+void to_string(std::string& sink, T value)
+{
+	std::stringbuf buf;
+	std::ostream ostream(&buf);
+	ostream << value;
+	sink.append(buf.str());
+}
 
 inline void to_string(std::string& sink, bool is)
 {
