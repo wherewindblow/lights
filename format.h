@@ -204,4 +204,20 @@ inline std::string format(const char* fmt, Args... args)
 	return result;
 }
 
+
+using details::append;
+
+template <typename T>
+inline std::string& operator<< (std::string& sink, T value)
+{
+	details::append(sink, value);
+	return sink;
+}
+
+inline std::string& operator<< (std::string& sink, const std::string& str)
+{
+	details::append(sink, str);
+	return sink;
+}
+
 } // namespace lights
