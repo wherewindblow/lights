@@ -218,12 +218,15 @@ inline std::string format(const char* fmt)
  * @return Formated string.
  * @note If args is user type, it must have a user @ append
  *       function as
- *         `void append(std::string& sink, const T& value);`
- *       The implementation can use insertion operator (<<)
- *       between @c sink and @c value. But must use
- *         `using lights::operator<<`.
- *       After implement the user @c append, it also can be
- *       use in another @c append as insertion operator.
+ *         1) `std::ostream& operator<< (std::ostream& out, const T& value)`
+ *         2) `void append(std::string& sink, const T& value);`
+ *       1) General way to use with @c std::ostream to format.
+ *       2) Optimize way with format.
+ *          The implementation can use insertion operator (<<)
+ *          between @c sink and @c value. But must use
+ *            `using lights::operator<<`.
+ *          After implement the user @c append, it also can be
+ *          use in another @c append as insertion operator.
  */
 template <typename... Args>
 inline std::string format(const char* fmt, Args... args)
