@@ -15,6 +15,10 @@
 namespace lights {
 namespace details {
 
+/**
+ * StringBuffer that reference on a std::string.
+ * Instead of std::stringbuf to optimize performance.
+ */
 class StringBuffer: public std::streambuf
 {
 public:
@@ -38,8 +42,14 @@ private:
 };
 
 
+/**
+ * To convert @c value to string in the end of @ sink
+ * that use insertion operator with std::ostream and T.
+ * @param sink   string reference.
+ * @param value  Costum type.
+ */
 template <typename T>
-void to_string(std::string& sink, T value)
+inline void to_string(std::string& sink, T value)
 {
 	StringBuffer buf(sink);
 	std::ostream ostream(&buf);
@@ -139,6 +149,11 @@ inline void to_string(std::string& sink, long double n)
 }
 
 
+/**
+ * Append the @c arg to the end of sink.
+ * @param sink  string.
+ * @param arg   Build-in type.
+ */
 template <typename T>
 inline void append(std::string& sink, T arg)
 {
@@ -196,6 +211,20 @@ inline std::string format(const char* fmt)
 	return std::string(fmt);
 }
 
+/**
+ * Format string that use @c fmt and @c args...
+ * @param fmt   Format that use '{}' as placeholder.
+ * @param args  Variadic arguments that can be any type.
+ * @return Formated string.
+ * @note If args is user type, it must have a user @ append
+ *       function as
+ *         `void append(std::string& sink, const T& value);`
+ *       The implementation can use insertion operator (<<)
+ *       between @c sink and @c value. But must use
+ *         `using lights::operator<<`.
+ *       After implement the user @c append, it also can be
+ *       use in another @c append as insertion operator.
+ */
 template <typename... Args>
 inline std::string format(const char* fmt, Args... args)
 {
@@ -205,8 +234,17 @@ inline std::string format(const char* fmt, Args... args)
 }
 
 
+/**
+ * Expose @c append.
+ */
 using details::append;
 
+/**
+ * Insert value into the sink.
+ * @param sink   string.
+ * @param value  Build-in type or custom type.
+ * @return The reference of sink.
+ */
 template <typename T>
 inline std::string& operator<< (std::string& sink, T value)
 {
