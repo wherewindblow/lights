@@ -45,8 +45,10 @@ private:
 /**
  * To convert @c value to string in the end of @ sink
  * that use insertion operator with std::ostream and T.
+ * Aim to support format with
+ *   `std::ostream operator<< (std::ostream& out, const T& value`
  * @param sink   string reference.
- * @param value  Costum type.
+ * @param value  User type.
  */
 template <typename T>
 inline void to_string(std::string& sink, T value)
@@ -150,9 +152,11 @@ inline void to_string(std::string& sink, long double n)
 
 
 /**
- * Append the @c arg to the end of sink.
+ * Append the @c arg to the end of sink. It'll invoke @c to_string
+ * Aim to support append not char* and not std::string
+ * to the end of sink.
  * @param sink  string.
- * @param arg   Build-in type.
+ * @param arg   Any type.
  */
 template <typename T>
 inline void append(std::string& sink, T arg)
@@ -175,6 +179,27 @@ inline void append(std::string& sink, const std::string& arg)
 	sink.append(arg);
 }
 
+/**
+ * Insert value into the sink. It'll invoke @c append
+ * Aim to support user can define
+ *   `std::string& operator<< (std::string& sink, T value)`
+ * to format with user type
+ * @param sink   string.
+ * @param value  Build-in type or user type.
+ * @return The reference of sink.
+ */
+template <typename T>
+inline std::string& operator<< (std::string& sink, T value)
+{
+	append(sink, value);
+	return sink;
+}
+
+inline std::string& operator<< (std::string& sink, const std::string& str)
+{
+	details::append(sink, str);
+	return sink;
+}
 
 inline void format_impl(std::string& result, const char* fmt)
 {
@@ -198,7 +223,7 @@ void format_impl(std::string& result, const char* fmt, Arg value, Args... args)
 	result.append(fmt, i);
 	if (fmt[i] != '\0')
 	{
-		append(result, value);
+		result << value;
 		format_impl(result, fmt + i + 2, args...);
 	}
 }
@@ -219,14 +244,16 @@ inline std::string format(const char* fmt)
  * @note If args is user type, it must have a user @ append
  *       function as
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value)`
- *         2) `void append(std::string& sink, const T& value);`
+ *         2) `std::string& operator<< (std::string& sink, const T& value);`
+ *         3) `void append(std::string& sink, const T& value);`
  *       1) General way to use with @c std::ostream to format.
- *       2) Optimize way with format.
+ *       2) and 3) Optimize way with format.
  *          The implementation can use insertion operator (<<)
  *          between @c sink and @c value. But must use
  *            `using lights::operator<<`.
  *          After implement the user @c append, it also can be
  *          use in another @c append as insertion operator.
+ *       The call priority is 2), 3) and 1).
  */
 template <typename... Args>
 inline std::string format(const char* fmt, Args... args)
@@ -243,22 +270,8 @@ inline std::string format(const char* fmt, Args... args)
 using details::append;
 
 /**
- * Insert value into the sink.
- * @param sink   string.
- * @param value  Build-in type or custom type.
- * @return The reference of sink.
+ * Expose @c operator<<.
  */
-template <typename T>
-inline std::string& operator<< (std::string& sink, T value)
-{
-	details::append(sink, value);
-	return sink;
-}
-
-inline std::string& operator<< (std::string& sink, const std::string& str)
-{
-	details::append(sink, str);
-	return sink;
-}
+using details::operator<<;
 
 } // namespace lights
