@@ -241,8 +241,7 @@ inline std::string format(const char* fmt)
  * @param fmt   Format that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
  * @return Formated string.
- * @note If args is user type, it must have a user @ append
- *       function as
+ * @note If args is user type, it must have a user function as
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value)`
  *         2) `std::string& operator<< (std::string& sink, const T& value);`
  *         3) `void append(std::string& sink, const T& value);`
@@ -251,9 +250,9 @@ inline std::string format(const char* fmt)
  *          The implementation can use insertion operator (<<)
  *          between @c sink and @c value. But must use
  *            `using lights::operator<<`.
- *          After implement the user @c append, it also can be
- *          use in another @c append as insertion operator.
- *       The call priority is 2), 3) and 1).
+ *          After implement the user function, it also can be use
+ *          in another user function as insertion operator.
+ *       If all user function are implemented, the priority is 2), 3) and 1).
  */
 template <typename... Args>
 inline std::string format(const char* fmt, const Args&... args)
