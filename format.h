@@ -51,7 +51,7 @@ private:
  * @param value  User type.
  */
 template <typename T>
-inline void to_string(std::string& sink, T value)
+inline void to_string(std::string& sink, const T& value)
 {
 	StringBuffer buf(sink);
 	std::ostream ostream(&buf);
@@ -159,7 +159,7 @@ inline void to_string(std::string& sink, long double n)
  * @param arg   Any type.
  */
 template <typename T>
-inline void append(std::string& sink, T arg)
+inline void append(std::string& sink, const T& arg)
 {
 	to_string(sink, arg);
 }
@@ -189,7 +189,7 @@ inline void append(std::string& sink, const std::string& arg)
  * @return The reference of sink.
  */
 template <typename T>
-inline std::string& operator<< (std::string& sink, T value)
+inline std::string& operator<< (std::string& sink, const T& value)
 {
 	append(sink, value);
 	return sink;
@@ -207,7 +207,7 @@ inline void format_impl(std::string& result, const char* fmt)
 }
 
 template <typename Arg, typename... Args>
-void format_impl(std::string& result, const char* fmt, Arg value, Args... args)
+void format_impl(std::string& result, const char* fmt, Arg value, const Args&... args)
 {
 	std::size_t i = 0;
 	for (; fmt[i] != '\0'; ++i)
@@ -256,7 +256,7 @@ inline std::string format(const char* fmt)
  *       The call priority is 2), 3) and 1).
  */
 template <typename... Args>
-inline std::string format(const char* fmt, Args... args)
+inline std::string format(const char* fmt, const Args&... args)
 {
 	std::string result;
 	details::format_impl(result, fmt, args...);
