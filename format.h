@@ -41,19 +41,20 @@ private:
 	std::string& m_sink;
 };
 
+} // namespace details
 
 /**
  * To convert @c value to string in the end of @ sink
  * that use insertion operator with std::ostream and T.
  * Aim to support format with
- *   `std::ostream operator<< (std::ostream& out, const T& value`
+ *   `std::ostream operator<< (std::ostream& out, const T& value)`
  * @param sink   string reference.
  * @param value  User type.
  */
 template <typename T>
 inline void to_string(std::string& sink, const T& value)
 {
-	StringBuffer buf(sink);
+	details::StringBuffer buf(sink);
 	std::ostream ostream(&buf);
 	ostream << value;
 }
@@ -195,19 +196,14 @@ inline std::string& operator<< (std::string& sink, const T& value)
 	return sink;
 }
 
-inline std::string& operator<< (std::string& sink, const std::string& str)
-{
-	details::append(sink, str);
-	return sink;
-}
 
-inline void format_impl(std::string& result, const char* fmt)
+inline void write(std::string& result, const char* fmt)
 {
 	result.append(fmt);
 }
 
 template <typename Arg, typename... Args>
-void format_impl(std::string& result, const char* fmt, Arg value, const Args&... args)
+void write(std::string& result, const char* fmt, Arg value, const Args& ... args)
 {
 	std::size_t i = 0;
 	for (; fmt[i] != '\0'; ++i)
@@ -224,11 +220,9 @@ void format_impl(std::string& result, const char* fmt, Arg value, const Args&...
 	if (fmt[i] != '\0')
 	{
 		result << value;
-		format_impl(result, fmt + i + 2, args...);
+		write(result, fmt + i + 2, args...);
 	}
 }
-
-} // namespace details
 
 
 inline std::string format(const char* fmt)
@@ -258,19 +252,8 @@ template <typename... Args>
 inline std::string format(const char* fmt, const Args&... args)
 {
 	std::string result;
-	details::format_impl(result, fmt, args...);
+	write(result, fmt, args...);
 	return result;
 }
-
-
-/**
- * Expose @c append.
- */
-using details::append;
-
-/**
- * Expose @c operator<<.
- */
-using details::operator<<;
 
 } // namespace lights

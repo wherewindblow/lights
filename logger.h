@@ -175,7 +175,7 @@ void Logger<Sink>::log(LogLevel level, const char* fmt, const Args&... args)
 		std::size_t len = std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
 		buf[len] = '\0';
 		auto str = format("[{}] [{}] [{}]", buf, m_name, to_string(m_level));
-		details::format_impl(str, fmt, args...);
+		write(str, fmt, args...);
 		str.push_back('\n');
 		m_sink.write(str.c_str(), str.length());
 	}
