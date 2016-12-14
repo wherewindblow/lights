@@ -202,7 +202,7 @@ inline void write(std::string& result, const char* fmt)
 	result.append(fmt);
 }
 
-template <typename Arg, typename... Args>
+template <typename Arg, typename ... Args>
 void write(std::string& result, const char* fmt, Arg value, const Args& ... args)
 {
 	std::size_t i = 0;
@@ -220,7 +220,7 @@ void write(std::string& result, const char* fmt, Arg value, const Args& ... args
 	if (fmt[i] != '\0')
 	{
 		result << value;
-		write(result, fmt + i + 2, args...);
+		write(result, fmt + i + 2, args ...);
 	}
 }
 
@@ -231,12 +231,12 @@ inline std::string format(const char* fmt)
 }
 
 /**
- * Format string that use @c fmt and @c args...
+ * Format string that use @c fmt and @c args ...
  * @param fmt   Format that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
  * @return Formated string.
  * @note If args is user type, it must have a user function as
- *         1) `std::ostream& operator<< (std::ostream& out, const T& value)`
+ *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
  *         2) `std::string& operator<< (std::string& sink, const T& value);`
  *         3) `void append(std::string& sink, const T& value);`
  *       1) General way to use with @c std::ostream to format.
@@ -249,10 +249,10 @@ inline std::string format(const char* fmt)
  *       If all user function are implemented, the priority is 2), 3) and 1).
  */
 template <typename... Args>
-inline std::string format(const char* fmt, const Args&... args)
+inline std::string format(const char* fmt, const Args& ... args)
 {
 	std::string result;
-	write(result, fmt, args...);
+	write(result, fmt, args ...);
 	return result;
 }
 

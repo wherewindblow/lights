@@ -44,8 +44,7 @@ class Logger
 {
 public:
 	Logger(const std::string& name) :
-		m_name(name)
-	{}
+		m_name(name) {}
 
 	const std::string& get_name() const
 	{
@@ -63,31 +62,31 @@ public:
 	}
 
 
-	template<typename... Args>
-	void log(LogLevel level, const char* fmt, const Args&... args);
+	template <typename ... Args>
+	void log(LogLevel level, const char* fmt, const Args& ... args);
 
-	template<typename... Args>
-	void debug(const char* fmt, const Args&... args)
+	template <typename ... Args>
+	void debug(const char* fmt, const Args& ... args)
 	{
-		this->log(LogLevel::debug, fmt, args...);
+		this->log(LogLevel::debug, fmt, args ...);
 	}
 
-	template <typename... Args>
-	void info(const char* fmt, const Args&... args)
+	template <typename ... Args>
+	void info(const char* fmt, const Args& ... args)
 	{
-		this->log(LogLevel::info, fmt, args...);
+		this->log(LogLevel::info, fmt, args ...);
 	}
 
-	template <typename... Args>
-	void warn(const char* fmt, const Args&... args)
+	template <typename ... Args>
+	void warn(const char* fmt, const Args& ... args)
 	{
-		this->log(LogLevel::warn, fmt, args...);
+		this->log(LogLevel::warn, fmt, args ...);
 	}
 
-	template <typename... Args>
-	void error(const char* fmt, const Args&... args)
+	template <typename ... Args>
+	void error(const char* fmt, const Args& ... args)
 	{
-		this->log(LogLevel::error, fmt, args...);
+		this->log(LogLevel::error, fmt, args ...);
 	}
 
 
@@ -163,8 +162,8 @@ private:
 
 
 template <typename Sink>
-template <typename... Args>
-void Logger<Sink>::log(LogLevel level, const char* fmt, const Args&... args)
+template <typename ... Args>
+void Logger<Sink>::log(LogLevel level, const char* fmt, const Args& ... args)
 {
 	if (m_level <= level)
 	{
@@ -175,7 +174,7 @@ void Logger<Sink>::log(LogLevel level, const char* fmt, const Args&... args)
 		std::size_t len = std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
 		buf[len] = '\0';
 		auto str = format("[{}] [{}] [{}]", buf, m_name, to_string(m_level));
-		write(str, fmt, args...);
+		write(str, fmt, args ...);
 		str.push_back('\n');
 		m_sink.write(str.c_str(), str.length());
 	}
