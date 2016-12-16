@@ -38,6 +38,9 @@ inline const char* to_string(LogLevel level)
 /**
  * Logger message to the backend sink.
  * @tparam Sink  Support `void write(const char* str, std::size_t len);`
+ *
+ * Message is compose by a signature header and message body.
+ * Signature is compose by time, logger name and log level.
  */
 template <typename Sink>
 class Logger
@@ -90,14 +93,7 @@ public:
 	}
 
 
-	void log(LogLevel level, const char* str)
-	{
-		if (m_level <= level)
-		{
-			std::size_t len = std::strlen(str);
-			m_sink.write(str, len);
-		}
-	}
+	void log(LogLevel level, const char* str);
 
 	void debug(const char* str)
 	{
@@ -121,14 +117,7 @@ public:
 
 
 	template <typename T>
-	void log(LogLevel level, const T& value)
-	{
-		if (m_level <= level)
-		{
-			std::string msg = format("{}", value);
-			m_sink.write(msg.c_str(), msg.length());
-		}
-	}
+	void log(LogLevel level, const T& value);
 
 	template <typename T>
 	void debug(const T& value)
@@ -155,6 +144,13 @@ public:
 	}
 
 private:
+	bool should_log(LogLevel level) const
+	{
+		return m_level <= level;
+	}
+
+	std::string get_signature_header();
+
 	std::string m_name;
 	LogLevel m_level = LogLevel::info;
 	Sink m_sink;
@@ -165,19 +161,53 @@ template <typename Sink>
 template <typename ... Args>
 void Logger<Sink>::log(LogLevel level, const char* fmt, const Args& ... args)
 {
-	if (m_level <= level)
+	if (this->should_log(level))
 	{
-		std::time_t time = std::time(nullptr);
-		std::tm tm;
-		localtime_r(&time, &tm);
-		char buf[50];
-		std::size_t len = std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
-		buf[len] = '\0';
-		auto str = format("[{}] [{}] [{}]", buf, m_name, to_string(m_level));
-		write(str, fmt, args ...);
-		str.push_back('\n');
-		m_sink.write(str.c_str(), str.length());
+		std::string msg = this->get_signature_header();
+		write(msg, fmt, args ...);
+		msg.push_back('\n');
+		m_sink.write(msg.c_str(), msg.length());
 	}
+}
+
+
+template <typename Sink>
+void Logger<Sink>::log(LogLevel level, const char* str)
+{
+	if (this->should_log(level))
+	{
+		std::string msg = this->get_signature_header();
+		msg.append(str);
+		msg.push_back('\n');
+		m_sink.write(msg.c_str(), msg.length());
+	}
+}
+
+
+template <typename Sink>
+template <typename T>
+void Logger<Sink>::log(LogLevel level, const T& value)
+{
+	if (this->should_log(level))
+	{
+		std::string msg = this->get_signature_header();
+		msg << value;
+		msg.push_back('\n');
+		m_sink.write(msg.c_str(), msg.length());
+	}
+}
+
+
+template <typename Sink>
+std::string Logger<Sink>::get_signature_header()
+{
+	std::time_t time = std::time(nullptr);
+	std::tm tm;
+	localtime_r(&time, &tm);
+	char buf[50];
+	std::size_t len = std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+	buf[len] = '\0';
+	return format("[{}] [{}] [{}] ", buf, m_name, to_string(m_level));
 }
 
 } // namespace lights
