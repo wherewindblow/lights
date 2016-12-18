@@ -41,6 +41,91 @@ private:
 	std::string& m_sink;
 };
 
+
+class IntegerFormater
+{
+public:
+	IntegerFormater() :
+		m_begin(m_buf + sizeof(m_buf) - 1)
+	{
+		m_buf[sizeof(m_buf) - 1] = '\0';
+	}
+
+	const char* format_unsigned(std::uintmax_t n)
+	{
+		while (n != 0)
+		{
+			--m_begin;
+			*m_begin = '0' + static_cast<char>(n % 10);
+			n /= 10;
+		}
+
+		return m_begin;
+	}
+
+	const char* format_signed(std::intmax_t n)
+	{
+		std::uintmax_t absolute = static_cast<std::uintmax_t>(n);
+		bool negative = n < 0;
+		if (negative)
+		{
+			absolute = 0 - absolute;
+		}
+		this->format_unsigned(absolute);
+		if (negative)
+		{
+			--m_begin;
+			*m_begin = '-';
+		}
+		return m_begin;
+	}
+
+	const char* format(unsigned short n)
+	{
+		return this->format_unsigned(n);
+	}
+
+	const char* format(unsigned int n)
+	{
+		return this->format_unsigned(n);
+	}
+
+	const char* format(unsigned long n)
+	{
+		return this->format_unsigned(n);
+	}
+
+	const char* format(unsigned long long n)
+	{
+		return this->format_unsigned(n);
+	}
+
+	const char* format(short n)
+	{
+		return this->format_signed(n);
+	}
+
+	const char* format(int n)
+	{
+		return this->format_signed(n);
+	}
+
+	const char* format(long n)
+	{
+		return this->format_signed(n);
+	}
+
+	const char* format(long long n)
+	{
+		return this->format_signed(n);
+	}
+
+private:
+	char m_buf[std::numeric_limits<std::uintmax_t>::digits10 + 1 + 1];
+	char* m_begin;
+};
+
+
 } // namespace details
 
 /**
@@ -71,58 +156,50 @@ inline void to_string(std::string& sink, char ch)
 
 inline void to_string(std::string& sink, short n)
 {
-	char buf[std::numeric_limits<short>::digits10 + 1];
-	int writen = std::sprintf(buf, "%hd", n);
-	sink.append(buf, static_cast<std::size_t>(writen));
+	details::IntegerFormater formater;
+	sink.append(formater.format(n));
 }
 
 inline void to_string(std::string& sink, unsigned short n)
 {
-	char buf[std::numeric_limits<unsigned short>::digits10 + 1];
-	int writen = std::sprintf(buf, "%hu", n);
-	sink.append(buf, static_cast<std::size_t>(writen));
+	details::IntegerFormater formater;
+	sink.append(formater.format(n));
 }
 
 inline void to_string(std::string& sink, int n)
 {
-	char buf[std::numeric_limits<int>::digits10 + 1];
-	int writen = std::sprintf(buf, "%d", n);
-	sink.append(buf, static_cast<std::size_t>(writen));
+	details::IntegerFormater formater;
+	sink.append(formater.format(n));
 }
 
 inline void to_string(std::string& sink, unsigned int n)
 {
-	char buf[std::numeric_limits<unsigned int>::digits10 + 1];
-	int writen = std::sprintf(buf, "%u", n);
-	sink.append(buf, static_cast<std::size_t>(writen));
+	details::IntegerFormater formater;
+	sink.append(formater.format(n));
 }
 
 inline void to_string(std::string& sink, long n)
 {
-	char buf[std::numeric_limits<long>::digits10 + 1];
-	int writen = std::sprintf(buf, "%ld", n);
-	sink.append(buf, static_cast<std::size_t>(writen));
+	details::IntegerFormater formater;
+	sink.append(formater.format(n));
 }
 
 inline void to_string(std::string& sink, unsigned long n)
 {
-	char buf[std::numeric_limits<unsigned long>::digits10 + 1];
-	int writen = std::sprintf(buf, "%lu", n);
-	sink.append(buf, static_cast<std::size_t>(writen));
+	details::IntegerFormater formater;
+	sink.append(formater.format(n));
 }
 
 inline void to_string(std::string& sink, long long n)
 {
-	char buf[std::numeric_limits<long long>::digits10 + 1];
-	int writen = std::sprintf(buf, "%lld", n);
-	sink.append(buf, static_cast<std::size_t>(writen));
+	details::IntegerFormater formater;
+	sink.append(formater.format(n));
 }
 
 inline void to_string(std::string& sink, unsigned long long n)
 {
-	char buf[std::numeric_limits<unsigned long long>::digits10 + 1];
-	int writen = std::sprintf(buf, "%llu", n);
-	sink.append(buf, static_cast<std::size_t>(writen));
+	details::IntegerFormater formater;
+	sink.append(formater.format(n));
 }
 
 inline void to_string(std::string& sink, float n)
