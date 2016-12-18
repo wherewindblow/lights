@@ -8,6 +8,7 @@
 
 #include <cstring>
 #include <ctime>
+#include <memory>
 
 #include "format.h"
 
@@ -46,8 +47,7 @@ template <typename Sink>
 class Logger
 {
 public:
-	Logger(const std::string& name) :
-		m_name(name) {}
+	Logger(const std::string& name, std::shared_ptr<Sink> sink);
 
 	const std::string& get_name() const
 	{
@@ -153,8 +153,13 @@ private:
 
 	std::string m_name;
 	LogLevel m_level = LogLevel::info;
-	Sink m_sink;
+	std::shared_ptr<Sink> m_sink;
 };
+
+
+template <typename Sink>
+Logger<Sink>::Logger(const std::string& name, std::shared_ptr<Sink> sink) :
+	m_name(name), m_sink(sink) {}
 
 
 template <typename Sink>
@@ -166,7 +171,7 @@ void Logger<Sink>::log(LogLevel level, const char* fmt, const Args& ... args)
 		std::string msg = this->get_signature_header();
 		write(msg, fmt, args ...);
 		msg.push_back('\n');
-		m_sink.write(msg.c_str(), msg.length());
+		m_sink->write(msg.c_str(), msg.length());
 	}
 }
 
@@ -179,7 +184,7 @@ void Logger<Sink>::log(LogLevel level, const char* str)
 		std::string msg = this->get_signature_header();
 		msg.append(str);
 		msg.push_back('\n');
-		m_sink.write(msg.c_str(), msg.length());
+		m_sink->write(msg.c_str(), msg.length());
 	}
 }
 
@@ -193,7 +198,7 @@ void Logger<Sink>::log(LogLevel level, const T& value)
 		std::string msg = this->get_signature_header();
 		msg << value;
 		msg.push_back('\n');
-		m_sink.write(msg.c_str(), msg.length());
+		m_sink->write(msg.c_str(), msg.length());
 	}
 }
 
