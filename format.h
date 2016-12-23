@@ -53,13 +53,20 @@ public:
 
 	const char* format_unsigned(std::uintmax_t n)
 	{
-		while (n != 0)
+		if (n == 0)
 		{
 			--m_begin;
-			*m_begin = '0' + static_cast<char>(n % 10);
-			n /= 10;
+			*m_begin = '0';
 		}
-
+		else
+		{
+			while (n != 0)
+			{
+				--m_begin;
+				*m_begin = '0' + static_cast<char>(n % 10);
+				n /= 10;
+			}
+		}
 		return m_begin;
 	}
 
