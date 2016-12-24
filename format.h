@@ -335,6 +335,13 @@ void write(std::string& result, const char* fmt, const Arg& value, const Args& .
 }
 
 
+template <typename Arg, typename ... Args>
+inline void write(std::string& result, const std::string& fmt, const Arg& value, const Args& ... args)
+{
+	write(result, fmt.c_str(), value, args ...);
+}
+
+
 /**
  * Format string that use @c fmt and @c args ...
  * @param fmt   Format that use '{}' as placeholder.
@@ -359,6 +366,12 @@ inline std::string format(const char* fmt, const Args& ... args)
 	std::string result;
 	write(result, fmt, args ...);
 	return result;
+}
+
+template <typename... Args>
+inline std::string format(const std::string& fmt, const Args& ... args)
+{
+	return format(fmt.c_str(), args ...);
 }
 
 } // namespace lights
