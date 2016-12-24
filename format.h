@@ -293,7 +293,7 @@ inline void append(std::string& sink, const std::string& arg)
 /**
  * Insert value into the sink. It'll invoke @c append
  * Aim to support user can define
- *   `std::string& operator<< (std::string& sink, T value)`
+ *   `std::string& operator<< (std::string& sink, const T& value)`
  * to format with user type
  * @param sink   string.
  * @param value  Build-in type or user type.
@@ -313,7 +313,7 @@ inline void write(std::string& result, const char* fmt)
 }
 
 template <typename Arg, typename ... Args>
-void write(std::string& result, const char* fmt, Arg value, const Args& ... args)
+void write(std::string& result, const char* fmt, const Arg& value, const Args& ... args)
 {
 	std::size_t i = 0;
 	for (; fmt[i] != '\0'; ++i)
