@@ -11,6 +11,8 @@
 #include <limits>
 #include <sstream>
 
+#include "config.h"
+
 
 namespace lights {
 namespace details {
@@ -42,6 +44,15 @@ private:
 };
 
 
+#ifdef LIGHTS_FORMAT_INTEGER_OPTIMIZE
+static constexpr char digists[] =
+	"0001020304050607080910111213141516171819"
+	"2021222324252627282930313233343536373839"
+	"4041424344454647484950515253545556575859"
+	"6061626364656667686970717273747576777879"
+	"8081828384858687888990919293949596979899";
+#endif
+
 class IntegerFormater
 {
 public:
@@ -60,12 +71,27 @@ public:
 		}
 		else
 		{
+#ifndef LIGHTS_FORMAT_INTEGER_OPTIMIZE
 			while (n != 0)
 			{
 				--m_begin;
 				*m_begin = '0' + static_cast<char>(n % 10);
 				n /= 10;
 			}
+#else
+			while (n != 0)
+			{
+				auto index = n % 100 * 2;
+				--m_begin;
+				*m_begin = digists[index + 1];
+				if (n >= 10)
+				{
+					--m_begin;
+					*m_begin = digists[index];
+				}
+				n /= 100;
+			}
+#endif
 		}
 		return m_begin;
 	}
