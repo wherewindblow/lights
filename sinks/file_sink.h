@@ -6,8 +6,10 @@
 
 #pragma once
 
+#include <stdio.h>
+#include <string.h>
+
 #include <cstddef>
-#include <cstring>
 #include <memory>
 
 #include "../format.h"
@@ -18,16 +20,138 @@ namespace sinks {
 
 namespace details {
 
-static void open_file_failure(const char* filename)
+enum class SeekWhence
 {
-	std::string msg;
-	msg.reserve(512);
-	char buf[256];
-	strerror_r(errno, buf, sizeof(buf));
-	lights::write(msg, "Open \"{}\" failure: {}",
-				  filename, buf);
-	throw std::runtime_error(msg);
-}
+	begin = SEEK_SET, current = SEEK_CUR, end = SEEK_END
+};
+
+
+class FileStream
+{
+public:
+	FileStream() = default;
+
+	FileStream(const char* filename, const char* modes) :
+		m_file(std::fopen(filename, modes))
+	{
+		if (m_file == nullptr)
+		{
+			FileStream::open_file_failure(filename);
+		}
+	}
+
+	FileStream(const std::string& filename, const std::string& modes) :
+		FileStream(filename.c_str(), modes.c_str())
+	{}
+
+	~FileStream()
+	{
+		if (m_file != nullptr)
+		{
+			this->close();
+		}
+	}
+
+	void open(const char* filename, const char* modes)
+	{
+		m_file = std::fopen(filename, modes);
+		if (m_file == nullptr)
+		{
+			FileStream::open_file_failure(filename);
+		}
+	}
+
+	void open(const std::string& filename, const std::string& modes)
+	{
+		this->open(filename.c_str(), modes.c_str());
+	}
+
+	void reopen(const char* filename, const char* modes)
+	{
+		if (std::freopen(filename, modes, m_file) == nullptr)
+		{
+			FileStream::open_file_failure(filename);
+		}
+	}
+
+	void reopen(const std::string& filename, const std::string& modes)
+	{
+		this->reopen(filename.c_str(), modes.c_str());
+	}
+
+	std::size_t read(char* buf, std::size_t len)
+	{
+		return std::fread(buf, sizeof(char), len, m_file);
+	}
+
+	std::size_t write(const char* buf, std::size_t len)
+	{
+		return std::fwrite(buf, sizeof(char), len, m_file);
+	}
+
+	void flush()
+	{
+		std::fflush(m_file);
+	}
+
+	bool eof()
+	{
+		return std::feof(m_file) != 0;
+	}
+
+	bool error()
+	{
+		return std::ferror(m_file) != 0;
+	}
+
+	void clear_error()
+	{
+		std::clearerr(m_file);
+	}
+
+	std::streamoff tell()
+	{
+		return ftello(m_file);
+	}
+
+	void seek(std::streamoff off, SeekWhence whence)
+	{
+		fseeko(m_file, off, static_cast<int>(whence));
+	}
+
+	void rewind()
+	{
+		std::rewind(m_file);
+	}
+
+	std::size_t size()
+	{
+		std::streamoff origin = this->tell();
+		this->seek(0, SeekWhence::end);
+		std::streamoff size = this->tell();
+		this->seek(origin, SeekWhence::begin);
+		return static_cast<std::size_t>(size);
+	}
+
+	void close()
+	{
+		std::fclose(m_file);
+	}
+
+private:
+	static void open_file_failure(const char* filename)
+	{
+		std::string msg;
+		msg.reserve(512);
+		char buf[256];
+		strerror_r(errno, buf, sizeof(buf));
+		lights::write(msg, "Open \"{}\" failure: {}",
+					  filename, buf);
+		throw std::runtime_error(msg);
+	}
+
+	std::FILE* m_file = nullptr;
+};
 
 } // namespace details
 
@@ -41,13 +165,8 @@ public:
 	 * @throw Thrown std::runtime_error when open failure.
 	 */
 	SimpleFileSink(const char* filename) :
-		m_file(std::fopen(filename, "ab+"))
-	{
-		if (m_file == nullptr)
-		{
-			details::open_file_failure(filename);
-		}
-	}
+		m_file(filename, "ab+")
+	{}
 
 	SimpleFileSink(const std::string& filename) :
 		SimpleFileSink(filename.c_str())
@@ -55,11 +174,11 @@ public:
 
 	void write(const char* str, std::size_t len)
 	{
-		std::fwrite(str, sizeof(char), len, m_file);
+		m_file.write(str, len);
 	}
 
 private:
-	std::FILE* m_file;
+	details::FileStream m_file;
 };
 
 
@@ -72,16 +191,16 @@ public:
 	 * @throw Thrown std::runtime_error when open failure.
 	 */
 	RotatingFileSink(const char* name_format, std::size_t max_size) :
-		m_name_format(name_format), m_max_size(max_size)
+		m_name_format(name_format),
+		m_max_size(max_size),
+		m_file(std::make_unique<details::FileStream>())
 	{
 		this->rotate();
 	}
 
 	RotatingFileSink(const std::string& name_format, std::size_t max_size) :
-		m_name_format(name_format), m_max_size(max_size)
-	{
-		this->rotate();
-	}
+		RotatingFileSink(name_format.c_str(), max_size)
+	{}
 
 	void write(const char* str, std::size_t len)
 	{
@@ -90,7 +209,7 @@ public:
 			this->fill_remain();
 			this->rotate();
 		}
-		std::fwrite(str, sizeof(char), len, m_file);
+		m_file->write(str, len);
 		m_current_size += len;
 	}
 
@@ -108,39 +227,34 @@ private:
 
 			for (std::size_t i = 0; i < times; ++i)
 			{
-				std::fwrite(zeros, sizeof(char), sizeof(zeros), m_file);
+				m_file->write(zeros, sizeof(zeros));
 			}
-			std::fwrite(zeros, sizeof(char), remainder, m_file);
+			m_file->write(zeros, remainder);
 		}
 	}
 
 	void rotate()
 	{
-		++m_index;
-		auto name = format(m_name_format.c_str(), m_index);
-		m_file = std::fopen(name.c_str(), "ab+");
-		if (m_file == nullptr)
+		while (true)
 		{
-			details::open_file_failure(name.c_str());
-		}
-		else
-		{
-			std::fseek(m_file, 0, SEEK_END);
-			m_current_size = static_cast<std::size_t>(std::ftell(m_file));
-			if (m_current_size >= m_max_size)
+			++m_index;
+			auto name = format(m_name_format, m_index);
+			m_file->open(name.c_str(), "ab+");
+			m_current_size = m_file->size();
+			if (m_current_size < m_max_size)
 			{
-				this->rotate();
+				break;
 			}
 			else
 			{
-				std::fseek(m_file, 0, SEEK_SET);
+				m_file->close();
 			}
 		}
 	}
 
 	std::string m_name_format;
 	const std::size_t m_max_size;
-	std::FILE* m_file;
+	std::unique_ptr<details::FileStream> m_file;
 	int m_index = -1;
 	std::size_t m_current_size;
 };
