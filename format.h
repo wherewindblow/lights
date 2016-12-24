@@ -335,11 +335,6 @@ void write(std::string& result, const char* fmt, Arg value, const Args& ... args
 }
 
 
-inline std::string format(const char* fmt)
-{
-	return std::string(fmt);
-}
-
 /**
  * Format string that use @c fmt and @c args ...
  * @param fmt   Format that use '{}' as placeholder.
