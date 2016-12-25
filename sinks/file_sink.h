@@ -6,11 +6,14 @@
 
 #pragma once
 
+#include <cstddef>
+#include <cstdio>
+#include <cstring>
+#include <string>
+#include <memory>
+
 #include <stdio.h>
 #include <string.h>
-
-#include <cstddef>
-#include <memory>
 
 #include "../format.h"
 
@@ -31,13 +34,9 @@ class FileStream
 public:
 	FileStream() = default;
 
-	FileStream(const char* filename, const char* modes) :
-		m_file(std::fopen(filename, modes))
+	FileStream(const char* filename, const char* modes)
 	{
-		if (m_file == nullptr)
-		{
-			FileStream::open_file_failure(filename);
-		}
+		this->open(filename, modes);
 	}
 
 	FileStream(const std::string& filename, const std::string& modes) :
@@ -70,6 +69,7 @@ public:
 	{
 		if (std::freopen(filename, modes, m_file) == nullptr)
 		{
+			m_file = nullptr;
 			FileStream::open_file_failure(filename);
 		}
 	}
@@ -77,6 +77,11 @@ public:
 	void reopen(const std::string& filename, const std::string& modes)
 	{
 		this->reopen(filename.c_str(), modes.c_str());
+	}
+
+	bool is_open() const
+	{
+		return m_file != nullptr;
 	}
 
 	std::size_t read(char* buf, std::size_t len)
@@ -190,16 +195,17 @@ public:
 	 * @param name_format  The file to be write.
 	 * @throw Thrown std::runtime_error when open failure.
 	 */
-	RotatingFileSink(const char* name_format, std::size_t max_size) :
+	RotatingFileSink(const char* name_format, std::size_t max_size, std::size_t max_files) :
 		m_name_format(name_format),
 		m_max_size(max_size),
+		m_max_files(max_files),
 		m_file(std::make_unique<details::FileStream>())
 	{
 		this->rotate();
 	}
 
-	RotatingFileSink(const std::string& name_format, std::size_t max_size) :
-		RotatingFileSink(name_format.c_str(), max_size)
+	RotatingFileSink(const std::string& name_format, std::size_t max_size, std::size_t max_files) :
+		RotatingFileSink(name_format.c_str(), max_size, max_files)
 	{}
 
 	void write(const char* str, std::size_t len)
@@ -212,7 +218,6 @@ public:
 		m_file->write(str, len);
 		m_current_size += len;
 	}
-
 
 private:
 	void fill_remain()
@@ -235,27 +240,47 @@ private:
 
 	void rotate()
 	{
-		while (true)
+		bool appropriate = false;
+		while (m_index + 1 < m_max_files)
 		{
-			++m_index;
-			auto name = format(m_name_format, m_index);
-			m_file->open(name.c_str(), "ab+");
-			m_current_size = m_file->size();
-			if (m_current_size < m_max_size)
-			{
-				break;
-			}
-			else
+			if (m_file->is_open())
 			{
 				m_file->close();
 			}
+			++m_index;
+			auto name = format(m_name_format, m_index);
+			m_file->open(name, "ab+");
+			m_current_size = m_file->size();
+			if (m_current_size < m_max_size)
+			{
+				appropriate = true;
+				break;
+			}
+		}
+
+		if (!appropriate)
+		{
+			auto first = format(m_name_format, 0);
+			std::remove(first.c_str());
+
+			for (std::size_t i = 1; i < m_max_files; ++i)
+			{
+				auto old_name = format(m_name_format, i);
+				auto new_name = format(m_name_format, i - 1);
+				std::rename(old_name.c_str(), new_name.c_str());
+			}
+
+			auto last = format(m_name_format, m_max_files - 1);
+			m_file->open(last, "ab+");
+			m_current_size = m_file->size();
 		}
 	}
 
 	std::string m_name_format;
 	const std::size_t m_max_size;
+	const std::size_t m_max_files;
 	std::unique_ptr<details::FileStream> m_file;
-	int m_index = -1;
+	std::size_t m_index = static_cast<std::size_t>(-1);
 	std::size_t m_current_size;
 };
 
