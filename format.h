@@ -190,7 +190,7 @@ public:
 		// Not use sys_nerr and sys_errlist directly, although the are easy to control.
 		// Because sys_nerr may bigger that sys_errlist size and sys_errlist may have't
 		// all string for errno. In the way will lead to segment fault.
-#if (_POSIX_C_SOURCE >= 200112L) && !_GNU_SOURCE
+#if (_POSIX_C_SOURCE >= 200112L) && !_GNU_SOURCE  // posix verion
 		if (strerror_r(errer_no, m_buf, sizeof(m_buf)) == 0)
 		{
 			return m_buf;
@@ -199,7 +199,7 @@ public:
 		{
 			return "Unkown error";
 		}
-#else
+#else // gnu version, m_buf is not use when is known error, but it's use when is unkown
 		return strerror_r(errer_no, m_buf, sizeof(m_buf));
 #endif
 	}
@@ -381,6 +381,25 @@ inline void write(std::string& result, const char* fmt)
 	result.append(fmt);
 }
 
+/**
+ * Write to the end of string that use @c fmt and @c args ...
+ * @param fmt   Format that use '{}' as placeholder.
+ * @param args  Variadic arguments that can be any type.
+ * @return Formated string.
+ * @note If args is user type, it must have a user function as
+ *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
+ *         2) `std::string& operator<< (std::string& sink, const T& value);`
+ *         3) `void append(std::string& sink, const T& value);`
+ *         4) `void to_string(std::string& sink, const T& value);`
+ *       1) General way to use with @c std::ostream to format.
+ *       2), 3) and 4) is optimize way with format.
+ *          The implementation can use insertion operator (<<)
+ *          between @c sink and @c value. But must use
+ *            `using lights::operator<<`.
+ *          After implement the user function, it also can be use
+ *          in another user function as insertion operator.
+ *       If all user function are implemented, the priority is 2), 3), 4) and 1).
+ */
 template <typename Arg, typename ... Args>
 void write(std::string& result, const char* fmt, const Arg& value, const Args& ... args)
 {
@@ -403,7 +422,25 @@ void write(std::string& result, const char* fmt, const Arg& value, const Args& .
 	}
 }
 
-
+/**
+ * Write to the end of string that use @c fmt and @c args ...
+ * @param fmt   Format that use '{}' as placeholder.
+ * @param args  Variadic arguments that can be any type.
+ * @return Formated string.
+ * @note If args is user type, it must have a user function as
+ *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
+ *         2) `std::string& operator<< (std::string& sink, const T& value);`
+ *         3) `void append(std::string& sink, const T& value);`
+ *         4) `void to_string(std::string& sink, const T& value);`
+ *       1) General way to use with @c std::ostream to format.
+ *       2), 3) and 4) is optimize way with format.
+ *          The implementation can use insertion operator (<<)
+ *          between @c sink and @c value. But must use
+ *            `using lights::operator<<`.
+ *          After implement the user function, it also can be use
+ *          in another user function as insertion operator.
+ *       If all user function are implemented, the priority is 2), 3), 4) and 1).
+ */
 template <typename Arg, typename ... Args>
 inline void write(std::string& result, const std::string& fmt, const Arg& value, const Args& ... args)
 {
@@ -420,14 +457,15 @@ inline void write(std::string& result, const std::string& fmt, const Arg& value,
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
  *         2) `std::string& operator<< (std::string& sink, const T& value);`
  *         3) `void append(std::string& sink, const T& value);`
+ *         4) `void to_string(std::string& sink, const T& value);`
  *       1) General way to use with @c std::ostream to format.
- *       2) and 3) Optimize way with format.
+ *       2), 3) and 4) is optimize way with format.
  *          The implementation can use insertion operator (<<)
  *          between @c sink and @c value. But must use
  *            `using lights::operator<<`.
  *          After implement the user function, it also can be use
  *          in another user function as insertion operator.
- *       If all user function are implemented, the priority is 2), 3) and 1).
+ *       If all user function are implemented, the priority is 2), 3), 4) and 1).
  */
 template <typename... Args>
 inline std::string format(const char* fmt, const Args& ... args)
@@ -437,6 +475,25 @@ inline std::string format(const char* fmt, const Args& ... args)
 	return result;
 }
 
+/**
+ * Format string that use @c fmt and @c args ...
+ * @param fmt   Format that use '{}' as placeholder.
+ * @param args  Variadic arguments that can be any type.
+ * @return Formated string.
+ * @note If args is user type, it must have a user function as
+ *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
+ *         2) `std::string& operator<< (std::string& sink, const T& value);`
+ *         3) `void append(std::string& sink, const T& value);`
+ *         4) `void to_string(std::string& sink, const T& value);`
+ *       1) General way to use with @c std::ostream to format.
+ *       2), 3) and 4) is optimize way with format.
+ *          The implementation can use insertion operator (<<)
+ *          between @c sink and @c value. But must use
+ *            `using lights::operator<<`.
+ *          After implement the user function, it also can be use
+ *          in another user function as insertion operator.
+ *       If all user function are implemented, the priority is 2), 3), 4) and 1).
+ */
 template <typename... Args>
 inline std::string format(const std::string& fmt, const Args& ... args)
 {
