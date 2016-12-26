@@ -7,14 +7,37 @@
 #pragma once
 
 #include <cstddef>
+#include <cerrno>
 #include <string>
 #include <limits>
 #include <sstream>
+
+#include <errno.h>
 
 #include "config.h"
 
 
 namespace lights {
+
+/**
+ * A wrapper aim to identify this is a error not an integer
+ */
+struct ErrorNumber
+{
+	int number;
+};
+
+inline ErrorNumber to_error(int error_no)
+{
+	return ErrorNumber{ error_no };
+}
+
+inline ErrorNumber current_error()
+{
+	return to_error(errno);
+}
+
+
 namespace details {
 
 /**
@@ -159,6 +182,46 @@ private:
 };
 
 
+class ErrorFormater
+{
+public:
+	const char* format(int errer_no)
+	{
+		// Not use sys_nerr and sys_errlist directly, although the are easy to control.
+		// Because sys_nerr may bigger that sys_errlist size and sys_errlist may have't
+		// all string for errno. In the way will lead to segment fault.
+#if (_POSIX_C_SOURCE >= 200112L) && !_GNU_SOURCE
+		if (strerror_r(errer_no, m_buf, sizeof(m_buf)) == 0)
+		{
+			return m_buf;
+		}
+		else
+		{
+			return "Unkown error";
+		}
+#else
+		return strerror_r(errer_no, m_buf, sizeof(m_buf));
+#endif
+	}
+
+	const char* format(ErrorNumber errer_no)
+	{
+		return this->format(errer_no.number);
+	}
+
+	const char* format_current_error()
+	{
+		return this->format(errno);
+	}
+
+private:
+	// 100 charater is enough to put all error string
+	// on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2) (Englist Version).
+	// In another languague version may have to change to largger to
+	// hold all message.
+	char m_buf[100];
+};
+
 } // namespace details
 
 /**
@@ -259,6 +322,12 @@ inline void to_string(std::string& sink, long double n)
 	char buf[100 + 1 + std::numeric_limits<long double>::digits10 + 1];
 	int writen = std::snprintf(buf, sizeof(buf), "%Lf", n);
 	sink.append(buf, static_cast<std::size_t>(writen));
+}
+
+inline void to_string(std::string& sink, ErrorNumber error_no)
+{
+	details::ErrorFormater formater;
+	sink.append(formater.format(error_no));
 }
 
 
