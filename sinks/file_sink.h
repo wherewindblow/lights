@@ -148,10 +148,8 @@ private:
 	{
 		std::string msg;
 		msg.reserve(512);
-		char buf[256];
-		strerror_r(errno, buf, sizeof(buf));
 		lights::write(msg, "Open \"{}\" failure: {}",
-					  filename, buf);
+					  filename, current_error());
 		throw std::runtime_error(msg);
 	}
 
