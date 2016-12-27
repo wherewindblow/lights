@@ -89,12 +89,60 @@ static constexpr char digists[] =
 class IntegerFormater
 {
 public:
-	IntegerFormater() :
-		m_begin(m_buf + sizeof(m_buf) - 1)
+	IntegerFormater()
 	{
 		m_buf[sizeof(m_buf) - 1] = '\0';
 	}
 
+	const char* format(unsigned short n)
+	{
+		this->reset_state();
+		return this->format_unsigned(n);
+	}
+
+	const char* format(unsigned int n)
+	{
+		this->reset_state();
+		return this->format_unsigned(n);
+	}
+
+	const char* format(unsigned long n)
+	{
+		this->reset_state();
+		return this->format_unsigned(n);
+	}
+
+	const char* format(unsigned long long n)
+	{
+		this->reset_state();
+		return this->format_unsigned(n);
+	}
+
+	const char* format(short n)
+	{
+		this->reset_state();
+		return this->format_signed(n);
+	}
+
+	const char* format(int n)
+	{
+		this->reset_state();
+		return this->format_signed(n);
+	}
+
+	const char* format(long n)
+	{
+		this->reset_state();
+		return this->format_signed(n);
+	}
+
+	const char* format(long long n)
+	{
+		this->reset_state();
+		return this->format_signed(n);
+	}
+
+private:
 	const char* format_unsigned(std::uintmax_t n)
 	{
 		if (n == 0)
@@ -146,47 +194,11 @@ public:
 		return m_begin;
 	}
 
-	const char* format(unsigned short n)
+	void reset_state()
 	{
-		return this->format_unsigned(n);
+		m_begin = m_buf + sizeof(m_buf) - 1;
 	}
 
-	const char* format(unsigned int n)
-	{
-		return this->format_unsigned(n);
-	}
-
-	const char* format(unsigned long n)
-	{
-		return this->format_unsigned(n);
-	}
-
-	const char* format(unsigned long long n)
-	{
-		return this->format_unsigned(n);
-	}
-
-	const char* format(short n)
-	{
-		return this->format_signed(n);
-	}
-
-	const char* format(int n)
-	{
-		return this->format_signed(n);
-	}
-
-	const char* format(long n)
-	{
-		return this->format_signed(n);
-	}
-
-	const char* format(long long n)
-	{
-		return this->format_signed(n);
-	}
-
-private:
 	char m_buf[std::numeric_limits<std::uintmax_t>::digits10 + 1 + 1];
 	char* m_begin;
 };
