@@ -350,28 +350,28 @@ inline void to_string(std::string& sink, const StringView& value)
  * Append the @c arg to the end of sink. It'll invoke @c to_string
  * Aim to support append not char* and not std::string
  * to the end of sink.
- * @param sink  string.
- * @param arg   Any type.
+ * @param sink   string.
+ * @param value  Any type.
  */
 template <typename T>
-inline void append(std::string& sink, const T& arg)
+inline void append(std::string& sink, const T& value)
 {
-	to_string(sink, arg);
+	to_string(sink, value);
 }
 
-inline void append(std::string& sink, char* arg)
+inline void append(std::string& sink, char* str)
 {
-	sink.append(arg);
+	sink.append(str);
 }
 
-inline void append(std::string& sink, const char* arg)
+inline void append(std::string& sink, const char* str)
 {
-	sink.append(arg);
+	sink.append(str);
 }
 
-inline void append(std::string& sink, const std::string& arg)
+inline void append(std::string& sink, const std::string& str)
 {
-	sink.append(arg);
+	sink.append(str);
 }
 
 /**
@@ -391,13 +391,14 @@ inline std::string& operator<< (std::string& sink, const T& value)
 }
 
 
-inline void write(std::string& result, const char* fmt)
+inline void write(std::string& sink, const char* fmt)
 {
-	result.append(fmt);
+	sink.append(fmt);
 }
 
 /**
  * Write to the end of string that use @c fmt and @c args ...
+ * @param sink  Output holder.
  * @param fmt   Format that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
  * @return Formated string.
@@ -416,7 +417,7 @@ inline void write(std::string& result, const char* fmt)
  *       If all user function are implemented, the priority is 2), 3), 4) and 1).
  */
 template <typename Arg, typename ... Args>
-void write(std::string& result, const char* fmt, const Arg& value, const Args& ... args)
+void write(std::string& sink, const char* fmt, const Arg& value, const Args& ... args)
 {
 	std::size_t i = 0;
 	for (; fmt[i] != '\0'; ++i)
@@ -429,16 +430,17 @@ void write(std::string& result, const char* fmt, const Arg& value, const Args& .
 		}
 	}
 
-	result.append(fmt, i);
+	sink.append(fmt, i);
 	if (fmt[i] != '\0')
 	{
-		result << value;
-		write(result, fmt + i + 2, args ...);
+		sink << value;
+		write(sink, fmt + i + 2, args ...);
 	}
 }
 
 /**
  * Write to the end of string that use @c fmt and @c args ...
+ * @param sink  Output holder.
  * @param fmt   Format that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
  * @return Formated string.
