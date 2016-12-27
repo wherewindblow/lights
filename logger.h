@@ -19,7 +19,7 @@ namespace lights {
 
 namespace details {
 
-static const char* log_level_names[] = {
+static const std::string log_level_names[] = {
 	"debug", "info", "warning", "error", "off"
 };
 
@@ -32,7 +32,7 @@ enum class LogLevel
 };
 
 
-inline const char* to_string(LogLevel level)
+inline const std::string& to_string(LogLevel level)
 {
 	return details::log_level_names[static_cast<int>(level)];
 }
@@ -214,7 +214,10 @@ std::string Logger<Sink>::get_signature_header()
 	char buf[50];
 	std::size_t len = std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
 	buf[len] = '\0';
-	return format("[{}] [{}] [{}] ", buf, m_name, to_string(m_level));
+	std::string header;
+	header.reserve(200);
+	write(header, "[{}] [{}] [{}] ", StringView{ buf, len }, m_name, to_string(m_level));
+	return header;
 }
 
 } // namespace lights
