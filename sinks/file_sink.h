@@ -188,23 +188,42 @@ private:
 class RotatingFileSink
 {
 public:
-	/**
-	 * Open the file with @c filename.
-	 * @param name_format  The file to be write.
-	 * @throw Thrown std::runtime_error when open failure.
-	 */
-	RotatingFileSink(const char* name_format, std::size_t max_size, std::size_t max_files) :
-		m_name_format(name_format),
-		m_max_size(max_size),
-		m_max_files(max_files),
+	RotatingFileSink() :
 		m_file(std::make_unique<details::FileStream>())
-	{
-		this->rotate();
+	{}
+
+#define LIGHTS_SINKS_INIT_MEMBER(exp) \
+	if (can_init) \
+	{             \
+		exp;      \
+	}             \
+	else          \
+	{             \
+		throw std::logic_error("Cannot initialize when have been end initialization"); \
 	}
 
-	RotatingFileSink(const std::string& name_format, std::size_t max_size, std::size_t max_files) :
-		RotatingFileSink(name_format.c_str(), max_size, max_files)
-	{}
+	void init_name_format(const std::string& name_format)
+	{
+		LIGHTS_SINKS_INIT_MEMBER(m_name_format = name_format);
+	}
+
+	void init_max_size(std::size_t max_size)
+	{
+		LIGHTS_SINKS_INIT_MEMBER(m_max_size = max_size);
+	}
+
+	void init_max_files(std::size_t max_files)
+	{
+		LIGHTS_SINKS_INIT_MEMBER(m_max_files = max_files);
+	}
+
+#undef LIGHTS_SINKS_INIT_MEMBER
+
+	void end_init()
+	{
+		can_init = false;
+		this->rotate();
+	}
 
 	void write(const char* str, std::size_t len)
 	{
@@ -274,9 +293,10 @@ private:
 		}
 	}
 
+	bool can_init = true;
 	std::string m_name_format;
-	const std::size_t m_max_size;
-	const std::size_t m_max_files;
+	std::size_t m_max_size;
+	std::size_t m_max_files = static_cast<std::size_t>(-1);
 	std::unique_ptr<details::FileStream> m_file;
 	std::size_t m_index = static_cast<std::size_t>(-1);
 	std::size_t m_current_size;
