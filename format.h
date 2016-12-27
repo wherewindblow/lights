@@ -20,7 +20,7 @@
 namespace lights {
 
 /**
- * A wrapper aim to identify this is a error not an integer
+ * A wrapper aim to identify this is a error not an integer.
  */
 struct ErrorNumber
 {
@@ -36,6 +36,16 @@ inline ErrorNumber current_error()
 {
 	return to_error(errno);
 }
+
+
+/**
+ * View of string, can reduce data copy.
+ */
+struct StringView
+{
+	const char* string;
+	std::size_t length;
+};
 
 
 namespace details {
@@ -328,6 +338,11 @@ inline void to_string(std::string& sink, ErrorNumber error_no)
 {
 	details::ErrorFormater formater;
 	sink.append(formater.format(error_no));
+}
+
+inline void to_string(std::string& sink, const StringView& value)
+{
+	sink.append(value.string, value.length);
 }
 
 
