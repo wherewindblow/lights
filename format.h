@@ -94,53 +94,33 @@ public:
 		m_buf[sizeof(m_buf) - 1] = '\0';
 	}
 
-	const char* format(unsigned short n)
-	{
-		this->reset_state();
-		return this->format_unsigned(n);
+#define LIGHTS_INTEGER_FORMATER_FORMAT_UNSIGNED(Type) \
+	const char* format(Type n)           \
+	{                                    \
+		this->reset_state();             \
+		return this->format_unsigned(n); \
 	}
 
-	const char* format(unsigned int n)
-	{
-		this->reset_state();
-		return this->format_unsigned(n);
+	LIGHTS_INTEGER_FORMATER_FORMAT_UNSIGNED(unsigned short)
+	LIGHTS_INTEGER_FORMATER_FORMAT_UNSIGNED(unsigned int)
+	LIGHTS_INTEGER_FORMATER_FORMAT_UNSIGNED(unsigned long)
+	LIGHTS_INTEGER_FORMATER_FORMAT_UNSIGNED(unsigned long long)
+
+#undef LIGHTS_INTEGER_FORMATER_FORMAT_UNSIGNED
+
+#define LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED(Type) \
+	const char* format(Type n)           \
+	{                                    \
+		this->reset_state();             \
+		return this->format_signed(n); \
 	}
 
-	const char* format(unsigned long n)
-	{
-		this->reset_state();
-		return this->format_unsigned(n);
-	}
+	LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED(short)
+	LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED(int)
+	LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED(long)
+	LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED(long long)
 
-	const char* format(unsigned long long n)
-	{
-		this->reset_state();
-		return this->format_unsigned(n);
-	}
-
-	const char* format(short n)
-	{
-		this->reset_state();
-		return this->format_signed(n);
-	}
-
-	const char* format(int n)
-	{
-		this->reset_state();
-		return this->format_signed(n);
-	}
-
-	const char* format(long n)
-	{
-		this->reset_state();
-		return this->format_signed(n);
-	}
-
-	const char* format(long long n)
-	{
-		this->reset_state();
-		return this->format_signed(n);
-	}
+#undef LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED
 
 private:
 	const char* format_unsigned(std::uintmax_t n)
@@ -272,53 +252,25 @@ inline void to_string(std::string& sink, char ch)
 	sink.push_back(ch);
 }
 
-inline void to_string(std::string& sink, short n)
-{
-	details::IntegerFormater formater;
-	sink.append(formater.format(n));
+
+#define LIGHTS_INTEGER_TO_STRING(Type)            \
+inline void to_string(std::string& sink, Type n)  \
+{                                                 \
+	details::IntegerFormater formater;            \
+	sink.append(formater.format(n));              \
 }
 
-inline void to_string(std::string& sink, unsigned short n)
-{
-	details::IntegerFormater formater;
-	sink.append(formater.format(n));
-}
+LIGHTS_INTEGER_TO_STRING(short)
+LIGHTS_INTEGER_TO_STRING(int)
+LIGHTS_INTEGER_TO_STRING(long)
+LIGHTS_INTEGER_TO_STRING(long long)
+LIGHTS_INTEGER_TO_STRING(unsigned short)
+LIGHTS_INTEGER_TO_STRING(unsigned int)
+LIGHTS_INTEGER_TO_STRING(unsigned long)
+LIGHTS_INTEGER_TO_STRING(unsigned long long)
 
-inline void to_string(std::string& sink, int n)
-{
-	details::IntegerFormater formater;
-	sink.append(formater.format(n));
-}
+#undef LIGHTS_INTEGER_TO_STRING
 
-inline void to_string(std::string& sink, unsigned int n)
-{
-	details::IntegerFormater formater;
-	sink.append(formater.format(n));
-}
-
-inline void to_string(std::string& sink, long n)
-{
-	details::IntegerFormater formater;
-	sink.append(formater.format(n));
-}
-
-inline void to_string(std::string& sink, unsigned long n)
-{
-	details::IntegerFormater formater;
-	sink.append(formater.format(n));
-}
-
-inline void to_string(std::string& sink, long long n)
-{
-	details::IntegerFormater formater;
-	sink.append(formater.format(n));
-}
-
-inline void to_string(std::string& sink, unsigned long long n)
-{
-	details::IntegerFormater formater;
-	sink.append(formater.format(n));
-}
 
 inline void to_string(std::string& sink, float n)
 {
@@ -471,9 +423,9 @@ void write(std::string& sink, const char* fmt, const Arg& value, const Args& ...
  *       If all user function are implemented, the priority is 2), 3), 4) and 1).
  */
 template <typename Arg, typename ... Args>
-inline void write(std::string& result, const std::string& fmt, const Arg& value, const Args& ... args)
+inline void write(std::string& sink, const std::string& fmt, const Arg& value, const Args& ... args)
 {
-	write(result, fmt.c_str(), value, args ...);
+	write(sink, fmt.c_str(), value, args ...);
 }
 
 
@@ -499,9 +451,9 @@ inline void write(std::string& result, const std::string& fmt, const Arg& value,
 template <typename... Args>
 inline std::string format(const char* fmt, const Args& ... args)
 {
-	std::string result;
-	write(result, fmt, args ...);
-	return result;
+	std::string sink;
+	write(sink, fmt, args ...);
+	return sink;
 }
 
 /**
