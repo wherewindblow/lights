@@ -148,7 +148,8 @@ private:
 	{
 		std::string msg;
 		msg.reserve(512);
-		lights::write(msg, "Open \"{}\" failure: {}",
+		auto out = make_string_adapter(msg);
+		lights::write(out, "Open \"{}\" failure: {}",
 					  filename, current_error());
 		throw std::runtime_error(msg);
 	}

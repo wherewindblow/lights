@@ -171,7 +171,7 @@ void Logger<Sink>::log(LogLevel level, const char* fmt, const Args& ... args)
 	if (this->should_log(level))
 	{
 		std::string msg = this->get_signature_header();
-		write(msg, fmt, args ...);
+		write(make_string_adapter(msg), fmt, args ...);
 		msg.push_back('\n');
 		m_sink->write(msg.c_str(), msg.length());
 	}
@@ -198,7 +198,7 @@ void Logger<Sink>::log(LogLevel level, const T& value)
 	if (this->should_log(level))
 	{
 		std::string msg = this->get_signature_header();
-		msg << value;
+		append(make_string_adapter(msg), value);
 		msg.push_back('\n');
 		m_sink->write(msg.c_str(), msg.length());
 	}
@@ -216,7 +216,8 @@ std::string Logger<Sink>::get_signature_header()
 	buf[len] = '\0';
 	std::string header;
 	header.reserve(200);
-	write(header, "[{}] [{}] [{}] ", StringView{ buf, len }, m_name, to_string(m_level));
+	auto str = make_string_adapter(header);
+	write(str, "[{}] [{}] [{}] ", StringView{ buf, len }, m_name, to_string(m_level));
 	return header;
 }
 

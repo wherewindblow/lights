@@ -48,32 +48,106 @@ struct StringView
 };
 
 
+/**
+ * StringAdapter adapter Sink to a abstract string.
+ * It's light weight and can be use as pass by value.
+ * @tparam Sink  To be write backend.
+ * @note This class template cannot to be use, and must to be
+ *       instantiation and implement the method by user.
+ */
+template <typename Sink>
+class StringAdapter
+{
+public:
+	StringAdapter(Sink& sink) = delete;
+
+	void append(char ch)
+	{
+		m_sink.append(ch);
+	};
+
+	void append(const char* str, std::size_t len)
+	{
+		while (len != 0)
+		{
+			this->append(*str);
+			++str;
+			--len;
+		}
+	}
+
+	void append(const char* str)
+	{
+		this->append(str, std::strlen(str));
+	}
+
+private:
+	Sink& m_sink;
+};
+
+/**
+ * Helper function to create StringAdapter.
+ */
+template <typename T>
+StringAdapter<T> make_string_adapter(T& value)
+{
+	return StringAdapter<T>(value);
+}
+
+
+template <>
+class StringAdapter<std::string>
+{
+public:
+	StringAdapter(std::string& sink) : m_sink(sink) {}
+
+	void append(char ch)
+	{
+		m_sink.push_back(ch);
+	}
+
+	void append(const char* str, std::size_t len)
+	{
+		m_sink.append(str, len);
+	}
+
+	void append(const char* str)
+	{
+		m_sink.append(str);
+	}
+
+private:
+	std::string& m_sink;
+};
+
+
 namespace details {
 
 /**
- * StringBuffer that reference on a std::string.
+ * StringBuffer that reference on a string.
  * Instead of std::stringbuf to optimize performance.
  */
+template <typename Sink>
 class StringBuffer: public std::streambuf
 {
 public:
-	StringBuffer(std::string& sink) :
-		m_sink(sink) {}
+	StringBuffer(Sink& sink) :
+		m_string(sink) {}
 
 	virtual int_type overflow(int_type ch) override
 	{
-		m_sink.push_back(static_cast<char>(ch));
+		m_string.append(static_cast<char>(ch));
 		return ch;
 	}
 
 	virtual std::streamsize	xsputn(const char* s, std::streamsize n) override
 	{
-		m_sink.append(s, static_cast<std::size_t>(n));
+		m_string.append(s, static_cast<std::size_t>(n));
 		return n;
 	}
 
 private:
-	std::string& m_sink;
+	StringAdapter<Sink>& m_string;
 };
 
 
@@ -230,34 +304,37 @@ private:
  * To convert @c value to string in the end of @ sink
  * that use insertion operator with std::ostream and T.
  * Aim to support format with
- *   `std::ostream operator<< (std::ostream& out, const T& value)`
- * @param sink   string reference.
+ *   `std::ostream& operator<< (std::ostream& out, const T& value)`
+ * @param out    Abstract string.
  * @param value  User type.
  */
-template <typename T>
-inline void to_string(std::string& sink, const T& value)
+template <typename Sink, typename T>
+inline void to_string(StringAdapter<Sink> out, const T& value)
 {
-	details::StringBuffer buf(sink);
+	details::StringBuffer<Sink> buf(out);
 	std::ostream ostream(&buf);
 	ostream << value;
 }
 
-inline void to_string(std::string& sink, bool is)
+template <typename Sink>
+inline void to_string(StringAdapter<Sink> out, bool is)
 {
-	sink.append(is ? "true" : "false");
+	out.append(is ? "true" : "false");
 }
 
-inline void to_string(std::string& sink, char ch)
+template <typename Sink>
+inline void to_string(StringAdapter<Sink> out, char ch)
 {
-	sink.push_back(ch);
+	out.append(ch);
 }
 
 
 #define LIGHTS_INTEGER_TO_STRING(Type)            \
-inline void to_string(std::string& sink, Type n)  \
+template <typename Sink>                          \
+inline void to_string(StringAdapter<Sink> out, Type n) \
 {                                                 \
 	details::IntegerFormater formater;            \
-	sink.append(formater.format(n));              \
+	out.append(formater.format(n));               \
 }
 
 LIGHTS_INTEGER_TO_STRING(short)
@@ -272,92 +349,101 @@ LIGHTS_INTEGER_TO_STRING(unsigned long long)
 #undef LIGHTS_INTEGER_TO_STRING
 
 
-inline void to_string(std::string& sink, float n)
+template <typename Sink>
+inline void to_string(StringAdapter<Sink> out, float n)
 {
 	char buf[std::numeric_limits<float>::max_exponent10 + 1 +
 		std::numeric_limits<float>::digits10 + 1];
 	int writen = std::sprintf(buf, "%f", n);
-	sink.append(buf, static_cast<std::size_t>(writen));
+	out.append(buf, static_cast<std::size_t>(writen));
 }
 
-inline void to_string(std::string& sink, double n)
+template <typename Sink>
+inline void to_string(StringAdapter<Sink> out, double n)
 {
 	// 100 is the max exponent10 of double that can format in
 	// sprintf on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2).
 	char buf[100 + 1 + std::numeric_limits<double>::digits10 + 1];
 	int writen = std::snprintf(buf, sizeof(buf), "%f", n);
-	sink.append(buf, static_cast<std::size_t>(writen));
+	out.append(buf, static_cast<std::size_t>(writen));
 }
 
-inline void to_string(std::string& sink, long double n)
+template <typename Sink>
+inline void to_string(StringAdapter<Sink> out, long double n)
 {
 	// 100 is the max exponent10 of long double that can format in
 	// sprintf on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2).
 	char buf[100 + 1 + std::numeric_limits<long double>::digits10 + 1];
 	int writen = std::snprintf(buf, sizeof(buf), "%Lf", n);
-	sink.append(buf, static_cast<std::size_t>(writen));
+	out.append(buf, static_cast<std::size_t>(writen));
 }
 
-inline void to_string(std::string& sink, ErrorNumber error_no)
+template <typename Sink>
+inline void to_string(StringAdapter<Sink> out, ErrorNumber error_no)
 {
 	details::ErrorFormater formater;
-	sink.append(formater.format(error_no));
+	out.append(formater.format(error_no));
 }
 
-inline void to_string(std::string& sink, const StringView& value)
+template <typename Sink>
+inline void to_string(StringAdapter<Sink> out, const StringView& value)
 {
-	sink.append(value.string, value.length);
+	out.append(value.string, value.length);
 }
 
 
 /**
- * Append the @c arg to the end of sink. It'll invoke @c to_string
+ * Append the @c arg to the end of @c out. It'll invoke @c to_string
  * Aim to support append not char* and not std::string
- * to the end of sink.
- * @param sink   string.
+ * to the end of @c out.
+ * @param out    Abstract string.
  * @param value  Any type.
  */
-template <typename T>
-inline void append(std::string& sink, const T& value)
+template <typename Sink, typename T>
+inline void append(StringAdapter<Sink> out, const T& value)
 {
-	to_string(sink, value);
+	to_string(out, value);
 }
 
-inline void append(std::string& sink, char* str)
+template <typename Sink>
+inline void append(StringAdapter<Sink> out, char* str)
 {
-	sink.append(str);
+	out.append(str);
 }
 
-inline void append(std::string& sink, const char* str)
+template <typename Sink>
+inline void append(StringAdapter<Sink> out, const char* str)
 {
-	sink.append(str);
+	out.append(str);
 }
 
-inline void append(std::string& sink, const std::string& str)
+template <typename Sink>
+inline void append(StringAdapter<Sink> out, const std::string& str)
 {
-	sink.append(str);
+	out.append(str.c_str(), str.length());
 }
 
 /**
  * Insert value into the sink. It'll invoke @c append
  * Aim to support user can define
- *   `std::string& operator<< (std::string& sink, const T& value)`
+ *   `StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value)`
  * to format with user type
- * @param sink   string.
- * @param value  Build-in type or user type.
- * @return The reference of sink.
+ * @param out    Abstract string.
+ * @param value  Built-in type or user type.
+ * @return StringAdapter.
  */
-template <typename T>
-inline std::string& operator<< (std::string& sink, const T& value)
+template <typename Sink, typename T>
+inline StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value)
 {
-	append(sink, value);
-	return sink;
+	append(out, value);
+	return out;
 }
 
 
-inline void write(std::string& sink, const char* fmt)
+template <typename Sink>
+inline void write(StringAdapter<Sink> out, const char* fmt)
 {
-	sink.append(fmt);
+	out.append(fmt);
 }
 
 /**
@@ -368,9 +454,9 @@ inline void write(std::string& sink, const char* fmt)
  * @return Formated string.
  * @note If args is user type, it must have a user function as
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
- *         2) `std::string& operator<< (std::string& sink, const T& value);`
- *         3) `void append(std::string& sink, const T& value);`
- *         4) `void to_string(std::string& sink, const T& value);`
+ *         2) `StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value);`
+ *         3) `void append(StringAdapter<Sink> out, const T& value);`
+ *         4) `void to_string(StringAdapter<Sink> out, const T& value);`
  *       1) General way to use with @c std::ostream to format.
  *       2), 3) and 4) is optimize way with format.
  *          The implementation can use insertion operator (<<)
@@ -380,8 +466,8 @@ inline void write(std::string& sink, const char* fmt)
  *          in another user function as insertion operator.
  *       If all user function are implemented, the priority is 2), 3), 4) and 1).
  */
-template <typename Arg, typename ... Args>
-void write(std::string& sink, const char* fmt, const Arg& value, const Args& ... args)
+template <typename Sink, typename Arg, typename ... Args>
+void write(StringAdapter<Sink> out, const char* fmt, const Arg& value, const Args& ... args)
 {
 	std::size_t i = 0;
 	for (; fmt[i] != '\0'; ++i)
@@ -394,25 +480,25 @@ void write(std::string& sink, const char* fmt, const Arg& value, const Args& ...
 		}
 	}
 
-	sink.append(fmt, i);
+	out.append(fmt, i);
 	if (fmt[i] != '\0')
 	{
-		sink << value;
-		write(sink, fmt + i + 2, args ...);
+		append(out, value);
+		write(out, fmt + i + 2, args ...);
 	}
 }
 
 /**
  * Write to the end of string that use @c fmt and @c args ...
- * @param sink  Output holder.
+ * @param out  Output holder.
  * @param fmt   Format that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
  * @return Formated string.
  * @note If args is user type, it must have a user function as
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
- *         2) `std::string& operator<< (std::string& sink, const T& value);`
- *         3) `void append(std::string& sink, const T& value);`
- *         4) `void to_string(std::string& sink, const T& value);`
+ *         2) `StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value);`
+ *         3) `void append(StringAdapter<Sink> out, const T& value);`
+ *         4) `void to_string(StringAdapter<Sink> out, const T& value);`
  *       1) General way to use with @c std::ostream to format.
  *       2), 3) and 4) is optimize way with format.
  *          The implementation can use insertion operator (<<)
@@ -422,10 +508,10 @@ void write(std::string& sink, const char* fmt, const Arg& value, const Args& ...
  *          in another user function as insertion operator.
  *       If all user function are implemented, the priority is 2), 3), 4) and 1).
  */
-template <typename Arg, typename ... Args>
-inline void write(std::string& sink, const std::string& fmt, const Arg& value, const Args& ... args)
+template <typename Sink, typename Arg, typename ... Args>
+inline void write(StringAdapter<Sink> out, const std::string& fmt, const Arg& value, const Args& ... args)
 {
-	write(sink, fmt.c_str(), value, args ...);
+	write(out, fmt.c_str(), value, args ...);
 }
 
 
@@ -436,9 +522,9 @@ inline void write(std::string& sink, const std::string& fmt, const Arg& value, c
  * @return Formated string.
  * @note If args is user type, it must have a user function as
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
- *         2) `std::string& operator<< (std::string& sink, const T& value);`
- *         3) `void append(std::string& sink, const T& value);`
- *         4) `void to_string(std::string& sink, const T& value);`
+ *         2) `StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value);`
+ *         3) `void append(StringAdapter<Sink> out, const T& value);`
+ *         4) `void to_string(StringAdapter<Sink> out, const T& value);`
  *       1) General way to use with @c std::ostream to format.
  *       2), 3) and 4) is optimize way with format.
  *          The implementation can use insertion operator (<<)
@@ -451,9 +537,9 @@ inline void write(std::string& sink, const std::string& fmt, const Arg& value, c
 template <typename... Args>
 inline std::string format(const char* fmt, const Args& ... args)
 {
-	std::string sink;
-	write(sink, fmt, args ...);
-	return sink;
+	std::string out;
+	write(make_string_adapter(out), fmt, args ...);
+	return out;
 }
 
 /**
@@ -463,9 +549,9 @@ inline std::string format(const char* fmt, const Args& ... args)
  * @return Formated string.
  * @note If args is user type, it must have a user function as
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
- *         2) `std::string& operator<< (std::string& sink, const T& value);`
- *         3) `void append(std::string& sink, const T& value);`
- *         4) `void to_string(std::string& sink, const T& value);`
+ *         2) `StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value);`
+ *         3) `void append(StringAdapter<Sink> out, const T& value);`
+ *         4) `void to_string(StringAdapter<Sink> out, const T& value);`
  *       1) General way to use with @c std::ostream to format.
  *       2), 3) and 4) is optimize way with format.
  *          The implementation can use insertion operator (<<)
