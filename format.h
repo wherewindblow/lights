@@ -214,17 +214,28 @@ private:
 				n /= 10;
 			}
 #else
-			while (n != 0)
+			while (n >= 100)
 			{
 				auto index = n % 100 * 2;
 				--m_begin;
 				*m_begin = digists[index + 1];
-				if (n >= 10)
-				{
-					--m_begin;
-					*m_begin = digists[index];
-				}
+				--m_begin;
+				*m_begin = digists[index];
 				n /= 100;
+			}
+
+			if (n < 10) // Single digit.
+			{
+				--m_begin;
+				*m_begin = '0' + static_cast<char>(n);
+			}
+			else // Double digits.
+			{
+				auto index = n * 2;
+				--m_begin;
+				*m_begin = digists[index + 1];
+				--m_begin;
+				*m_begin = digists[index];
 			}
 #endif
 		}
