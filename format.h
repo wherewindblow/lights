@@ -530,6 +530,12 @@ template <std::size_t buffer_size>
 class BufferWriter
 {
 public:
+	template <typename Arg, typename ... Args>
+	void write(const char* fmt, const Arg& value, const Args& ... args)
+	{
+		lights::write(make_string_adapter(*this), fmt, value, args ...);
+	}
+
 	/**
 	 * Basic append function to append a character.
 	 * Append a char to the end of internal buffer.
