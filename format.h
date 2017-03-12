@@ -526,6 +526,146 @@ inline void write(StringAdapter<Sink> out, const std::string& fmt, const Arg& va
 }
 
 
+template <std::size_t buffer_size>
+class BufferWriter
+{
+public:
+	/**
+	 * Basic append function to append a character.
+	 * Append a char to the end of internal buffer.
+	 * @param ch  Character to append.
+	 * @note If the internal buffer is full will have no effect.
+	 */
+	void append(char ch)
+	{
+		if (m_length + 1 < max_size()) // Remain a charater to hold null chareter.
+		{
+			m_buffer[m_length] = ch;
+			++m_length;
+		}
+	}
+
+	/**
+	 * Basic append function to append len of characters.
+	 * Append the first len character string point to by str to the end of internal buffer.
+	 * @param str  Point to the character string to append.
+	 * @param len  Length of character to append.
+	 * @note If the internal buffer is full will have no effect.
+	 */
+	void append(const char* str, std::size_t len)
+	{
+		if (m_length + len < max_size()) // Remain a charater to hold null chareter.
+		{
+			std::memcpy(m_buffer + m_length, str, len);
+			m_length += len;
+		}
+		else // Append to the remaining place.
+		{
+			append(str, max_size() - m_length - 1);  // Remain a charater to hold null chareter.
+		}
+	}
+
+	void append(const char* str)
+	{
+		this->append(str, std::strlen(str));
+	}
+
+	void append(const StringView& str)
+	{
+		this->append(str.string, str.length);
+	}
+
+
+#define LIGHTS_MEMORY_WRITER_APPEND(Type)                   \
+	void append(Type value)                                 \
+	{                                                       \
+		const char* str = m_integer_formater.format(value); \
+		this->append(str);                                  \
+	}
+
+	LIGHTS_MEMORY_WRITER_APPEND(short)
+	LIGHTS_MEMORY_WRITER_APPEND(int)
+	LIGHTS_MEMORY_WRITER_APPEND(long)
+	LIGHTS_MEMORY_WRITER_APPEND(long long)
+	LIGHTS_MEMORY_WRITER_APPEND(unsigned short)
+	LIGHTS_MEMORY_WRITER_APPEND(unsigned int)
+	LIGHTS_MEMORY_WRITER_APPEND(unsigned long)
+	LIGHTS_MEMORY_WRITER_APPEND(unsigned long long)
+
+#undef LIGHTS_MEMORY_WRITER_APPEND
+
+	template <typename T>
+	BufferWriter& operator<< (const T& value)
+	{
+		this->append(value);
+		return *this;
+	}
+
+	const char* c_str()
+	{
+		m_buffer[m_length] = '\0';
+		return m_buffer;
+	}
+
+	std::string str() const
+	{
+		return std::string(m_buffer, m_length);
+	}
+
+	StringView str_view() const
+	{
+		return { m_buffer, m_length };
+	}
+
+	std::size_t length() const
+	{
+		return m_length;
+	}
+
+	std::size_t size() const
+	{
+		return m_length;
+	}
+
+	constexpr std::size_t max_size() const
+	{
+		return buffer_size;
+	}
+
+private:
+	details::IntegerFormater m_integer_formater;
+	char m_buffer[buffer_size];
+	std::size_t m_length = 0;
+};
+
+
+template <>
+template <std::size_t buffer_size>
+class StringAdapter<BufferWriter<buffer_size>>
+{
+public:
+	StringAdapter(BufferWriter<buffer_size>& sink) : m_sink(sink) {}
+
+	void append(char ch)
+	{
+		m_sink.append(ch);
+	}
+
+	void append(const char* str, std::size_t len)
+	{
+		m_sink.append(str, len);
+	}
+
+	void append(const char* str)
+	{
+		m_sink.append(str);
+	}
+
+private:
+	BufferWriter<buffer_size>& m_sink;
+};
+
+
 /**
  * Format string that use @c fmt and @c args ...
  * @param fmt   Format that use '{}' as placeholder.
