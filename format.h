@@ -19,6 +19,14 @@
 
 namespace lights {
 
+template <typename Value, typename Tag>
+struct IntegerFormatSpec
+{
+	Value value;
+	Tag tag;
+};
+
+
 /**
  * A wrapper aim to identify this is a error not an integer.
  */
@@ -309,6 +317,56 @@ private:
 	char m_buf[100];
 };
 
+
+struct BinarySpecTag {};
+struct OctalSpecTag {};
+struct HexSpecLowerCaseTag {};
+struct HexSpecUpperCaseTag {};
+
+/**
+ * Convert integer to binary character.
+ * @param ch  Integer that on range [0, n)
+ * @return Binary character
+ */
+inline char to_binary_char(char ch)
+{
+	return ch ? '1' : '0';
+}
+
+/**
+ * Convert integer to lower case hex character.
+ * @param ch  Integer that on range [0, 16)
+ * @return Hex character
+ */
+inline char to_hex_lower_case_char(char ch)
+{
+	if (ch < 10)
+	{
+		return '0' + ch;
+	}
+	else
+	{
+		return 'a' + ch - static_cast<char>(10);
+	}
+}
+
+/**
+ * Convert integer to upper case hex character.
+ * @param ch  Integer that on range [0, 16)
+ * @return Hex character
+ */
+inline char to_hex_upper_case_char(char ch)
+{
+	if (ch < 10)
+	{
+		return '0' + ch;
+	}
+	else
+	{
+		return 'A' + ch - static_cast<char>(10);
+	}
+}
+
 } // namespace details
 
 /**
@@ -400,6 +458,98 @@ template <typename Sink>
 inline void to_string(StringAdapter<Sink> out, const StringView& value)
 {
 	out.append(value.string, value.length);
+}
+
+
+/**
+ * Create a binary spec of formate integer.
+ */
+template <typename Integer>
+IntegerFormatSpec<Integer, details::BinarySpecTag> binary(Integer value)
+{
+	return IntegerFormatSpec<Integer, details::BinarySpecTag> { value, details::BinarySpecTag() };
+}
+
+/**
+ * Convert integer to binary string.
+ * @param out   The output place to hold the converted string.
+ * @param spec  Indicate spec of format integer.
+ */
+template <typename Sink, typename Integer>
+void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::BinarySpecTag> spec)
+{
+	char* ptr = reinterpret_cast<char*>(&spec.value);
+	for (std::size_t i = sizeof(Integer) - 1; i + 1 > 0; --i)
+	{
+		for (std::size_t j = 7; j + 1 > 0 ; --j)
+		{
+			char bit = static_cast<char>(*(ptr + i) & (1 << j));
+			out.append(details::to_binary_char(bit));
+		}
+	}
+}
+
+
+/**
+ * Create a hex lower case spec of formate integer.
+ */
+template <typename Integer>
+IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> hex_lower_case(Integer value)
+{
+	return IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> { value, details::HexSpecLowerCaseTag() };
+}
+
+/**
+ * Convert integer to hex lower case string.
+ * @param out   The output place to hold the converted string.
+ * @param spec  Indicate spec of format integer.
+ */
+template <typename Sink, typename Integer>
+void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> spec)
+{
+	char* ptr = reinterpret_cast<char*>(&spec.value);
+	for (std::size_t i = sizeof(Integer) - 1; i + 1 > 0; --i)
+	{
+		unsigned char high = static_cast<unsigned char>(*(ptr + i));
+		high &= 0xf0;
+		high >>= 4;
+		out.append(details::to_hex_lower_case_char(high));
+
+		char lower = *(ptr + i);
+		lower &= 0x0f;
+		out.append(details::to_hex_lower_case_char(lower));
+	}
+}
+
+/**
+ * Create a hex upper case spec of formate integer.
+ */
+template <typename Integer>
+IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> hex_upper_case(Integer value)
+{
+	return IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> { value, details::HexSpecUpperCaseTag() };
+}
+
+/**
+ * Convert integer to hex upper case string.
+ * @param out   The output place to hold the converted string.
+ * @param spec  Indicate spec of format integer.
+ */
+template <typename Sink, typename Integer>
+void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> spec)
+{
+	char* ptr = reinterpret_cast<char*>(&spec.value);
+	for (std::size_t i = sizeof(Integer) - 1; i + 1 > 0; --i)
+	{
+		unsigned char high = static_cast<unsigned char>(*(ptr + i));
+		high &= 0xf0;
+		high >>= 4;
+		out.append(details::to_hex_upper_case_char(high));
+
+		char lower = *(ptr + i);
+		lower &= 0x0f;
+		out.append(details::to_hex_upper_case_char(lower));
+	}
 }
 
 
