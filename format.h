@@ -491,6 +491,43 @@ void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::Bina
 
 
 /**
+ * Create a octal spec of formate integer.
+ */
+template <typename Integer>
+IntegerFormatSpec<Integer, details::OctalSpecTag> octal(Integer value)
+{
+	return IntegerFormatSpec<Integer, details::OctalSpecTag> { value, details::OctalSpecTag() };
+}
+
+/**
+ * Convert integer to binary string.
+ * @param out   The output place to hold the converted string.
+ * @param spec  Indicate spec of format integer.
+ */
+template <typename Sink, typename Integer>
+void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::OctalSpecTag> spec)
+{
+	int num = sizeof(Integer) * 8 / 3;
+	int remain = sizeof(Integer) * 8 % 3;
+	if (remain != 0)
+	{
+		++num;
+	}
+
+	char str[num];
+	std::uint64_t absolute_value = static_cast<std::uint64_t>(spec.value);
+	char *ptr = &str[num - 1];
+	do
+	{
+		*ptr = static_cast<char>('0' + (absolute_value & 7));
+		--ptr;
+	} while ((absolute_value >>= 3) != 0);
+	++ptr;
+	out.append(ptr, str + num - ptr);
+}
+
+
+/**
  * Create a hex lower case spec of formate integer.
  */
 template <typename Integer>
