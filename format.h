@@ -97,7 +97,7 @@ private:
  * Helper function to create StringAdapter.
  */
 template <typename T>
-StringAdapter<T> make_string_adapter(T& value)
+inline StringAdapter<T> make_string_adapter(T& value)
 {
 	return StringAdapter<T>(value);
 }
@@ -367,6 +367,36 @@ inline char to_hex_upper_case_char(char ch)
 	}
 }
 
+/**
+ * Convert integer to hex lower case string.
+ * @param out          The output place to hold the converted string.
+ * @param spec         Indicate spec of format integer.
+ * @param to_hex_func  A function that convert [0, 16) to char
+ */
+template <typename Sink, typename Integer, typename Tag, typename ToHexFunc>
+void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, Tag> spec, ToHexFunc to_hex_func)
+{
+	int digit_of_spec = 4;
+	int num = std::numeric_limits<Integer>::digits / digit_of_spec;
+	int remain = std::numeric_limits<Integer>::digits % digit_of_spec;
+	if (remain != 0)
+	{
+		++num;
+	}
+
+	char str[num];
+	std::uint64_t absolute_value = static_cast<std::uint64_t>(spec.value);
+	char *ptr = &str[num - 1];
+	do
+	{
+		char ch = static_cast<char>(absolute_value & 15); // 15 binary: 0000, 1111
+		*ptr = to_hex_func(ch);
+		--ptr;
+	} while ((absolute_value >>= digit_of_spec) != 0);
+	++ptr;
+	out.append(ptr, str + num - ptr);
+}
+
 } // namespace details
 
 /**
@@ -478,14 +508,19 @@ IntegerFormatSpec<Integer, details::BinarySpecTag> binary(Integer value)
 template <typename Sink, typename Integer>
 void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::BinarySpecTag> spec)
 {
-	char* ptr = reinterpret_cast<char*>(&spec.value);
-	for (std::size_t i = sizeof(Integer) - 1; i + 1 > 0; --i)
+	std::uint64_t absolute_value = static_cast<std::uint64_t>(spec.value);
+	int num = 0;
+	do
 	{
-		for (std::size_t j = 7; j + 1 > 0 ; --j)
-		{
-			char bit = static_cast<char>(*(ptr + i) & (1 << j));
-			out.append(details::to_binary_char(bit));
-		}
+		++num;
+	} while (absolute_value >>= 1);
+
+	std::uint64_t mask = 1ul << (num - 1);
+	while (mask != 0)
+	{
+		char ch = (spec.value & mask) ? '1' : '0';
+		out.append(ch);
+		mask >>= 1;
 	}
 }
 
@@ -507,8 +542,9 @@ IntegerFormatSpec<Integer, details::OctalSpecTag> octal(Integer value)
 template <typename Sink, typename Integer>
 void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::OctalSpecTag> spec)
 {
-	int num = sizeof(Integer) * 8 / 3;
-	int remain = sizeof(Integer) * 8 % 3;
+	int digit_of_spec = 3;
+	int num = std::numeric_limits<Integer>::digits / digit_of_spec;
+	int remain = std::numeric_limits<Integer>::digits % digit_of_spec;
 	if (remain != 0)
 	{
 		++num;
@@ -519,9 +555,9 @@ void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::Octa
 	char *ptr = &str[num - 1];
 	do
 	{
-		*ptr = static_cast<char>('0' + (absolute_value & 7));
+		*ptr = static_cast<char>('0' + (absolute_value & 7)); // 7 binary: 0000, 0111
 		--ptr;
-	} while ((absolute_value >>= 3) != 0);
+	} while ((absolute_value >>= digit_of_spec) != 0);
 	++ptr;
 	out.append(ptr, str + num - ptr);
 }
@@ -531,7 +567,7 @@ void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::Octa
  * Create a hex lower case spec of formate integer.
  */
 template <typename Integer>
-IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> hex_lower_case(Integer value)
+inline IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> hex_lower_case(Integer value)
 {
 	return IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> { value, details::HexSpecLowerCaseTag() };
 }
@@ -542,27 +578,16 @@ IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> hex_lower_case(Integer 
  * @param spec  Indicate spec of format integer.
  */
 template <typename Sink, typename Integer>
-void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> spec)
+inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> spec)
 {
-	char* ptr = reinterpret_cast<char*>(&spec.value);
-	for (std::size_t i = sizeof(Integer) - 1; i + 1 > 0; --i)
-	{
-		unsigned char high = static_cast<unsigned char>(*(ptr + i));
-		high &= 0xf0;
-		high >>= 4;
-		out.append(details::to_hex_lower_case_char(high));
-
-		char lower = *(ptr + i);
-		lower &= 0x0f;
-		out.append(details::to_hex_lower_case_char(lower));
-	}
+	details::to_string(out, spec, details::to_hex_lower_case_char);
 }
 
 /**
  * Create a hex upper case spec of formate integer.
  */
 template <typename Integer>
-IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> hex_upper_case(Integer value)
+inline IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> hex_upper_case(Integer value)
 {
 	return IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> { value, details::HexSpecUpperCaseTag() };
 }
@@ -573,20 +598,9 @@ IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> hex_upper_case(Integer 
  * @param spec  Indicate spec of format integer.
  */
 template <typename Sink, typename Integer>
-void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> spec)
+inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> spec)
 {
-	char* ptr = reinterpret_cast<char*>(&spec.value);
-	for (std::size_t i = sizeof(Integer) - 1; i + 1 > 0; --i)
-	{
-		unsigned char high = static_cast<unsigned char>(*(ptr + i));
-		high &= 0xf0;
-		high >>= 4;
-		out.append(details::to_hex_upper_case_char(high));
-
-		char lower = *(ptr + i);
-		lower &= 0x0f;
-		out.append(details::to_hex_upper_case_char(lower));
-	}
+	details::to_string(out, spec, details::to_hex_upper_case_char);
 }
 
 
