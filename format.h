@@ -195,7 +195,7 @@ public:
 	const char* format(Type n)           \
 	{                                    \
 		this->reset_state();             \
-		return this->format_signed(n); \
+		return this->format_signed(n);   \
 	}
 
 	LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED(short)
@@ -206,7 +206,8 @@ public:
 #undef LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED
 
 private:
-	const char* format_unsigned(std::uintmax_t n)
+	template <typename UnsignedInteger>
+	const char* format_unsigned(UnsignedInteger n)
 	{
 		if (n == 0)
 		{
@@ -251,9 +252,10 @@ private:
 		return m_begin;
 	}
 
-	const char* format_signed(std::intmax_t n)
+	template <typename SignedInteger>
+	const char* format_signed(SignedInteger n)
 	{
-		std::uintmax_t absolute = static_cast<std::uintmax_t>(n);
+		auto absolute = static_cast<std::make_unsigned_t<SignedInteger>>(n);
 		bool negative = n < 0;
 		if (negative)
 		{
