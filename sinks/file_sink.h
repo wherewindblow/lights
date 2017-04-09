@@ -141,17 +141,15 @@ public:
 	void close()
 	{
 		std::fclose(m_file);
+		m_file = nullptr;
 	}
 
 private:
 	static void open_file_failure(const char* filename)
 	{
-		std::string msg;
-		msg.reserve(512);
-		auto out = make_string_adapter(msg);
-		lights::write(out, "Open \"{}\" failure: {}",
-					  filename, current_error());
-		throw std::runtime_error(msg);
+		lights::BufferWriter<512> writer;
+		writer.write("Open \"{}\" failure: {}", filename, current_error());
+		throw std::runtime_error(writer.c_str());
 	}
 
 	std::FILE* m_file = nullptr;
