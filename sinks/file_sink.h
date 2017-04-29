@@ -147,7 +147,7 @@ public:
 private:
 	static void open_file_failure(const char* filename)
 	{
-		lights::BufferWriter<512> writer;
+		lights::MemoryWriter<512> writer;
 		writer.write("Open \"{}\" failure: {}", filename, current_error());
 		throw std::runtime_error(writer.c_str());
 	}
@@ -201,16 +201,27 @@ public:
 		throw std::logic_error("Cannot initialize when have been end initialization"); \
 	}
 
+	/**
+	 * Init file name format.
+	 * @param name_format  Format string that use "{}" as a placehalder.
+	 * @note This init is necessary.
+	 */
 	void init_name_format(const std::string& name_format)
 	{
 		LIGHTS_SINKS_INIT_MEMBER(m_name_format = name_format);
 	}
 
+	/**
+	 * @note If not init max size, the biggest of std::size_t value is use.
+	 */
 	void init_max_size(std::size_t max_size)
 	{
 		LIGHTS_SINKS_INIT_MEMBER(m_max_size = max_size);
 	}
 
+	/**
+	 * @note If not int max files, it'll not cycle to use file name.
+	 */
 	void init_max_files(std::size_t max_files)
 	{
 		LIGHTS_SINKS_INIT_MEMBER(m_max_files = max_files);

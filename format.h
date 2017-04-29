@@ -25,6 +25,10 @@ struct IntegerFormatSpec
 {
 	Value value;
 	Tag tag;
+	int width = IntegerFormatSpec::INVALID_WIDTH;
+	char fill;
+
+	static const char INVALID_WIDTH = -1;
 };
 
 
@@ -75,6 +79,14 @@ public:
 		m_sink.append(ch);
 	};
 
+	void append(std::size_t num, char ch)
+	{
+		for (std::size_t i = 0; i < num; ++i)
+		{
+			this->append(ch);
+		}
+	}
+
 	void append(const char* str, std::size_t len)
 	{
 		while (len != 0)
@@ -113,6 +125,11 @@ public:
 	void append(char ch)
 	{
 		m_sink.push_back(ch);
+	}
+
+	void append(std::size_t num, char ch)
+	{
+		m_sink.append(num, ch);
 	}
 
 	void append(const char* str, std::size_t len)
@@ -323,6 +340,7 @@ private:
 
 struct BinarySpecTag {};
 struct OctalSpecTag {};
+struct DecimalSpecTag {};
 struct HexSpecLowerCaseTag {};
 struct HexSpecUpperCaseTag {};
 
@@ -402,13 +420,16 @@ class BinaryFormater<UnsignedInteger, false>
 {
 public:
 	template <typename Sink>
-	static void format(StringAdapter<Sink> out, IntegerFormatSpec<UnsignedInteger, details::BinarySpecTag> spec);
+	static void format(StringAdapter<Sink> out,
+					   IntegerFormatSpec<UnsignedInteger, details::BinarySpecTag> spec,
+					   bool negative = false);
 };
 
 template <typename UnsignedInteger>
 template <typename Sink>
 void BinaryFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
-													IntegerFormatSpec<UnsignedInteger, details::BinarySpecTag> spec)
+													IntegerFormatSpec<UnsignedInteger, details::BinarySpecTag> spec,
+													bool negative)
 {
 	UnsignedInteger absolute_value = spec.value;
 	int num = 0;
@@ -416,6 +437,17 @@ void BinaryFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
 	{
 		++num;
 	} while (absolute_value >>= 1);
+
+	int width = negative ? num + 1 : num;
+	if (spec.width != spec.INVALID_WIDTH && width < spec.width)
+	{
+		out.append(spec.width - width, spec.fill);
+	}
+
+	if (negative)
+	{
+		out.append('-');
+	}
 
 	UnsignedInteger mask = 1ul << (num - 1);
 	while (mask != 0)
@@ -438,32 +470,47 @@ class OctalFormater<UnsignedInteger, false>
 {
 public:
 	template <typename Sink>
-	static void format(StringAdapter<Sink> out, IntegerFormatSpec<UnsignedInteger, details::OctalSpecTag> spec);
+	static void format(StringAdapter<Sink> out,
+					   IntegerFormatSpec<UnsignedInteger, details::OctalSpecTag> spec,
+					   bool negative = false);
 };
 
 template <typename UnsignedInteger>
 template <typename Sink>
 void OctalFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
-												   IntegerFormatSpec<UnsignedInteger, details::OctalSpecTag> spec)
+												   IntegerFormatSpec<UnsignedInteger, details::OctalSpecTag> spec,
+												   bool negative)
 {
-	int digit_of_spec = 3;
-	int num = std::numeric_limits<UnsignedInteger>::digits / digit_of_spec;
-	int remain = std::numeric_limits<UnsignedInteger>::digits % digit_of_spec;
+	const int digit_of_spec = 3;
+	int len = std::numeric_limits<UnsignedInteger>::digits / digit_of_spec;
+	const int remain = std::numeric_limits<UnsignedInteger>::digits % digit_of_spec;
 	if (remain != 0)
 	{
-		++num;
+		++len;
 	}
 
-	char str[num];
+	char str[len];
 	UnsignedInteger absolute_value = spec.value;
-	char* ptr = &str[num - 1];
+	char* ptr = &str[len - 1];
 	do
 	{
 		*ptr = static_cast<char>('0' + (absolute_value & 7)); // 7 binary: 0000, 0111
 		--ptr;
 	} while ((absolute_value >>= digit_of_spec) != 0);
 	++ptr;
-	out.append(ptr, str + num - ptr);
+
+	std::size_t num = str + len - ptr;
+	int width = static_cast<int>(negative ? num + 1 : num);
+	if (spec.width != spec.INVALID_WIDTH && width < spec.width)
+	{
+		out.append(spec.width - width, spec.fill);
+	}
+
+	if (negative)
+	{
+		out.append('-');
+	}
+	out.append(ptr, num);
 }
 
 
@@ -478,24 +525,28 @@ class HexFormater<UnsignedInteger, false>
 {
 public:
 	template <typename Sink, typename Tag>
-	static void format(StringAdapter<Sink> out, IntegerFormatSpec<UnsignedInteger, Tag> spec);
+	static void format(StringAdapter<Sink> out,
+					   IntegerFormatSpec<UnsignedInteger, Tag> spec,
+					   bool negative = false);
 };
 
 template <typename UnsignedInteger>
 template <typename Sink, typename Tag>
-void HexFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out, IntegerFormatSpec<UnsignedInteger, Tag> spec)
+void HexFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
+												 IntegerFormatSpec<UnsignedInteger, Tag> spec,
+												 bool negative)
 {
 	int digit_of_spec = 4;
-	int num = std::numeric_limits<UnsignedInteger>::digits / digit_of_spec;
+	int len = std::numeric_limits<UnsignedInteger>::digits / digit_of_spec;
 	int remain = std::numeric_limits<UnsignedInteger>::digits % digit_of_spec;
 	if (remain != 0)
 	{
-		++num;
+		++len;
 	}
 
-	char str[num];
+	char str[len];
 	UnsignedInteger absolute_value = spec.value;
-	char* ptr = &str[num - 1];
+	char* ptr = &str[len - 1];
 	do
 	{
 		char ch = static_cast<char>(absolute_value & 15); // 15 binary: 0000, 1111
@@ -503,7 +554,19 @@ void HexFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out, Intege
 		--ptr;
 	} while ((absolute_value >>= digit_of_spec) != 0);
 	++ptr;
-	out.append(ptr, str + num - ptr);
+
+	std::size_t num = str + len - ptr;
+	int width = static_cast<int>(negative ? num + 1 : num);
+	if (spec.width != spec.INVALID_WIDTH && width < spec.width)
+	{
+		out.append(spec.width - width, spec.fill);
+	}
+
+	if (negative)
+	{
+		out.append('-');
+	}
+	out.append(ptr, num);
 }
 
 
@@ -525,11 +588,10 @@ public:                                                                         
 		if (negative)                                                                 \
 		{                                                                             \
 			absolute = 0 - absolute;                                                  \
-			out.append('-');                                                          \
 		}                                                                             \
                                                                                       \
-		IntegerFormatSpec<UnsignedInteger, Tag> new_spec = { absolute, Tag() };       \
-		formater_name<UnsignedInteger>::format(out, new_spec);                        \
+		IntegerFormatSpec<UnsignedInteger, Tag> new_spec = { absolute, Tag(), spec.width, spec.fill }; \
+		formater_name<UnsignedInteger>::format(out, new_spec, negative);              \
 	}                                                                                 \
 };
 
@@ -632,6 +694,32 @@ inline void to_string(StringAdapter<Sink> out, const StringView& value)
 	out.append(value.string, value.length);
 }
 
+/**
+ * Create a new spec with padding parameter.
+ */
+template <typename Integer, typename Tag>
+inline IntegerFormatSpec<Integer, Tag> pad(IntegerFormatSpec<Integer, Tag> spec, char fill, int width)
+{
+	spec.width = width;
+	spec.fill = fill;
+	return spec;
+}
+
+/**
+ * Create a spec with padding parameter.
+ * @note Integer only can use integer type.
+ */
+template <typename Integer>
+inline IntegerFormatSpec<Integer, details::DecimalSpecTag> pad(Integer num, char fill, int width)
+{
+	IntegerFormatSpec<Integer, details::DecimalSpecTag> spec = {
+		num,
+		details::DecimalSpecTag(),
+		width,
+		fill
+	};
+	return spec;
+}
 
 /**
  * Create a binary spec of formate integer.
@@ -640,13 +728,13 @@ inline void to_string(StringAdapter<Sink> out, const StringView& value)
 template <typename Integer>
 inline IntegerFormatSpec<Integer, details::BinarySpecTag> binary(Integer value)
 {
-	return IntegerFormatSpec<Integer, details::BinarySpecTag> { value, details::BinarySpecTag() };
+	return IntegerFormatSpec<Integer, details::BinarySpecTag> { value };
 }
 
 /**
  * Convert integer to binary string.
  * @param out   The output place to hold the converted string.
- * @param spec  Indicate spec of format integer.
+ * @param spec  A spec of format integer.
  */
 template <typename Sink, typename Integer>
 inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::BinarySpecTag> spec)
@@ -662,13 +750,13 @@ inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, detail
 template <typename Integer>
 inline IntegerFormatSpec<Integer, details::OctalSpecTag> octal(Integer value)
 {
-	return IntegerFormatSpec<Integer, details::OctalSpecTag> { value, details::OctalSpecTag() };
+	return IntegerFormatSpec<Integer, details::OctalSpecTag> { value };
 }
 
 /**
  * Convert integer to binary string.
  * @param out   The output place to hold the converted string.
- * @param spec  Indicate spec of format integer.
+ * @param spec  A spec of format integer.
  */
 template <typename Sink, typename Integer>
 void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::OctalSpecTag> spec)
@@ -684,13 +772,13 @@ void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::Octa
 template <typename Integer>
 inline IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> hex_lower_case(Integer value)
 {
-	return IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> { value, details::HexSpecLowerCaseTag() };
+	return IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> { value };
 }
 
 /**
  * Convert integer to hex lower case string.
  * @param out   The output place to hold the converted string.
- * @param spec  Indicate spec of format integer.
+ * @param spec  A spec of format integer.
  */
 template <typename Sink, typename Integer>
 inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> spec)
@@ -705,18 +793,37 @@ inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, detail
 template <typename Integer>
 inline IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> hex_upper_case(Integer value)
 {
-	return IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> { value, details::HexSpecUpperCaseTag() };
+	return IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> { value };
 }
 
 /**
  * Convert integer to hex upper case string.
  * @param out   The output place to hold the converted string.
- * @param spec  Indicate spec of format integer.
+ * @param spec  A spec of format integer.
  */
 template <typename Sink, typename Integer>
 inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> spec)
 {
 	details::HexFormater<Integer>::format(out, spec);
+}
+
+/**
+ * Convert integer to decimal string.
+ * @param out   The output place to hold the converted string.
+ * @param spec  A spec of format integer.
+ */
+template <typename Sink, typename Integer>
+inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::DecimalSpecTag> spec)
+{
+	details::IntegerFormater formater;
+	const char* str = formater.format(spec.value);
+	int len = static_cast<int>(std::strlen(str));
+
+	if (spec.width != spec.INVALID_WIDTH && len < spec.width)
+	{
+		out.append(spec.width - len, spec.fill);
+	}
+	out.append(str);
 }
 
 
@@ -844,7 +951,7 @@ inline void write(StringAdapter<Sink> out, const std::string& fmt, const Arg& va
 
 
 template <std::size_t buffer_size>
-class BufferWriter
+class MemoryWriter
 {
 public:
 	template <typename Arg, typename ... Args>
@@ -899,28 +1006,29 @@ public:
 	}
 
 
-#define LIGHTS_MEMORY_WRITER_APPEND(Type)                   \
-	void append(Type value)                                 \
+#define LIGHTS_MEMORY_WRITER_APPEND_INTEGER(Type)           \
+	MemoryWriter& operator<< (Type value)                   \
 	{                                                       \
 		const char* str = m_integer_formater.format(value); \
 		this->append(str);                                  \
+		return *this;                                       \
 	}
 
-	LIGHTS_MEMORY_WRITER_APPEND(short)
-	LIGHTS_MEMORY_WRITER_APPEND(int)
-	LIGHTS_MEMORY_WRITER_APPEND(long)
-	LIGHTS_MEMORY_WRITER_APPEND(long long)
-	LIGHTS_MEMORY_WRITER_APPEND(unsigned short)
-	LIGHTS_MEMORY_WRITER_APPEND(unsigned int)
-	LIGHTS_MEMORY_WRITER_APPEND(unsigned long)
-	LIGHTS_MEMORY_WRITER_APPEND(unsigned long long)
+	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(short)
+	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(int)
+	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(long)
+	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(long long)
+	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(unsigned short)
+	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(unsigned int)
+	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(unsigned long)
+	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(unsigned long long)
 
-#undef LIGHTS_MEMORY_WRITER_APPEND
+#undef LIGHTS_MEMORY_WRITER_APPEND_INTEGER
 
 	template <typename T>
-	BufferWriter& operator<< (const T& value)
+	MemoryWriter& operator<< (const T& value)
 	{
-		this->append(value);
+		make_string_adapter(*this) << value;
 		return *this;
 	}
 
@@ -964,14 +1072,22 @@ private:
 
 template <>
 template <std::size_t buffer_size>
-class StringAdapter<BufferWriter<buffer_size>>
+class StringAdapter<MemoryWriter<buffer_size>>
 {
 public:
-	StringAdapter(BufferWriter<buffer_size>& sink) : m_sink(sink) {}
+	StringAdapter(MemoryWriter<buffer_size>& sink) : m_sink(sink) {}
 
 	void append(char ch)
 	{
 		m_sink.append(ch);
+	}
+
+	void append(std::size_t num, char ch)
+	{
+		for (std::size_t i = 0; i < num; ++i)
+		{
+			this->append(ch);
+		}
 	}
 
 	void append(const char* str, std::size_t len)
@@ -985,7 +1101,7 @@ public:
 	}
 
 private:
-	BufferWriter<buffer_size>& m_sink;
+	MemoryWriter<buffer_size>& m_sink;
 };
 
 
