@@ -25,7 +25,7 @@ namespace details {
 
 enum class SeekWhence
 {
-	begin = SEEK_SET, current = SEEK_CUR, end = SEEK_END
+	BEGIN = SEEK_SET, CURRENT = SEEK_CUR, END = SEEK_END
 };
 
 
@@ -132,9 +132,9 @@ public:
 	std::size_t size()
 	{
 		std::streamoff origin = this->tell();
-		this->seek(0, SeekWhence::end);
+		this->seek(0, SeekWhence::END);
 		std::streamoff size = this->tell();
-		this->seek(origin, SeekWhence::begin);
+		this->seek(origin, SeekWhence::BEGIN);
 		return static_cast<std::size_t>(size);
 	}
 

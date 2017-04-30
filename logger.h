@@ -20,7 +20,7 @@ namespace lights {
 namespace details {
 
 static const std::string log_level_names[] = {
-	"debug", "info", "warning", "error", "off"
+	"DEBUG", "INFO", "WARNNING", "ERROR", "OFF"
 };
 
 } // namespace details
@@ -28,7 +28,7 @@ static const std::string log_level_names[] = {
 
 enum class LogLevel
 {
-	debug = 0, info, warn, error, off
+	DEBUG = 0, INFO, WARN, ERROR, OFF
 };
 
 
@@ -73,25 +73,25 @@ public:
 	template <typename ... Args>
 	void debug(const char* fmt, const Args& ... args)
 	{
-		this->log(LogLevel::debug, fmt, args ...);
+		this->log(LogLevel::DEBUG, fmt, args ...);
 	}
 
 	template <typename ... Args>
 	void info(const char* fmt, const Args& ... args)
 	{
-		this->log(LogLevel::info, fmt, args ...);
+		this->log(LogLevel::INFO, fmt, args ...);
 	}
 
 	template <typename ... Args>
 	void warn(const char* fmt, const Args& ... args)
 	{
-		this->log(LogLevel::warn, fmt, args ...);
+		this->log(LogLevel::WARN, fmt, args ...);
 	}
 
 	template <typename ... Args>
 	void error(const char* fmt, const Args& ... args)
 	{
-		this->log(LogLevel::error, fmt, args ...);
+		this->log(LogLevel::ERROR, fmt, args ...);
 	}
 
 
@@ -99,22 +99,22 @@ public:
 
 	void debug(const char* str)
 	{
-		this->log(LogLevel::debug, str);
+		this->log(LogLevel::DEBUG, str);
 	}
 
 	void info(const char* str)
 	{
-		this->log(LogLevel::info, str);
+		this->log(LogLevel::INFO, str);
 	}
 
 	void warn(const char* str)
 	{
-		this->log(LogLevel::warn, str);
+		this->log(LogLevel::WARN, str);
 	}
 
 	void error(const char* str)
 	{
-		this->log(LogLevel::error, str);
+		this->log(LogLevel::ERROR, str);
 	}
 
 
@@ -124,25 +124,25 @@ public:
 	template <typename T>
 	void debug(const T& value)
 	{
-		this->log(LogLevel::debug, value);
+		this->log(LogLevel::DEBUG, value);
 	}
 
 	template <typename T>
 	void info(const T& value)
 	{
-		this->log(LogLevel::info, value);
+		this->log(LogLevel::INFO, value);
 	}
 
 	template <typename T>
 	void warn(const T& value)
 	{
-		this->log(LogLevel::warn, value);
+		this->log(LogLevel::WARN, value);
 	}
 
 	template <typename T>
 	void error(const T& value)
 	{
-		this->log(LogLevel::error, value);
+		this->log(LogLevel::ERROR, value);
 	}
 
 private:
@@ -154,8 +154,9 @@ private:
 	std::string get_signature_header();
 
 	std::string m_name;
-	LogLevel m_level = LogLevel::info;
+	LogLevel m_level = LogLevel::INFO;
 	std::shared_ptr<Sink> m_sink;
+	MemoryWriter<500> m_writer;
 };
 
 

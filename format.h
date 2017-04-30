@@ -536,9 +536,9 @@ void HexFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
 												 IntegerFormatSpec<UnsignedInteger, Tag> spec,
 												 bool negative)
 {
-	int digit_of_spec = 4;
+	const int digit_of_spec = 4;
 	int len = std::numeric_limits<UnsignedInteger>::digits / digit_of_spec;
-	int remain = std::numeric_limits<UnsignedInteger>::digits % digit_of_spec;
+	const int remain = std::numeric_limits<UnsignedInteger>::digits % digit_of_spec;
 	if (remain != 0)
 	{
 		++len;
