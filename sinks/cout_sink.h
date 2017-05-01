@@ -22,7 +22,7 @@ public:
 		std::cout.write(str, len);
 	}
 
-	static std::shared_ptr<CoutSink> get_instance()
+	static std::shared_ptr<CoutSink> instance()
 	{
 		static auto instance = std::make_shared<CoutSink>();
 		return instance;
@@ -38,7 +38,7 @@ public:
 		std::cerr.write(str, len);
 	}
 
-	static std::shared_ptr<CerrSink> get_instance()
+	static std::shared_ptr<CerrSink> instance()
 	{
 		static auto instance = std::make_shared<CerrSink>();
 		return instance;
@@ -54,7 +54,7 @@ public:
 		std::clog.write(str, len);
 	}
 
-	static std::shared_ptr<ClogSink> get_instance()
+	static std::shared_ptr<ClogSink> instance()
 	{
 		static auto instance = std::make_shared<ClogSink>();
 		return instance;

@@ -10,4 +10,4 @@
  * Optimize integer format.
  * @note Only have effect on gcc -O2 option, on -O0 option will have bad effect.
  */
-#define LIGHTS_FORMAT_INTEGER_OPTIMIZE
+#define LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE

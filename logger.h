@@ -20,7 +20,7 @@ namespace lights {
 namespace details {
 
 static const std::string log_level_names[] = {
-	"DEBUG", "INFO", "WARNNING", "ERROR", "OFF"
+	"debug", "info", "warnning", "error", "off"
 };
 
 } // namespace details
@@ -151,7 +151,21 @@ private:
 		return m_level <= level;
 	}
 
-	std::string get_signature_header();
+	template <std::size_t N>
+	static lights::MemoryWriter<N>&  write_2_digit(lights::MemoryWriter<N>& writer, unsigned num)
+	{
+		if (num >= 10)
+		{
+			writer << num;
+		}
+		else
+		{
+			writer << '0' << num;
+		}
+		return writer;
+	}
+
+	void generate_signature_header();
 
 	std::string m_name;
 	LogLevel m_level = LogLevel::INFO;
@@ -171,10 +185,12 @@ void Logger<Sink>::log(LogLevel level, const char* fmt, const Args& ... args)
 {
 	if (this->should_log(level))
 	{
-		std::string msg = this->get_signature_header();
-		write(make_string_adapter(msg), fmt, args ...);
-		msg.push_back('\n');
-		m_sink->write(msg.c_str(), msg.length());
+		m_writer.clear();
+		this->generate_signature_header();
+		m_writer.write(fmt, args ...);
+		m_writer.append('\n');
+		lights::StringView view = m_writer.str_view();
+		m_sink->write(view.string, view.length);
 	}
 }
 
@@ -184,10 +200,11 @@ void Logger<Sink>::log(LogLevel level, const char* str)
 {
 	if (this->should_log(level))
 	{
-		std::string msg = this->get_signature_header();
-		msg.append(str);
-		msg.push_back('\n');
-		m_sink->write(msg.c_str(), msg.length());
+		m_writer.clear();
+		this->generate_signature_header();
+		m_writer << str << '\n';
+		lights::StringView view = m_writer.str_view();
+		m_sink->write(view.string, view.length);
 	}
 }
 
@@ -198,28 +215,32 @@ void Logger<Sink>::log(LogLevel level, const T& value)
 {
 	if (this->should_log(level))
 	{
-		std::string msg = this->get_signature_header();
-		append(make_string_adapter(msg), value);
-		msg.push_back('\n');
-		m_sink->write(msg.c_str(), msg.length());
+		m_writer.clear();
+		this->generate_signature_header();
+		m_writer << value << '\n';
+		lights::StringView view = m_writer.str_view();
+		m_sink->write(view.string, view.length);
 	}
 }
 
 
 template <typename Sink>
-std::string Logger<Sink>::get_signature_header()
+void Logger<Sink>::generate_signature_header()
 {
 	std::time_t time = std::time(nullptr);
 	std::tm tm;
 	localtime_r(&time, &tm);
-	char buf[50];
-	std::size_t len = std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
-	buf[len] = '\0';
-	std::string header;
-	header.reserve(200);
-	auto str = make_string_adapter(header);
-	write(str, "[{}] [{}] [{}] ", StringView{ buf, len }, m_name, to_string(m_level));
-	return header;
+
+	m_writer << '[';
+
+	m_writer << static_cast<unsigned int>(tm.tm_year + 1900) << '-';
+	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_mon + 1)) << '-';
+	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_mday)) << ' ';
+	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_hour)) << ':';
+	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_min)) << ':';
+	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_sec));
+
+	m_writer << "] [" << m_name << "] [" << to_string(m_level) << "] ";
 }
 
 } // namespace lights

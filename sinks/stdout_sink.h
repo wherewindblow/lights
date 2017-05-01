@@ -22,7 +22,7 @@ public:
 		std::fwrite(str, sizeof(char), len, stdout);
 	}
 
-	static std::shared_ptr<StdoutSink> get_instance()
+	static std::shared_ptr<StdoutSink> instance()
 	{
 		static auto instance = std::make_shared<StdoutSink>();
 		return instance;
@@ -38,7 +38,7 @@ public:
 		std::fwrite(str, sizeof(char), len, stderr);
 	}
 
-	static std::shared_ptr<StderrSink> get_instance()
+	static std::shared_ptr<StderrSink> instance()
 	{
 		static auto instance = std::make_shared<StderrSink>();
 		return instance;

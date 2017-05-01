@@ -20,6 +20,19 @@
 
 namespace lights {
 
+#define LIGHTS_IMPLEMENT_SIGNED_FUNCTION(macro) \
+	macro(short) \
+	macro(int)   \
+	macro(long)  \
+	macro(long long)
+
+#define LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(macro) \
+	macro(unsigned short)     \
+	macro(unsigned int)       \
+	macro(unsigned long)      \
+	macro(unsigned long long) \
+
+
 template <typename Value, typename Tag>
 struct IntegerFormatSpec
 {
@@ -177,7 +190,7 @@ private:
 };
 
 
-#ifdef LIGHTS_FORMAT_INTEGER_OPTIMIZE
+#ifdef LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE
 static constexpr char digists[] =
 	"0001020304050607080910111213141516171819"
 	"2021222324252627282930313233343536373839"
@@ -194,83 +207,183 @@ public:
 		m_buf[sizeof(m_buf) - 1] = '\0';
 	}
 
-#define LIGHTS_INTEGER_FORMATER_FORMAT_UNSIGNED(Type) \
-	const char* format(Type n)           \
-	{                                    \
-		this->reset_state();             \
-		return this->format_unsigned(n); \
+#define LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_UNSIGNED(Type) \
+	const char* format(Type n)                        \
+	{                                                 \
+		this->reset_state();                          \
+		return this->format_unsigned(n, m_begin);     \
 	}
 
-	LIGHTS_INTEGER_FORMATER_FORMAT_UNSIGNED(unsigned short)
-	LIGHTS_INTEGER_FORMATER_FORMAT_UNSIGNED(unsigned int)
-	LIGHTS_INTEGER_FORMATER_FORMAT_UNSIGNED(unsigned long)
-	LIGHTS_INTEGER_FORMATER_FORMAT_UNSIGNED(unsigned long long)
+	LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_UNSIGNED)
 
-#undef LIGHTS_INTEGER_FORMATER_FORMAT_UNSIGNED
+#undef LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_UNSIGNED
 
-#define LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED(Type) \
-	const char* format(Type n)           \
-	{                                    \
-		this->reset_state();             \
-		return this->format_signed(n);   \
+#define LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_SIGNED(Type) \
+	const char* format(Type n)                      \
+	{                                               \
+		this->reset_state();                        \
+		return format_signed(n, m_begin);           \
 	}
 
-	LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED(short)
-	LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED(int)
-	LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED(long)
-	LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED(long long)
+	LIGHTS_IMPLEMENT_SIGNED_FUNCTION(LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_SIGNED);
 
-#undef LIGHTS_INTEGER_FORMATER_FORMAT_SIGNED
+#undef LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_SIGNED
 
-private:
-	template <typename UnsignedInteger>
-	const char* format_unsigned(UnsignedInteger n)
+	// TODO Consider to optimize like fmt.
+	template <typename Integer>
+	static unsigned need_space(Integer n)
 	{
-		if (n == 0)
+		static_assert(std::is_integral<Integer>::value && "n only can be integer");
+
+		auto absolute = static_cast<std::make_unsigned_t<Integer>>(n);
+		bool negative = n < 0;
+		unsigned count = 0;
+		if (negative)
 		{
-			--m_begin;
-			*m_begin = '0';
+			absolute = 0 - absolute;
+			++count;
+		}
+
+		if (absolute == 0)
+		{
+			count = 1;
 		}
 		else
 		{
-#ifndef LIGHTS_FORMAT_INTEGER_OPTIMIZE
+			while (absolute >= 100)
+			{
+				absolute /= 100;
+				count += 2;
+			}
+
+			if (absolute < 10) // Single digit.
+			{
+				++count;
+			}
+			else // Double digits.
+			{
+				count += 2;
+			}
+		}
+		return count;
+	}
+
+	template <typename Integer>
+	static char* format(Integer n, char* output)
+	{
+		static_assert(std::is_integral<Integer>::value && "n only can be integer");
+
+		auto absolute = static_cast<std::make_unsigned_t<Integer>>(n);
+		bool negative = n < 0;
+		if (negative)
+		{
+			absolute = 0 - absolute;
+		}
+
+		if (absolute == 0)
+		{
+			--output;
+			*output = '0';
+		}
+		else
+		{
+#ifndef LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE
 			while (n != 0)
 			{
-				--m_begin;
-				*m_begin = '0' + static_cast<char>(n % 10);
+				--output;
+				*output = '0' + static_cast<char>(n % 10);
+				n /= 10;
+			}
+#else
+			while (absolute >= 100)
+			{
+				auto index = absolute % 100 * 2;
+				--output;
+				*output = digists[index + 1];
+				--output;
+				*output = digists[index];
+				absolute /= 100;
+			}
+
+			if (absolute < 10) // Single digit.
+			{
+				--output;
+				*output = '0' + static_cast<char>(absolute);
+			}
+			else // Double digits.
+			{
+				auto index = absolute * 2;
+				--output;
+				*output = digists[index + 1];
+				--output;
+				*output = digists[index];
+			}
+#endif
+		}
+
+		if (negative)
+		{
+			--output;
+			*output = '-';
+		}
+		return output;
+	}
+
+private:
+	/**
+	 * @note Format character backwards to @c output and @c output this pos is not use.
+	 */
+	template <typename UnsignedInteger>
+	static char* format_unsigned(UnsignedInteger n, char* output)
+	{
+		if (n == 0)
+		{
+			--output;
+			*output = '0';
+		}
+		else
+		{
+#ifndef LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE
+			while (n != 0)
+			{
+				--output;
+				*output = '0' + static_cast<char>(n % 10);
 				n /= 10;
 			}
 #else
 			while (n >= 100)
 			{
 				auto index = n % 100 * 2;
-				--m_begin;
-				*m_begin = digists[index + 1];
-				--m_begin;
-				*m_begin = digists[index];
+				--output;
+				*output = digists[index + 1];
+				--output;
+				*output = digists[index];
 				n /= 100;
 			}
 
 			if (n < 10) // Single digit.
 			{
-				--m_begin;
-				*m_begin = '0' + static_cast<char>(n);
+				--output;
+				*output = '0' + static_cast<char>(n);
 			}
 			else // Double digits.
 			{
 				auto index = n * 2;
-				--m_begin;
-				*m_begin = digists[index + 1];
-				--m_begin;
-				*m_begin = digists[index];
+				--output;
+				*output = digists[index + 1];
+				--output;
+				*output = digists[index];
 			}
 #endif
 		}
-		return m_begin;
+		return output;
 	}
 
+	/**
+	 * @note Format character backwards to @c output and @c output this pos is not use.
+	 */
 	template <typename SignedInteger>
-	const char* format_signed(SignedInteger n)
+	static char* format_signed(SignedInteger n, char* output)
 	{
 		auto absolute = static_cast<std::make_unsigned_t<SignedInteger>>(n);
 		bool negative = n < 0;
@@ -278,13 +391,13 @@ private:
 		{
 			absolute = 0 - absolute;
 		}
-		this->format_unsigned(absolute);
+		char* start = format_unsigned(absolute, output);
 		if (negative)
 		{
-			--m_begin;
-			*m_begin = '-';
+			--start;
+			*start = '-';
 		}
-		return m_begin;
+		return start;
 	}
 
 	void reset_state()
@@ -640,14 +753,8 @@ inline void to_string(StringAdapter<Sink> out, Type n) \
 	out.append(formater.format(n));               \
 }
 
-LIGHTS_INTEGER_TO_STRING(short)
-LIGHTS_INTEGER_TO_STRING(int)
-LIGHTS_INTEGER_TO_STRING(long)
-LIGHTS_INTEGER_TO_STRING(long long)
-LIGHTS_INTEGER_TO_STRING(unsigned short)
-LIGHTS_INTEGER_TO_STRING(unsigned int)
-LIGHTS_INTEGER_TO_STRING(unsigned long)
-LIGHTS_INTEGER_TO_STRING(unsigned long long)
+LIGHTS_IMPLEMENT_SIGNED_FUNCTION(LIGHTS_INTEGER_TO_STRING)
+LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(LIGHTS_INTEGER_TO_STRING)
 
 #undef LIGHTS_INTEGER_TO_STRING
 
@@ -688,12 +795,6 @@ inline void to_string(StringAdapter<Sink> out, ErrorNumber error_no)
 	out.append(formater.format(error_no));
 }
 
-template <typename Sink>
-inline void to_string(StringAdapter<Sink> out, const StringView& value)
-{
-	out.append(value.string, value.length);
-}
-
 /**
  * Create a new spec with padding parameter.
  */
@@ -710,10 +811,11 @@ inline IntegerFormatSpec<Integer, Tag> pad(IntegerFormatSpec<Integer, Tag> spec,
  * @note Integer only can use integer type.
  */
 template <typename Integer>
-inline IntegerFormatSpec<Integer, details::DecimalSpecTag> pad(Integer num, char fill, int width)
+inline IntegerFormatSpec<Integer, details::DecimalSpecTag> pad(Integer n, char fill, int width)
 {
+	static_assert(std::is_integral<Integer>::value && "n only can be integer");
 	IntegerFormatSpec<Integer, details::DecimalSpecTag> spec = {
-		num,
+		n,
 		details::DecimalSpecTag(),
 		width,
 		fill
@@ -726,9 +828,10 @@ inline IntegerFormatSpec<Integer, details::DecimalSpecTag> pad(Integer num, char
  * @note Integer only can use integer type.
  */
 template <typename Integer>
-inline IntegerFormatSpec<Integer, details::BinarySpecTag> binary(Integer value)
+inline IntegerFormatSpec<Integer, details::BinarySpecTag> binary(Integer n)
 {
-	return IntegerFormatSpec<Integer, details::BinarySpecTag> { value };
+	static_assert(std::is_integral<Integer>::value && "n only can be integer");
+	return IntegerFormatSpec<Integer, details::BinarySpecTag> { n };
 }
 
 /**
@@ -748,9 +851,10 @@ inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, detail
  * @note Integer only can use integer type.
  */
 template <typename Integer>
-inline IntegerFormatSpec<Integer, details::OctalSpecTag> octal(Integer value)
+inline IntegerFormatSpec<Integer, details::OctalSpecTag> octal(Integer n)
 {
-	return IntegerFormatSpec<Integer, details::OctalSpecTag> { value };
+	static_assert(std::is_integral<Integer>::value && "n only can be integer");
+	return IntegerFormatSpec<Integer, details::OctalSpecTag> { n };
 }
 
 /**
@@ -770,9 +874,10 @@ void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::Octa
  * @note Integer only can use integer type.
  */
 template <typename Integer>
-inline IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> hex_lower_case(Integer value)
+inline IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> hex_lower_case(Integer n)
 {
-	return IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> { value };
+	static_assert(std::is_integral<Integer>::value && "n only can be integer");
+	return IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> { n };
 }
 
 /**
@@ -791,9 +896,10 @@ inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, detail
  * @note Integer only can use integer type.
  */
 template <typename Integer>
-inline IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> hex_upper_case(Integer value)
+inline IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> hex_upper_case(Integer n)
 {
-	return IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> { value };
+	static_assert(std::is_integral<Integer>::value && "n only can be integer");
+	return IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> { n };
 }
 
 /**
@@ -857,6 +963,13 @@ inline void append(StringAdapter<Sink> out, const std::string& str)
 {
 	out.append(str.c_str(), str.length());
 }
+
+template <typename Sink>
+inline void append(StringAdapter<Sink> out, const StringView& str)
+{
+	out.append(str.string, str.length);
+}
+
 
 /**
  * Insert value into the sink. It'll invoke @c append
@@ -968,7 +1081,7 @@ public:
 	 */
 	void append(char ch)
 	{
-		if (m_length + 1 < max_size()) // Remain a charater to hold null chareter.
+		if (can_append(1))
 		{
 			m_buffer[m_length] = ch;
 			++m_length;
@@ -984,7 +1097,7 @@ public:
 	 */
 	void append(const char* str, std::size_t len)
 	{
-		if (m_length + len < max_size()) // Remain a charater to hold null chareter.
+		if (can_append(len))
 		{
 			std::memcpy(m_buffer + m_length, str, len);
 			m_length += len;
@@ -1007,21 +1120,19 @@ public:
 
 
 #define LIGHTS_MEMORY_WRITER_APPEND_INTEGER(Type)           \
-	MemoryWriter& operator<< (Type value)                   \
+	MemoryWriter& operator<< (Type n)                       \
 	{                                                       \
-		const char* str = m_integer_formater.format(value); \
-		this->append(str);                                  \
+		auto len = details::IntegerFormater::need_space(n); \
+		if (can_append(len))                                \
+		{                                                   \
+			details::IntegerFormater::format(n, m_buffer + m_length + len); \
+			m_length += len;                                \
+		}                                                   \
 		return *this;                                       \
 	}
 
-	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(short)
-	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(int)
-	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(long)
-	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(long long)
-	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(unsigned short)
-	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(unsigned int)
-	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(unsigned long)
-	LIGHTS_MEMORY_WRITER_APPEND_INTEGER(unsigned long long)
+	LIGHTS_IMPLEMENT_SIGNED_FUNCTION(LIGHTS_MEMORY_WRITER_APPEND_INTEGER)
+	LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(LIGHTS_MEMORY_WRITER_APPEND_INTEGER)
 
 #undef LIGHTS_MEMORY_WRITER_APPEND_INTEGER
 
@@ -1058,13 +1169,22 @@ public:
 		return m_length;
 	}
 
+	void clear()
+	{
+		m_length = 0;
+	}
+
 	constexpr std::size_t max_size() const
 	{
 		return buffer_size;
 	}
 
 private:
-	details::IntegerFormater m_integer_formater;
+	bool can_append(std::size_t len)
+	{
+		return m_length + len < max_size(); // Remain a charater to hold null chareter.
+	}
+
 	char m_buffer[buffer_size];
 	std::size_t m_length = 0;
 };

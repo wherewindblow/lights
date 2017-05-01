@@ -19,7 +19,7 @@ public:
 	void write(const char* str, std::size_t len)
 	{}
 
-	static std::shared_ptr<NullSink> get_instance()
+	static std::shared_ptr<NullSink> instance()
 	{
 		static auto instance = std::make_shared<NullSink>();
 		return instance;
