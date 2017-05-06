@@ -223,22 +223,50 @@ void Logger<Sink>::log(LogLevel level, const T& value)
 	}
 }
 
+/**
+ * Use second as a tick to record timestamp.
+ * It's faster than use chrono, but precision is not enought.
+ */
+//template <typename Sink>
+//void Logger<Sink>::generate_signature_header()
+//{
+//	std::time_t time = std::time(nullptr);
+//	std::tm tm;
+//	localtime_r(&time, &tm);
+//
+//	m_writer << '[';
+//
+//	m_writer << static_cast<unsigned>(tm.tm_year + 1900) << '-';
+//	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_mon + 1)) << '-';
+//	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_mday)) << ' ';
+//	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_hour)) << ':';
+//	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_min)) << ':';
+//	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_sec));
+//
+//	m_writer << "] [" << m_name << "] [" << to_string(m_level) << "] ";
+//}
 
 template <typename Sink>
 void Logger<Sink>::generate_signature_header()
 {
-	std::time_t time = std::time(nullptr);
+	namespace chrono = std::chrono;
+	auto chrono_time = chrono::system_clock::now();
+	std::time_t time = chrono::system_clock::to_time_t(chrono_time);
 	std::tm tm;
 	localtime_r(&time, &tm);
 
 	m_writer << '[';
 
-	m_writer << static_cast<unsigned int>(tm.tm_year + 1900) << '-';
+	m_writer << static_cast<unsigned>(tm.tm_year + 1900) << '-';
 	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_mon + 1)) << '-';
 	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_mday)) << ' ';
 	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_hour)) << ':';
 	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_min)) << ':';
-	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_sec));
+	write_2_digit(m_writer, static_cast<unsigned>(tm.tm_sec)) << '.';
+
+	auto duration = chrono_time.time_since_epoch();
+	auto millis = chrono::duration_cast<chrono::milliseconds>(duration).count() % 1000;
+	m_writer << pad(static_cast<unsigned>(millis), '0', 3);
 
 	m_writer << "] [" << m_name << "] [" << to_string(m_level) << "] ";
 }
