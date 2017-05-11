@@ -12,6 +12,7 @@
 #include <string>
 #include <limits>
 #include <sstream>
+#include <functional>
 
 #include <errno.h>
 
@@ -231,153 +232,17 @@ public:
 
 	// TODO Consider to optimize like fmt.
 	template <typename Integer>
-	static unsigned need_space(Integer n)
-	{
-		static_assert(std::is_integral<Integer>::value && "n only can be integer");
-
-		auto absolute = static_cast<std::make_unsigned_t<Integer>>(n);
-		bool negative = n < 0;
-		unsigned count = 0;
-		if (negative)
-		{
-			absolute = 0 - absolute;
-			++count;
-		}
-
-		if (absolute == 0)
-		{
-			count = 1;
-		}
-		else
-		{
-			while (absolute >= 100)
-			{
-				absolute /= 100;
-				count += 2;
-			}
-
-			if (absolute < 10) // Single digit.
-			{
-				++count;
-			}
-			else // Double digits.
-			{
-				count += 2;
-			}
-		}
-		return count;
-	}
+	static unsigned need_space(Integer n);
 
 	template <typename Integer>
-	static char* format(Integer n, char* output)
-	{
-		static_assert(std::is_integral<Integer>::value && "n only can be integer");
-
-		auto absolute = static_cast<std::make_unsigned_t<Integer>>(n);
-		bool negative = n < 0;
-		if (negative)
-		{
-			absolute = 0 - absolute;
-		}
-
-		if (absolute == 0)
-		{
-			--output;
-			*output = '0';
-		}
-		else
-		{
-#ifndef LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE
-			while (n != 0)
-			{
-				--output;
-				*output = '0' + static_cast<char>(n % 10);
-				n /= 10;
-			}
-#else
-			while (absolute >= 100)
-			{
-				auto index = absolute % 100 * 2;
-				--output;
-				*output = digists[index + 1];
-				--output;
-				*output = digists[index];
-				absolute /= 100;
-			}
-
-			if (absolute < 10) // Single digit.
-			{
-				--output;
-				*output = '0' + static_cast<char>(absolute);
-			}
-			else // Double digits.
-			{
-				auto index = absolute * 2;
-				--output;
-				*output = digists[index + 1];
-				--output;
-				*output = digists[index];
-			}
-#endif
-		}
-
-		if (negative)
-		{
-			--output;
-			*output = '-';
-		}
-		return output;
-	}
+	static char* format(Integer n, char* output);
 
 private:
 	/**
 	 * @note Format character backwards to @c output and @c output this pos is not use.
 	 */
 	template <typename UnsignedInteger>
-	static char* format_unsigned(UnsignedInteger n, char* output)
-	{
-		if (n == 0)
-		{
-			--output;
-			*output = '0';
-		}
-		else
-		{
-#ifndef LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE
-			while (n != 0)
-			{
-				--output;
-				*output = '0' + static_cast<char>(n % 10);
-				n /= 10;
-			}
-#else
-			while (n >= 100)
-			{
-				auto index = n % 100 * 2;
-				--output;
-				*output = digists[index + 1];
-				--output;
-				*output = digists[index];
-				n /= 100;
-			}
-
-			if (n < 10) // Single digit.
-			{
-				--output;
-				*output = '0' + static_cast<char>(n);
-			}
-			else // Double digits.
-			{
-				auto index = n * 2;
-				--output;
-				*output = digists[index + 1];
-				--output;
-				*output = digists[index];
-			}
-#endif
-		}
-		return output;
-	}
+	static char* format_unsigned(UnsignedInteger n, char* output);
 
 	/**
 	 * @note Format character backwards to @c output and @c output this pos is not use.
@@ -408,6 +273,152 @@ private:
 	char m_buf[std::numeric_limits<std::uintmax_t>::digits10 + 1 + 1];
 	char* m_begin;
 };
+
+// TODO Consider to optimize like fmt.
+template <typename Integer>
+unsigned IntegerFormater::need_space(Integer n)
+{
+	static_assert(std::is_integral<Integer>::value && "n only can be integer");
+
+	auto absolute = static_cast<std::make_unsigned_t<Integer>>(n);
+	bool negative = n < 0;
+	unsigned count = 0;
+	if (negative)
+	{
+		absolute = 0 - absolute;
+		++count;
+	}
+
+	if (absolute == 0)
+	{
+		count = 1;
+	}
+	else
+	{
+		while (absolute >= 100)
+		{
+			absolute /= 100;
+			count += 2;
+		}
+
+		if (absolute < 10) // Single digit.
+		{
+			++count;
+		}
+		else // Double digits.
+		{
+			count += 2;
+		}
+	}
+	return count;
+}
+
+template <typename Integer>
+char* IntegerFormater::format(Integer n, char* output)
+{
+	static_assert(std::is_integral<Integer>::value && "n only can be integer");
+
+	auto absolute = static_cast<std::make_unsigned_t<Integer>>(n);
+	bool negative = n < 0;
+	if (negative)
+	{
+		absolute = 0 - absolute;
+	}
+
+	if (absolute == 0)
+	{
+		--output;
+		*output = '0';
+	}
+	else
+	{
+#ifndef LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE
+		while (n != 0)
+			{
+				--output;
+				*output = '0' + static_cast<char>(n % 10);
+				n /= 10;
+			}
+#else
+		while (absolute >= 100)
+		{
+			auto index = absolute % 100 * 2;
+			--output;
+			*output = digists[index + 1];
+			--output;
+			*output = digists[index];
+			absolute /= 100;
+		}
+
+		if (absolute < 10) // Single digit.
+		{
+			--output;
+			*output = '0' + static_cast<char>(absolute);
+		}
+		else // Double digits.
+		{
+			auto index = absolute * 2;
+			--output;
+			*output = digists[index + 1];
+			--output;
+			*output = digists[index];
+		}
+#endif
+	}
+
+	if (negative)
+	{
+		--output;
+		*output = '-';
+	}
+	return output;
+}
+
+template <typename UnsignedInteger>
+char* IntegerFormater::format_unsigned(UnsignedInteger n, char* output)
+{
+	if (n == 0)
+	{
+		--output;
+		*output = '0';
+	}
+	else
+	{
+#ifndef LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE
+		while (n != 0)
+			{
+				--output;
+				*output = '0' + static_cast<char>(n % 10);
+				n /= 10;
+			}
+#else
+		while (n >= 100)
+		{
+			auto index = n % 100 * 2;
+			--output;
+			*output = digists[index + 1];
+			--output;
+			*output = digists[index];
+			n /= 100;
+		}
+
+		if (n < 10) // Single digit.
+		{
+			--output;
+			*output = '0' + static_cast<char>(n);
+		}
+		else // Double digits.
+		{
+			auto index = n * 2;
+			--output;
+			*output = digists[index + 1];
+			--output;
+			*output = digists[index];
+		}
+#endif
+	}
+	return output;
+}
 
 
 class ErrorFormater
@@ -1063,15 +1074,13 @@ inline void write(StringAdapter<Sink> out, const std::string& fmt, const Arg& va
 }
 
 
-template <std::size_t buffer_size>
+const std::size_t MEMORY_WRITER_DEFAULT_SIZE = 500;
+
+template <std::size_t buffer_size = MEMORY_WRITER_DEFAULT_SIZE>
 class MemoryWriter
 {
 public:
-	template <typename Arg, typename ... Args>
-	void write(const char* fmt, const Arg& value, const Args& ... args)
-	{
-		lights::write(make_string_adapter(*this), fmt, value, args ...);
-	}
+	using FullHandler = std::function<void(StringView)>;
 
 	/**
 	 * Basic append function to append a character.
@@ -1085,6 +1094,18 @@ public:
 		{
 			m_buffer[m_length] = ch;
 			++m_length;
+		}
+		else // Full
+		{
+			if (m_full_handler)
+			{
+				m_full_handler(str_view());
+				clear();
+				if (1 <= max_size())
+				{
+					append(ch);
+				}
+			}
 		}
 	}
 
@@ -1102,9 +1123,13 @@ public:
 			std::memcpy(m_buffer + m_length, str, len);
 			m_length += len;
 		}
-		else // Append to the remaining place.
+		else // Have not enought space to hold all.
 		{
-			append(str, max_size() - m_length - 1);  // Remain a charater to hold null chareter.
+			// Append to the remaining place.
+			append(str, max_size() - m_length);
+			len -= (max_size() - m_length);
+
+			hand_for_full(str, len);
 		}
 	}
 
@@ -1118,6 +1143,11 @@ public:
 		this->append(str.string, str.length);
 	}
 
+	template <typename Arg, typename ... Args>
+	void write(const char* fmt, const Arg& value, const Args& ... args)
+	{
+		lights::write(make_string_adapter(*this), fmt, value, args ...);
+	}
 
 #define LIGHTS_MEMORY_WRITER_APPEND_INTEGER(Type)           \
 	MemoryWriter& operator<< (Type n)                       \
@@ -1174,7 +1204,25 @@ public:
 		m_length = 0;
 	}
 
+	const FullHandler& get_full_handler() const
+	{
+		return m_full_handler;
+	}
+
+	void set_full_handler(const FullHandler& full_handler)
+	{
+		m_full_handler = full_handler;
+	}
+
+	/**
+	 * Get max size can be.
+	 */
 	constexpr std::size_t max_size() const
+	{
+		return buffer_size - 1; // Remain a charater to hold null chareter.
+	}
+
+	constexpr std::size_t capacity() const
 	{
 		return buffer_size;
 	}
@@ -1182,12 +1230,45 @@ public:
 private:
 	bool can_append(std::size_t len)
 	{
-		return m_length + len < max_size(); // Remain a charater to hold null chareter.
+		return m_length + len <= max_size();
 	}
+
+	void hand_for_full(const char* str, size_t len);
 
 	char m_buffer[buffer_size];
 	std::size_t m_length = 0;
+	FullHandler m_full_handler;
 };
+
+
+template <std::size_t buffer_size>
+void MemoryWriter<buffer_size>::hand_for_full(const char* str, size_t len)
+{
+	if (m_full_handler)
+	{
+		m_full_handler(str_view());
+		clear();
+		if (len <= max_size())
+		{
+			append(str, len);
+		}
+		else // Have not enought space to hold all.
+		{
+			while (len)
+			{
+				std::size_t append_len = (len <= max_size()) ? len : max_size();
+				append(str, append_len);
+				if (append_len == max_size())
+				{
+					m_full_handler(str_view());
+					clear();
+				}
+				str += append_len;
+				len -= append_len;
+			}
+		}
+	}
+}
 
 
 template <>
