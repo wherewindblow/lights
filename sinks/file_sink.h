@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include "../format.h"
+#include "../logger.h"
 
 
 namespace lights {
@@ -23,11 +24,15 @@ namespace sinks {
 
 namespace details {
 
-enum class SeekWhence
+enum class FileSeekWhence
 {
 	BEGIN = SEEK_SET, CURRENT = SEEK_CUR, END = SEEK_END
 };
 
+enum class FileBufferingMode
+{
+	FULL_BUFFERING = _IOFBF, LINE_BUFFERING = _IOLBF, NO_BUFFERING = _IONBF
+};
 
 class FileStream
 {
@@ -40,8 +45,7 @@ public:
 	}
 
 	FileStream(const std::string& filename, const std::string& modes) :
-		FileStream(filename.c_str(), modes.c_str())
-	{}
+		FileStream(filename.c_str(), modes.c_str()) {}
 
 	~FileStream()
 	{
@@ -119,7 +123,7 @@ public:
 		return ftello(m_file);
 	}
 
-	void seek(std::streamoff off, SeekWhence whence)
+	void seek(std::streamoff off, FileSeekWhence whence)
 	{
 		fseeko(m_file, off, static_cast<int>(whence));
 	}
@@ -132,9 +136,9 @@ public:
 	std::size_t size()
 	{
 		std::streamoff origin = this->tell();
-		this->seek(0, SeekWhence::END);
+		this->seek(0, FileSeekWhence::END);
 		std::streamoff size = this->tell();
-		this->seek(origin, SeekWhence::BEGIN);
+		this->seek(origin, FileSeekWhence::BEGIN);
 		return static_cast<std::size_t>(size);
 	}
 
@@ -142,6 +146,16 @@ public:
 	{
 		std::fclose(m_file);
 		m_file = nullptr;
+	}
+
+	void setbuf(char* buffer)
+	{
+		std::setbuf(m_file, buffer);
+	}
+
+	void setvbuf(char* buffer, std::size_t size, FileBufferingMode mode)
+	{
+		std::setvbuf(m_file, buffer, static_cast<int>(mode), size);
 	}
 
 private:
@@ -168,11 +182,12 @@ public:
 	 */
 	SimpleFileSink(const char* filename) :
 		m_file(filename, "ab+")
-	{}
+	{
+		m_file.setbuf(nullptr);
+	}
 
 	SimpleFileSink(const std::string& filename) :
-		SimpleFileSink(filename.c_str())
-	{}
+		SimpleFileSink(filename.c_str()) {}
 
 	void write(const char* str, std::size_t len)
 	{
@@ -188,8 +203,7 @@ class RotatingFileSink
 {
 public:
 	RotatingFileSink() :
-		m_file(std::make_unique<details::FileStream>())
-	{}
+		m_file(std::make_unique<details::FileStream>()) {}
 
 #define LIGHTS_SINKS_INIT_MEMBER(exp) \
 	if (can_init) \
@@ -313,4 +327,163 @@ private:
 };
 
 } // namespace sinks
+
+
+#define LIGHTS_LOGGER_FILE_SINK(Sink) \
+template <> \
+class Logger<Sink> \
+{ \
+public: \
+    Logger(const std::string& name, std::shared_ptr<Sink> sink); \
+	~Logger(); \
+\
+    const std::string& get_name() const \
+    { \
+        return m_name; \
+    } \
+\
+    LogLevel get_level() const \
+    { \
+        return m_level; \
+    } \
+\
+    void set_level(LogLevel level) \
+    { \
+        m_level = level; \
+    } \
+\
+\
+    template <typename ... Args> \
+    void log(LogLevel level, const char* fmt, const Args& ... args) \
+    { \
+        if (this->should_log(level)) \
+        { \
+            this->generate_signature_header(); \
+            m_writer->write(fmt, args ...); \
+            m_writer->append('\n'); \
+        } \
+    } \
+\
+    template <typename ... Args> \
+    void debug(const char* fmt, const Args& ... args) \
+    { \
+        this->log(LogLevel::DEBUG, fmt, args ...); \
+    } \
+\
+    template <typename ... Args> \
+    void info(const char* fmt, const Args& ... args) \
+    { \
+        this->log(LogLevel::INFO, fmt, args ...); \
+    } \
+\
+    template <typename ... Args> \
+    void warn(const char* fmt, const Args& ... args) \
+    { \
+        this->log(LogLevel::WARN, fmt, args ...); \
+    } \
+\
+    template <typename ... Args> \
+    void error(const char* fmt, const Args& ... args) \
+    { \
+        this->log(LogLevel::ERROR, fmt, args ...); \
+    } \
+\
+\
+    void log(LogLevel level, const char* str) \
+    { \
+        if (this->should_log(level)) \
+        { \
+            this->generate_signature_header(); \
+            *m_writer << str << '\n'; \
+        } \
+    } \
+\
+    void debug(const char* str) \
+    { \
+        this->log(LogLevel::DEBUG, str); \
+    } \
+\
+    void info(const char* str) \
+    { \
+        this->log(LogLevel::INFO, str); \
+    } \
+\
+    void warn(const char* str) \
+    { \
+        this->log(LogLevel::WARN, str); \
+    } \
+\
+    void error(const char* str) \
+    { \
+        this->log(LogLevel::ERROR, str); \
+    } \
+\
+\
+    template <typename T> \
+    void log(LogLevel level, const T& value) \
+    { \
+        if (this->should_log(level)) \
+        { \
+            this->generate_signature_header(); \
+            *m_writer << value << '\n'; \
+        } \
+    } \
+\
+    template <typename T> \
+    void debug(const T& value) \
+    { \
+        this->log(LogLevel::DEBUG, value); \
+    } \
+\
+    template <typename T> \
+    void info(const T& value) \
+    { \
+        this->log(LogLevel::INFO, value); \
+    } \
+\
+    template <typename T> \
+    void warn(const T& value) \
+    { \
+        this->log(LogLevel::WARN, value); \
+    } \
+\
+    template <typename T> \
+    void error(const T& value) \
+    { \
+        this->log(LogLevel::ERROR, value); \
+    } \
+\
+private: \
+    bool should_log(LogLevel level) const \
+    { \
+        return m_level <= level; \
+    } \
+\
+    template <std::size_t N> \
+    static lights::MemoryWriter<N>&  write_2_digit(lights::MemoryWriter<N>& writer, unsigned num) \
+    { \
+        if (num >= 10) \
+        { \
+            writer << num; \
+        } \
+        else \
+        { \
+            writer << '0' << num; \
+        } \
+        return writer; \
+    } \
+\
+    void generate_signature_header(); \
+\
+    std::string m_name; \
+    LogLevel m_level = LogLevel::INFO; \
+    std::shared_ptr<Sink> m_sink; \
+    std::unique_ptr<MemoryWriter<BUFSIZ>> m_writer; \
+}; \
+
+
+LIGHTS_LOGGER_FILE_SINK(sinks::SimpleFileSink)
+
+#undef LIGHTS_LOGGER_FILE_SINK
+
 } // namespace lights

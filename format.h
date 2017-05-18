@@ -274,7 +274,6 @@ private:
 	char* m_begin;
 };
 
-// TODO Consider to optimize like fmt.
 template <typename Integer>
 unsigned IntegerFormater::need_space(Integer n)
 {

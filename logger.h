@@ -9,6 +9,7 @@
 #include <cstring>
 #include <ctime>
 #include <memory>
+#include <chrono>
 
 #include <time.h>
 
@@ -170,7 +171,7 @@ private:
 	std::string m_name;
 	LogLevel m_level = LogLevel::INFO;
 	std::shared_ptr<Sink> m_sink;
-	MemoryWriter<500> m_writer;
+	MemoryWriter<> m_writer;
 };
 
 
