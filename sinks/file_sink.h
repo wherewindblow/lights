@@ -9,11 +9,13 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <cassert>
 #include <string>
 #include <memory>
 
 #include <stdio.h>
 #include <string.h>
+
 
 #include "../format.h"
 #include "../logger.h"
@@ -57,6 +59,7 @@ public:
 
 	void open(const char* filename, const char* modes)
 	{
+		assert(!is_open() && "Cannot open file, becase there is handler that is not close.");
 		m_file = std::fopen(filename, modes);
 		if (m_file == nullptr)
 		{
@@ -120,11 +123,13 @@ public:
 
 	std::streamoff tell()
 	{
+		// Return type off_t will fit into suitable type for 32 and 64 architechures.
 		return ftello(m_file);
 	}
 
 	void seek(std::streamoff off, FileSeekWhence whence)
 	{
+		// off type off_t will fit into suitable type for 32 and 64 architechures.
 		fseeko(m_file, off, static_cast<int>(whence));
 	}
 
@@ -161,8 +166,8 @@ public:
 private:
 	static void open_file_failure(const char* filename)
 	{
-		lights::MemoryWriter<512> writer;
-		writer.write("Open \"{}\" failure: {}", filename, current_error());
+		MemoryWriter<> writer;
+		writer.write("FileStream: Open \"{}\" failure: {}", filename, current_error());
 		throw std::runtime_error(writer.c_str());
 	}
 
@@ -199,11 +204,10 @@ private:
 };
 
 
-class RotatingFileSink
+class SizeRotatingFileSink
 {
 public:
-	RotatingFileSink() :
-		m_file(std::make_unique<details::FileStream>()) {}
+	SizeRotatingFileSink() = default;
 
 #define LIGHTS_SINKS_INIT_MEMBER(exp) \
 	if (can_init) \
@@ -256,7 +260,7 @@ public:
 			this->fill_remain();
 			this->rotate();
 		}
-		m_file->write(str, len);
+		m_file.write(str, len);
 		m_current_size += len;
 	}
 
@@ -273,9 +277,9 @@ private:
 
 			for (std::size_t i = 0; i < times; ++i)
 			{
-				m_file->write(zeros, sizeof(zeros));
+				m_file.write(zeros, sizeof(zeros));
 			}
-			m_file->write(zeros, remainder);
+			m_file.write(zeros, remainder);
 		}
 	}
 
@@ -284,14 +288,14 @@ private:
 		bool appropriate = false;
 		while (m_index + 1 < m_max_files)
 		{
-			if (m_file->is_open())
+			if (m_file.is_open())
 			{
-				m_file->close();
+				m_file.close();
 			}
 			++m_index;
 			auto name = format(m_name_format, m_index);
-			m_file->open(name, "ab+");
-			m_current_size = m_file->size();
+			m_file.open(name, "ab+");
+			m_current_size = m_file.size();
 			if (m_current_size < m_max_size)
 			{
 				appropriate = true;
@@ -312,8 +316,12 @@ private:
 			}
 
 			auto last = format(m_name_format, m_max_files - 1);
-			m_file->open(last, "ab+");
-			m_current_size = m_file->size();
+			if (m_file.is_open())
+			{
+				m_file.close();
+			}
+			m_file.open(last, "ab+");
+			m_current_size = m_file.size();
 		}
 	}
 
@@ -321,9 +329,77 @@ private:
 	std::string m_name_format;
 	std::size_t m_max_size;
 	std::size_t m_max_files = static_cast<std::size_t>(-1);
-	std::unique_ptr<details::FileStream> m_file;
+	details::FileStream m_file;
 	std::size_t m_index = static_cast<std::size_t>(-1);
 	std::size_t m_current_size;
+};
+
+
+class TimeRotatingFileSink
+{
+public:
+	static constexpr std::time_t ONE_DAY_SECONDS = (std::chrono::hours(1) * 24).count();
+
+	TimeRotatingFileSink(std::string name_format,
+						 std::time_t duration = ONE_DAY_SECONDS,
+						 std::time_t day_point = 0) :
+		m_name_format(name_format),
+		m_duration(duration),
+		m_day_point(day_point)
+	{
+		if (day_point > ONE_DAY_SECONDS)
+		{
+			throw std::invalid_argument("TimeRotatingFileSink: day_point is over 24 hours.");
+		}
+		std::time_t now = std::time(nullptr);
+		m_next_rotating_time = now;
+		m_next_rotating_time -= m_next_rotating_time % ONE_DAY_SECONDS;
+		m_next_rotating_time += day_point;
+
+		if (m_next_rotating_time > now)
+		{
+			m_next_rotating_time -= m_duration;
+		}
+
+		rotate();
+	}
+
+	void write(const char* str, std::size_t len)
+	{
+		std::time_t now = std::time(nullptr);
+		if (now >= m_next_rotating_time)
+		{
+			rotate();
+		}
+		m_file.write(str, len);
+	}
+
+	void rotate()
+	{
+		time_t time = std::time(nullptr);
+		tm tm;
+		localtime_r(&time, &tm);
+		char buf[50];
+		std::size_t buf_len = std::strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &tm);
+		buf[buf_len] = '\0';
+
+		std::string name = format(m_name_format, buf);
+
+		if (m_file.is_open())
+		{
+			m_file.close();
+		}
+		m_file.open(name, "ab+");
+
+		m_next_rotating_time += m_duration;
+	}
+
+private:
+	std::string m_name_format;
+	std::time_t m_duration;
+	std::time_t m_day_point;
+	std::time_t m_next_rotating_time;
+	details::FileStream m_file;
 };
 
 } // namespace sinks
