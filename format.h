@@ -33,13 +33,17 @@ namespace lights {
 	macro(unsigned long)      \
 	macro(unsigned long long) \
 
+#define LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(macro) \
+	LIGHTS_IMPLEMENT_SIGNED_FUNCTION(macro) \
+	LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(macro)
+
 
 template <typename Value, typename Tag>
 struct IntegerFormatSpec
 {
 	Value value;
 	Tag tag;
-	int width = IntegerFormatSpec::INVALID_WIDTH;
+	int width = INVALID_WIDTH;
 	char fill;
 
 	static const char INVALID_WIDTH = -1;
@@ -763,8 +767,7 @@ inline void to_string(StringAdapter<Sink> out, Type n) \
 	out.append(formater.format(n));               \
 }
 
-LIGHTS_IMPLEMENT_SIGNED_FUNCTION(LIGHTS_INTEGER_TO_STRING)
-LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(LIGHTS_INTEGER_TO_STRING)
+LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_INTEGER_TO_STRING)
 
 #undef LIGHTS_INTEGER_TO_STRING
 
@@ -1160,8 +1163,7 @@ public:
 		return *this;                                       \
 	}
 
-	LIGHTS_IMPLEMENT_SIGNED_FUNCTION(LIGHTS_MEMORY_WRITER_APPEND_INTEGER)
-	LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(LIGHTS_MEMORY_WRITER_APPEND_INTEGER)
+	LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_MEMORY_WRITER_APPEND_INTEGER)
 
 #undef LIGHTS_MEMORY_WRITER_APPEND_INTEGER
 
@@ -1300,10 +1302,25 @@ public:
 		m_sink.append(str);
 	}
 
+	MemoryWriter<buffer_size>& get_internal_sink()
+	{
+		return m_sink;
+	}
+
 private:
 	MemoryWriter<buffer_size>& m_sink;
 };
 
+#define LIGHTS_MEMORY_WRITER_TO_STRING(Type) \
+template <std::size_t buffer_size> \
+inline void to_string(StringAdapter<MemoryWriter<buffer_size>> out, Type n) \
+{ \
+	out.get_internal_sink() << n; \
+}
+
+LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_MEMORY_WRITER_TO_STRING)
+
+#undef LIGHTS_MEMORY_WRITER_TO_STRING
 
 /**
  * Format string that use @c fmt and @c args ...
