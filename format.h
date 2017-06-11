@@ -78,6 +78,12 @@ struct StringView
 	std::size_t length;
 };
 
+template <typename Ostream>
+Ostream& operator<< (Ostream& out, StringView view)
+{
+	out.write(view.string, view.length);
+	return out;
+}
 
 /**
  * StringAdapter adapter Sink to a abstract string.
