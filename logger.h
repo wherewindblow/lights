@@ -10,6 +10,9 @@
 #include <ctime>
 #include <memory>
 #include <chrono>
+#include <vector>
+#include <unordered_map>
+#include <fstream>
 
 #include <time.h>
 
@@ -27,7 +30,7 @@ static const std::string log_level_names[] = {
 } // namespace details
 
 
-enum class LogLevel
+enum class LogLevel: unsigned char
 {
 	DEBUG = 0, INFO, WARN, ERROR, OFF
 };
@@ -47,10 +50,10 @@ inline const std::string& to_string(LogLevel level)
  * Signature is compose by time, logger name and log level.
  */
 template <typename Sink>
-class Logger
+class TextLogger
 {
 public:
-	Logger(const std::string& name, std::shared_ptr<Sink> sink);
+	TextLogger(const std::string& name, std::shared_ptr<Sink> sink);
 
 	const std::string& get_name() const
 	{
@@ -176,13 +179,13 @@ private:
 
 
 template <typename Sink>
-Logger<Sink>::Logger(const std::string& name, std::shared_ptr<Sink> sink) :
+TextLogger<Sink>::TextLogger(const std::string& name, std::shared_ptr<Sink> sink) :
 	m_name(name), m_sink(sink) {}
 
 
 template <typename Sink>
 template <typename ... Args>
-void Logger<Sink>::log(LogLevel level, const char* fmt, const Args& ... args)
+void TextLogger<Sink>::log(LogLevel level, const char* fmt, const Args& ... args)
 {
 	if (this->should_log(level))
 	{
@@ -197,7 +200,7 @@ void Logger<Sink>::log(LogLevel level, const char* fmt, const Args& ... args)
 
 
 template <typename Sink>
-void Logger<Sink>::log(LogLevel level, const char* str)
+void TextLogger<Sink>::log(LogLevel level, const char* str)
 {
 	if (this->should_log(level))
 	{
@@ -212,7 +215,7 @@ void Logger<Sink>::log(LogLevel level, const char* str)
 
 template <typename Sink>
 template <typename T>
-void Logger<Sink>::log(LogLevel level, const T& value)
+void TextLogger<Sink>::log(LogLevel level, const T& value)
 {
 	if (this->should_log(level))
 	{
@@ -229,7 +232,7 @@ void Logger<Sink>::log(LogLevel level, const T& value)
  * It's faster than use chrono, but precision is not enought.
  */
 //template <typename Sink>
-//void Logger<Sink>::generate_signature_header()
+//void TextLogger<Sink>::generate_signature_header()
 //{
 //	std::time_t time = std::time(nullptr);
 //	std::tm tm;
@@ -248,7 +251,7 @@ void Logger<Sink>::log(LogLevel level, const T& value)
 //}
 
 template <typename Sink>
-void Logger<Sink>::generate_signature_header()
+void TextLogger<Sink>::generate_signature_header()
 {
 	namespace chrono = std::chrono;
 	auto chrono_time = chrono::system_clock::now();
@@ -270,6 +273,353 @@ void Logger<Sink>::generate_signature_header()
 	m_writer << pad(static_cast<unsigned>(millis), '0', 3);
 
 	m_writer << "] [" << m_name << "] [" << to_string(m_level) << "] ";
+}
+
+
+namespace details {
+
+template <typename T = void>
+class StringTableImpl
+{
+public:
+	using StringViewPtr = std::shared_ptr<const StringView>;
+
+	static StringTableImpl& instance()
+	{
+		return *instance_ptr;
+	}
+
+	static void init_instance(const std::string& filename)
+	{
+		instance_ptr = std::make_unique<StringTableImpl>(filename);
+	}
+
+	StringTableImpl(const std::string& filename);
+
+	~StringTableImpl();
+
+	std::size_t get_str_index(const StringView& view)
+	{
+		StringViewPtr str_ptr(&view, EmptyDeleter());
+		auto itr = m_str_hash.find(str_ptr);
+		if (itr == m_str_hash.end())
+		{
+			return add_str(view);
+		}
+		else
+		{
+			return itr->second;
+		}
+	}
+
+	std::size_t get_str_index(const char* str)
+	{
+		StringView view = { str, std::strlen(str) };
+		return get_str_index(view);
+	}
+
+	std::size_t get_str_index(const std::string& str)
+	{
+		StringView view = { str.c_str(), str.length() };
+		return get_str_index(view);
+	}
+
+	std::size_t add_str(const StringView& view)
+	{
+		char* storage = new char[view.length];
+		std::memcpy(storage, view.string, view.length);
+
+		auto str_ptr = std::make_shared<StringView>(storage, view.length);
+		m_str_array.push_back(str_ptr);
+		auto pair = std::make_pair(str_ptr, m_str_array.size() - 1);
+		m_str_hash.insert(pair);
+		return pair.second;
+	}
+
+private:
+	static std::unique_ptr<StringTableImpl> instance_ptr;
+
+	struct StringHash
+	{
+		size_t operator()(const StringViewPtr& str) const noexcept
+		{
+			return std::_Hash_impl::hash(str->string, str->length);
+		}
+	};
+
+	struct StringEqualTo
+	{
+		bool operator()(const StringViewPtr& lhs, const StringViewPtr& rhs) const noexcept
+		{
+			if (lhs->length != rhs->length)
+			{
+				return false;
+			}
+			else
+			{
+				return std::memcmp(lhs->string, rhs->string, rhs->length) == 0;
+			}
+		}
+	};
+
+	struct EmptyDeleter
+	{
+		void operator()(const StringView*) const noexcept {}
+	};
+
+	struct StringDeleter
+	{
+		void operator()(const StringView* view) const noexcept
+		{
+			delete[] view->string;
+			delete view;
+		}
+	};
+
+	std::fstream m_file;
+	std::size_t m_last_index = static_cast<std::size_t>(-1);
+	std::vector<StringViewPtr> m_str_array; // To generate index
+	std::unordered_map<StringViewPtr,
+					   std::uint32_t,
+					   StringHash,
+					   StringEqualTo> m_str_hash; // To find faster.
+};
+
+
+template <typename T>
+std::unique_ptr<StringTableImpl<T>> StringTableImpl<T>::instance_ptr = nullptr;
+
+
+template <typename T>
+StringTableImpl<T>::StringTableImpl(const std::string& filename)
+{
+	m_file.open(filename);
+	if (m_file.is_open())
+	{
+		std::string line;
+		while (std::getline(m_file, line))
+		{
+			add_str(StringView(line.c_str(), line.length()));
+		}
+		m_last_index = m_str_array.size() - 1;
+	}
+	else
+	{
+		m_file.open(filename, std::ios_base::out); // Create file.
+		if (!m_file.is_open())
+		{
+			throw std::runtime_error(format("StringTableImpl: cannot open file: \"{}\"", filename));
+		}
+	}
+}
+
+
+template <typename T>
+StringTableImpl<T>::~StringTableImpl()
+{
+	if (m_file.is_open())
+	{
+		m_file.seekp(0, std::ios_base::end);
+		m_file.clear();
+		for (std::size_t i = m_last_index + 1; m_file && i < m_str_array.size(); ++i)
+		{
+			m_file.write(m_str_array[i]->string, m_str_array[i]->length) << '\n';
+		}
+		m_file.close();
+	}
+}
+
+} // namespace details
+
+using StringTable = details::StringTableImpl<>;
+
+
+/**
+ * Logger message to the backend sink.
+ * @tparam Sink  Support `void write(const char* str, std::size_t len);`
+ */
+template <typename Sink>
+class BinaryLogger
+{
+public:
+	struct TimeValue
+	{
+		std::int64_t seconds;
+		std::int64_t nanoseconds;
+	};
+
+	struct SignatureHeader
+	{
+		TimeValue time;
+		std::int32_t log_id;
+		std::int32_t module_id;
+		std::int32_t file_id;
+		std::int32_t function_id;
+		std::int32_t line;
+		std::int32_t description_id;
+		LogLevel level;
+		std::uint16_t argument_length;
+	};
+
+
+	BinaryLogger(const std::string& name, std::shared_ptr<Sink> sink);
+
+	const std::string& get_name() const
+	{
+		return m_name;
+	}
+
+	LogLevel get_level() const
+	{
+		return m_level;
+	}
+
+	void set_level(LogLevel level)
+	{
+		m_level = level;
+	}
+
+
+	template <typename ... Args>
+	void log(LogLevel level,
+			 std::int32_t module_id,
+			 const char* file,
+			 const char* function,
+			 std::int32_t line,
+			 const char* fmt,
+			 const Args& ... args);
+
+
+	void log(LogLevel level,
+			 std::int32_t module_id,
+			 const char* file,
+			 const char* function,
+			 std::int32_t line,
+			 const char* str);
+
+
+	template <typename T>
+	void log(LogLevel level,
+			 std::int32_t module_id,
+			 const char* file,
+			 const char* function,
+			 std::int32_t line,
+			 const T& value);
+
+private:
+	bool should_log(LogLevel level) const
+	{
+		return m_level <= level;
+	}
+
+	TimeValue get_time_value() const
+	{
+		namespace chrono = std::chrono;
+		auto chrono_time = chrono::system_clock::now();
+		std::time_t seconds = chrono::system_clock::to_time_t(chrono_time);
+		auto duration = chrono_time.time_since_epoch();
+		using target_time_type = chrono::nanoseconds;
+		auto nano = chrono::duration_cast<target_time_type>(duration).count() % target_time_type::period::den;
+		return TimeValue { seconds, nano };
+	}
+
+	void generate_signature_header(LogLevel level,
+								   std::int32_t module_id,
+								   const char* file,
+								   const char* function,
+								   std::int32_t line,
+								   const char* descript)
+	{
+		m_signature.time = get_time_value();
+		m_signature.module_id = module_id;
+		m_signature.file_id = static_cast<std::int32_t>(StringTable::instance().get_str_index(file));
+		m_signature.function_id = static_cast<std::int32_t>(StringTable::instance().get_str_index(function));
+		m_signature.line = line;
+		m_signature.description_id = static_cast<std::int32_t>(StringTable::instance().get_str_index(descript));
+		m_signature.level = level;
+	}
+
+	std::string m_name;
+	LogLevel m_level = LogLevel::INFO;
+	std::shared_ptr<Sink> m_sink;
+	SignatureHeader m_signature;
+
+	static constexpr std::size_t MAX_MESSAGE_SIZE = 1000;
+	BinaryStoreWriter<MAX_MESSAGE_SIZE> m_writer;
+};
+
+
+template <typename Sink>
+BinaryLogger<Sink>::BinaryLogger(const std::string& name, std::shared_ptr<Sink> sink) :
+	m_name(name), m_sink(sink)
+{
+	m_signature.log_id = static_cast<std::int32_t>(StringTable::instance().get_str_index(m_name.c_str()));
+}
+
+
+template <typename Sink>
+template <typename ... Args>
+void BinaryLogger<Sink>::log(LogLevel level,
+							 std::int32_t module_id,
+							 const char* file,
+							 const char* function,
+							 std::int32_t line,
+							 const char* fmt,
+							 const Args& ... args)
+{
+	if (this->should_log(level))
+	{
+		generate_signature_header(level, module_id, file, function, line, fmt);
+
+		m_writer.clear();
+		m_writer.write(fmt, args ...);
+		m_signature.argument_length = static_cast<std::uint16_t>(m_writer.length());
+
+		m_sink->write(reinterpret_cast<const char*>(&m_signature), sizeof(m_signature));
+		auto view = m_writer.str_view();
+		m_sink->write(view.string, view.length);
+	}
+}
+
+
+template <typename Sink>
+void BinaryLogger<Sink>::log(LogLevel level,
+							 std::int32_t module_id,
+							 const char* file,
+							 const char* function,
+							 std::int32_t line,
+							 const char* str)
+{
+	if (this->should_log(level))
+	{
+		generate_signature_header(level, module_id, file, function, line, str);
+		m_signature.argument_length = 0;
+		m_sink->write(reinterpret_cast<const char*>(&m_signature), sizeof(m_signature));
+	}
+}
+
+
+template <typename Sink>
+template <typename T>
+void BinaryLogger<Sink>::log(LogLevel level,
+							 std::int32_t module_id,
+							 const char* file,
+							 const char* function,
+							 std::int32_t line,
+							 const T& value)
+{
+	if (this->should_log(level))
+	{
+		generate_signature_header(level, module_id, file, function, line, "{}");
+
+		m_writer.clear();
+		m_writer.write("{}", value);
+		m_signature.argument_length = static_cast<std::uint16_t>(m_writer.length());
+
+		m_sink->write(reinterpret_cast<const char*>(&m_signature), sizeof(m_signature));
+		auto view = m_writer.str_view();
+		m_sink->write(view.string, view.length);
+	}
 }
 
 } // namespace lights

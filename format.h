@@ -37,16 +37,19 @@ namespace lights {
 	LIGHTS_IMPLEMENT_SIGNED_FUNCTION(macro) \
 	LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(macro)
 
+namespace details {
+
+static const char SPEC_INVALID_WIDTH = -1;
+
+} // namespace details
 
 template <typename Value, typename Tag>
 struct IntegerFormatSpec
 {
 	Value value;
 	Tag tag;
-	int width = INVALID_WIDTH;
+	int width = details::SPEC_INVALID_WIDTH;
 	char fill;
-
-	static const char INVALID_WIDTH = -1;
 };
 
 
@@ -74,6 +77,10 @@ inline ErrorNumber current_error()
  */
 struct StringView
 {
+	StringView() = default;
+	StringView(const char* str, std::size_t len) :
+		string(str), length(len) {}
+
 	const char* string;
 	std::size_t length;
 };
@@ -438,7 +445,7 @@ public:
 		// Not use sys_nerr and sys_errlist directly, although the are easy to control.
 		// Because sys_nerr may bigger that sys_errlist size and sys_errlist may have't
 		// all string for errno. In the way will lead to segment fault.
-#if (_POSIX_C_SOURCE >= 200112L) && !_GNU_SOURCE  // posix verion
+#if (_POSIX_C_SOURCE >= 200112L) && !_GNU_SOURCE  // XSI-compliant (posix) version.
 		if (strerror_r(errer_no, m_buf, sizeof(m_buf)) == 0)
 		{
 			return m_buf;
@@ -447,7 +454,7 @@ public:
 		{
 			return "Unkown error";
 		}
-#else // gnu version, m_buf is not use when is known error, but it's use when is unkown
+#else // GNU-specific version, m_buf only use when it is unkown.
 		return strerror_r(errer_no, m_buf, sizeof(m_buf));
 #endif
 	}
@@ -467,6 +474,7 @@ private:
 	// on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2) (Englist Version).
 	// In another languague version may have to change to largger to
 	// hold all message.
+	// In GNU-specific version 100 charater can hold all unkown error.
 	char m_buf[100];
 };
 
@@ -572,7 +580,7 @@ void BinaryFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
 	} while (absolute_value >>= 1);
 
 	int width = negative ? num + 1 : num;
-	if (spec.width != spec.INVALID_WIDTH && width < spec.width)
+	if (spec.width != details::SPEC_INVALID_WIDTH && width < spec.width)
 	{
 		out.append(spec.width - width, spec.fill);
 	}
@@ -634,7 +642,7 @@ void OctalFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
 
 	std::size_t num = str + len - ptr;
 	int width = static_cast<int>(negative ? num + 1 : num);
-	if (spec.width != spec.INVALID_WIDTH && width < spec.width)
+	if (spec.width != details::SPEC_INVALID_WIDTH && width < spec.width)
 	{
 		out.append(spec.width - width, spec.fill);
 	}
@@ -690,7 +698,7 @@ void HexFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
 
 	std::size_t num = str + len - ptr;
 	int width = static_cast<int>(negative ? num + 1 : num);
-	if (spec.width != spec.INVALID_WIDTH && width < spec.width)
+	if (spec.width != details::SPEC_INVALID_WIDTH && width < spec.width)
 	{
 		out.append(spec.width - width, spec.fill);
 	}
@@ -944,7 +952,7 @@ inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, detail
 	const char* str = formater.format(spec.value);
 	int len = static_cast<int>(std::strlen(str));
 
-	if (spec.width != spec.INVALID_WIDTH && len < spec.width)
+	if (spec.width != details::SPEC_INVALID_WIDTH && len < spec.width)
 	{
 		out.append(spec.width - len, spec.fill);
 	}
@@ -1082,6 +1090,39 @@ inline void write(StringAdapter<Sink> out, const std::string& fmt, const Arg& va
 }
 
 
+template <std::size_t buffer_size>
+class BinaryStoreWriter;
+
+template <std::size_t buffer_size>
+inline void write(StringAdapter<BinaryStoreWriter<buffer_size>> out, const char* fmt)
+{
+}
+
+// This explicit template specialization must declare before use it or cannot
+// into this function.
+template <std::size_t buffer_size, typename Arg, typename ... Args>
+void write(StringAdapter<BinaryStoreWriter<buffer_size>> out,
+	const char* fmt, const Arg& value, const Args& ... args)
+{
+	std::size_t i = 0;
+	for (; fmt[i] != '\0'; ++i)
+	{
+		if (fmt[i] == '{' &&
+			fmt[i + 1] != '\0' &&
+			fmt[i + 1] == '}')
+		{
+			break;
+		}
+	}
+
+	if (fmt[i] != '\0')
+	{
+		append(out, value);
+		write(out, fmt + i + 2, args ...);
+	}
+}
+
+
 const std::size_t MEMORY_WRITER_DEFAULT_SIZE = 500;
 
 template <std::size_t buffer_size = MEMORY_WRITER_DEFAULT_SIZE>
@@ -1154,6 +1195,7 @@ public:
 	template <typename Arg, typename ... Args>
 	void write(const char* fmt, const Arg& value, const Args& ... args)
 	{
+		// Must add namespace scope limit or cannot find suitable function.
 		lights::write(make_string_adapter(*this), fmt, value, args ...);
 	}
 
@@ -1242,8 +1284,8 @@ private:
 
 	void hand_for_full(const char* str, size_t len);
 
-	char m_buffer[buffer_size];
 	std::size_t m_length = 0;
+	char m_buffer[buffer_size];
 	FullHandler m_full_handler;
 };
 
@@ -1327,6 +1369,243 @@ inline void to_string(StringAdapter<MemoryWriter<buffer_size>> out, Type n) \
 LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_MEMORY_WRITER_TO_STRING)
 
 #undef LIGHTS_MEMORY_WRITER_TO_STRING
+
+
+enum class InternalTypeCode: std::uint8_t
+{
+	INVALID = 0,
+	BOOL = 1,
+	CHAR = 2,
+	STRING = 3,
+	INT8_T = 4,
+	UINT8_T = 5,
+	INT16_T = 6,
+	UINT16_T = 7,
+	INT32_T = 8,
+	UINT32_T = 9,
+	INT64_T = 10,
+	UINT64_T = 11,
+	MAX
+};
+
+inline InternalTypeCode get_type_code(bool)
+{
+	return InternalTypeCode::BOOL;
+}
+
+inline InternalTypeCode get_type_code(char)
+{
+	return InternalTypeCode::CHAR;
+}
+
+inline InternalTypeCode get_type_code(const char*)
+{
+	return InternalTypeCode::STRING;
+}
+
+template <typename T>
+inline InternalTypeCode get_type_code(T)
+{
+	int offset;
+	switch (std::numeric_limits<std::make_unsigned_t<T>>::digits)
+	{
+		case 8:
+			offset = 0;
+			break;
+		case 16:
+			offset = 1;
+			break;
+		case 32:
+			offset = 2;
+			break;
+		case 64:
+			offset = 3;
+			break;
+		default:
+			offset = 0;
+			break;
+	}
+
+	offset *= 2;
+	offset += !std::numeric_limits<T>::is_signed ? 1 : 0;
+	return static_cast<InternalTypeCode>(static_cast<int>(InternalTypeCode::INT8_T) + offset);
+}
+
+
+inline std::uint8_t get_type_width(InternalTypeCode code)
+{
+	static std::uint8_t widths[] = {
+		0, // Invalid.
+		1, 1, 1, // bool, char and string.
+		1, 1, // 8 bits
+		2, 2, // 16 bits
+		4, 4, // 32 bits
+		8, 8  // 64 bits
+	};
+
+	std::uint8_t index = static_cast<std::uint8_t>(code);
+	if (index < 0 || index >= static_cast<std::uint8_t>(InternalTypeCode::MAX))
+	{
+		return widths[0];
+	}
+	else
+	{
+		return widths[index];
+	}
+}
+
+template <std::size_t buffer_size>
+class BinaryStoreWriter
+{
+public:
+	void append(char ch)
+	{
+		if (can_append(1 + 1))
+		{
+			m_buffer[m_length++] = static_cast<std::uint8_t>(InternalTypeCode::CHAR);
+			m_buffer[m_length++] = static_cast<std::uint8_t>(ch);
+		}
+	}
+
+	void append(const char* str, std::size_t len)
+	{
+		if (can_append(len + 2))
+		{
+			m_buffer[m_length++] = static_cast<std::uint8_t>(InternalTypeCode::STRING);
+			m_buffer[m_length++] = static_cast<std::uint8_t>(len);
+			std::memcpy(m_buffer + m_length, str, len);
+			m_length += len;
+		}
+	}
+
+	void append(const char* str)
+	{
+		this->append(str, std::strlen(str));
+	}
+
+	void append(const StringView& str)
+	{
+		this->append(str.string, str.length);
+	}
+
+#define LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER(Type) \
+	BinaryStoreWriter& operator<< (Type n) \
+	{ \
+		InternalTypeCode type_code = get_type_code(n);\
+		if (can_append(get_type_width(type_code) + 1)) \
+		{ \
+			m_buffer[m_length++] = static_cast<std::uint8_t>(type_code); \
+			Type* p = reinterpret_cast<Type *>(&m_buffer[m_length]); \
+			*p = n; \
+			m_length += get_type_width(type_code); \
+		} \
+		return *this; \
+	}
+
+LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER)
+
+#undef LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER
+
+	template <typename Arg, typename ... Args>
+	void write(const char* fmt, const Arg& value, const Args& ... args)
+	{
+		lights::write(make_string_adapter(*this), fmt, value, args ...);
+	}
+
+	StringView str_view() const
+	{
+		return { reinterpret_cast<const char*>(m_buffer), m_length };
+	}
+
+	std::size_t length() const
+	{
+		return m_length;
+	}
+
+	std::size_t size() const
+	{
+		return m_length;
+	}
+
+	void clear()
+	{
+		m_length = 0;
+	}
+
+	/**
+	 * Get max size can be.
+	 */
+	constexpr std::size_t max_size() const
+	{
+		return buffer_size;
+	}
+
+	constexpr std::size_t capacity() const
+	{
+		return buffer_size;
+	}
+
+private:
+	bool can_append(std::size_t len)
+	{
+		return m_length + len <= max_size();
+	}
+
+	std::size_t m_length = 0;
+	std::uint8_t m_buffer[buffer_size];
+};
+
+template <>
+template <std::size_t buffer_size>
+class StringAdapter<BinaryStoreWriter<buffer_size>>
+{
+public:
+	StringAdapter(BinaryStoreWriter<buffer_size>& sink) : m_sink(sink) {}
+
+	void append(char ch)
+	{
+		m_sink.append(ch);
+	}
+
+	void append(std::size_t num, char ch)
+	{
+		for (std::size_t i = 0; i < num; ++i)
+		{
+			this->append(ch);
+		}
+	}
+
+	void append(const char* str, std::size_t len)
+	{
+		m_sink.append(str, len);
+	}
+
+	void append(const char* str)
+	{
+		m_sink.append(str);
+	}
+
+	BinaryStoreWriter<buffer_size>& get_internal_sink()
+	{
+		return m_sink;
+	}
+
+private:
+	BinaryStoreWriter<buffer_size>& m_sink;
+};
+
+
+#define LIGHTS_BINARY_STORE_WRITER_TO_STRING(Type) \
+template <std::size_t buffer_size> \
+inline void to_string(StringAdapter<BinaryStoreWriter<buffer_size>> out, Type n) \
+{ \
+	out.get_internal_sink() << n; \
+}
+
+LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_TO_STRING)
+
+#undef LIGHTS_BINARY_STORE_WRITER_TO_STRING
+
 
 /**
  * Format string that use @c fmt and @c args ...

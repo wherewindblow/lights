@@ -7,175 +7,19 @@
 #pragma once
 
 #include <cstddef>
-#include <cstdio>
 #include <cstring>
-#include <cassert>
 #include <string>
 #include <memory>
 
 #include <stdio.h>
 #include <string.h>
 
-
-#include "../format.h"
+#include "../file.h"
 #include "../logger.h"
 
 
 namespace lights {
 namespace sinks {
-
-namespace details {
-
-enum class FileSeekWhence
-{
-	BEGIN = SEEK_SET, CURRENT = SEEK_CUR, END = SEEK_END
-};
-
-enum class FileBufferingMode
-{
-	FULL_BUFFERING = _IOFBF, LINE_BUFFERING = _IOLBF, NO_BUFFERING = _IONBF
-};
-
-class FileStream
-{
-public:
-	FileStream() = default;
-
-	FileStream(const char* filename, const char* modes)
-	{
-		this->open(filename, modes);
-	}
-
-	FileStream(const std::string& filename, const std::string& modes) :
-		FileStream(filename.c_str(), modes.c_str()) {}
-
-	~FileStream()
-	{
-		if (m_file != nullptr)
-		{
-			this->close();
-		}
-	}
-
-	void open(const char* filename, const char* modes)
-	{
-		assert(!is_open() && "Cannot open file, becase there is handler that is not close.");
-		m_file = std::fopen(filename, modes);
-		if (m_file == nullptr)
-		{
-			FileStream::open_file_failure(filename);
-		}
-	}
-
-	void open(const std::string& filename, const std::string& modes)
-	{
-		this->open(filename.c_str(), modes.c_str());
-	}
-
-	void reopen(const char* filename, const char* modes)
-	{
-		if (std::freopen(filename, modes, m_file) == nullptr)
-		{
-			m_file = nullptr;
-			FileStream::open_file_failure(filename);
-		}
-	}
-
-	void reopen(const std::string& filename, const std::string& modes)
-	{
-		this->reopen(filename.c_str(), modes.c_str());
-	}
-
-	bool is_open() const
-	{
-		return m_file != nullptr;
-	}
-
-	std::size_t read(char* buf, std::size_t len)
-	{
-		return std::fread(buf, sizeof(char), len, m_file);
-	}
-
-	std::size_t write(const char* buf, std::size_t len)
-	{
-		return std::fwrite(buf, sizeof(char), len, m_file);
-	}
-
-	void flush()
-	{
-		std::fflush(m_file);
-	}
-
-	bool eof()
-	{
-		return std::feof(m_file) != 0;
-	}
-
-	bool error()
-	{
-		return std::ferror(m_file) != 0;
-	}
-
-	void clear_error()
-	{
-		std::clearerr(m_file);
-	}
-
-	std::streamoff tell()
-	{
-		// Return type off_t will fit into suitable type for 32 and 64 architechures.
-		return ftello(m_file);
-	}
-
-	void seek(std::streamoff off, FileSeekWhence whence)
-	{
-		// off type off_t will fit into suitable type for 32 and 64 architechures.
-		fseeko(m_file, off, static_cast<int>(whence));
-	}
-
-	void rewind()
-	{
-		std::rewind(m_file);
-	}
-
-	std::size_t size()
-	{
-		std::streamoff origin = this->tell();
-		this->seek(0, FileSeekWhence::END);
-		std::streamoff size = this->tell();
-		this->seek(origin, FileSeekWhence::BEGIN);
-		return static_cast<std::size_t>(size);
-	}
-
-	void close()
-	{
-		std::fclose(m_file);
-		m_file = nullptr;
-	}
-
-	void setbuf(char* buffer)
-	{
-		std::setbuf(m_file, buffer);
-	}
-
-	void setvbuf(char* buffer, std::size_t size, FileBufferingMode mode)
-	{
-		std::setvbuf(m_file, buffer, static_cast<int>(mode), size);
-	}
-
-private:
-	static void open_file_failure(const char* filename)
-	{
-		MemoryWriter<> writer;
-		writer.write("FileStream: Open \"{}\" failure: {}", filename, current_error());
-		throw std::runtime_error(writer.c_str());
-	}
-
-	std::FILE* m_file = nullptr;
-};
-
-} // namespace details
-
 
 class SimpleFileSink
 {
@@ -200,7 +44,7 @@ public:
 	}
 
 private:
-	details::FileStream m_file;
+	FileStream m_file;
 };
 
 
@@ -329,7 +173,7 @@ private:
 	std::string m_name_format;
 	std::size_t m_max_size;
 	std::size_t m_max_files = static_cast<std::size_t>(-1);
-	details::FileStream m_file;
+	FileStream m_file;
 	std::size_t m_index = static_cast<std::size_t>(-1);
 	std::size_t m_current_size;
 };
@@ -399,19 +243,19 @@ private:
 	std::time_t m_duration;
 	std::time_t m_day_point;
 	std::time_t m_next_rotating_time;
-	details::FileStream m_file;
+	FileStream m_file;
 };
 
 } // namespace sinks
 
 
-#define LIGHTS_LOGGER_FILE_SINK(Sink) \
+#define LIGHTS_TEXT_LOGGER_FILE_SINK(Sink) \
 template <> \
-class Logger<Sink> \
+class TextLogger<Sink> \
 { \
 public: \
-    Logger(const std::string& name, std::shared_ptr<Sink> sink); \
-	~Logger(); \
+    TextLogger(const std::string& name, std::shared_ptr<Sink> sink); \
+	~TextLogger(); \
 \
     const std::string& get_name() const \
     { \
@@ -558,8 +402,8 @@ private: \
 }; \
 
 
-LIGHTS_LOGGER_FILE_SINK(sinks::SimpleFileSink)
+LIGHTS_TEXT_LOGGER_FILE_SINK(sinks::SimpleFileSink)
 
-#undef LIGHTS_LOGGER_FILE_SINK
+#undef LIGHTS_TEXT_LOGGER_FILE_SINK
 
 } // namespace lights

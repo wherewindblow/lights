@@ -10,7 +10,7 @@
 namespace lights {
 
 #define LIGHTS_LOGGER_FILE_SINK_NO_INLINE(Sink) \
-Logger<Sink>::Logger(const std::string& name, std::shared_ptr<Sink> sink) : \
+TextLogger<Sink>::TextLogger(const std::string& name, std::shared_ptr<Sink> sink) : \
 	m_name(name), m_sink(sink), m_writer(std::make_unique<MemoryWriter<BUFSIZ>>()) \
 { \
 	m_writer->set_full_handler([&](StringView view){ \
@@ -18,14 +18,14 @@ Logger<Sink>::Logger(const std::string& name, std::shared_ptr<Sink> sink) : \
 	}); \
 } \
 \
-Logger<Sink>::~Logger() \
+TextLogger<Sink>::~TextLogger() \
 { \
 	StringView view = m_writer->str_view(); \
 	m_sink->write(view.string, view.length); \
 } \
 \
 \
-void Logger<Sink>::generate_signature_header() \
+void TextLogger<Sink>::generate_signature_header() \
 { \
 	namespace chrono = std::chrono; \
 	auto chrono_time = chrono::system_clock::now(); \
