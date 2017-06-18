@@ -37,18 +37,22 @@ namespace lights {
 	LIGHTS_IMPLEMENT_SIGNED_FUNCTION(macro) \
 	LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(macro)
 
-namespace details {
 
-static const char SPEC_INVALID_WIDTH = -1;
+// To set this type to signed char for convenient to assign to
+// any type. Char is the smallest basic type and assign to other
+// type will not lose data. And signed will ensure this value is -1
+// not 255, -1 signed char fit into int will be -1, fit into signed
+// int will be the biggest value of signed int. If unsigned fit
+// into int will be 255 and unsigned int also is this value.
+static const signed char INVALID_INDEX = -1;
 
-} // namespace details
 
 template <typename Value, typename Tag>
 struct IntegerFormatSpec
 {
 	Value value;
 	Tag tag;
-	int width = details::SPEC_INVALID_WIDTH;
+	int width = INVALID_INDEX;
 	char fill;
 };
 
@@ -580,7 +584,7 @@ void BinaryFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
 	} while (absolute_value >>= 1);
 
 	int width = negative ? num + 1 : num;
-	if (spec.width != details::SPEC_INVALID_WIDTH && width < spec.width)
+	if (spec.width != INVALID_INDEX && width < spec.width)
 	{
 		out.append(spec.width - width, spec.fill);
 	}
@@ -642,7 +646,7 @@ void OctalFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
 
 	std::size_t num = str + len - ptr;
 	int width = static_cast<int>(negative ? num + 1 : num);
-	if (spec.width != details::SPEC_INVALID_WIDTH && width < spec.width)
+	if (spec.width != INVALID_INDEX && width < spec.width)
 	{
 		out.append(spec.width - width, spec.fill);
 	}
@@ -698,7 +702,7 @@ void HexFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
 
 	std::size_t num = str + len - ptr;
 	int width = static_cast<int>(negative ? num + 1 : num);
-	if (spec.width != details::SPEC_INVALID_WIDTH && width < spec.width)
+	if (spec.width != INVALID_INDEX && width < spec.width)
 	{
 		out.append(spec.width - width, spec.fill);
 	}
@@ -952,7 +956,7 @@ inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, detail
 	const char* str = formater.format(spec.value);
 	int len = static_cast<int>(std::strlen(str));
 
-	if (spec.width != details::SPEC_INVALID_WIDTH && len < spec.width)
+	if (spec.width != INVALID_INDEX && len < spec.width)
 	{
 		out.append(spec.width - len, spec.fill);
 	}
