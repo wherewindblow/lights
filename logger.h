@@ -232,7 +232,7 @@ void TextLogger<Sink>::log(LogLevel level, const T& value)
  * It's faster than use chrono, but precision is not enought.
  */
 //template <typename Sink>
-//void TextLogger<Sink>::generate_signature_header()
+//void TextLogger<Sink>::generate_signature()
 //{
 //	std::time_t time = std::time(nullptr);
 //	std::tm tm;
@@ -448,25 +448,46 @@ public:
 		std::int64_t nanoseconds;
 	};
 
-	struct SignatureHeader
+	struct AlignPart
 	{
 		TimeValue time;
-		std::int32_t log_id;
-		std::int32_t module_id;
-		std::int32_t file_id;
-		std::int32_t function_id;
-		std::int32_t line;
-		std::int32_t description_id;
-		LogLevel level;
+		std::uint32_t file_id;
+		std::uint32_t function_id;
+		std::uint32_t line;
+		std::uint32_t description_id;
+	};
+
+	/**
+	 * To avoid memory alignment to save ouput content.
+	 * @note And must ensure this have enought memory to hold all memeber in UnalignPartInterface.
+	 *       So all change in UnalignPartInterface should consider change this.
+	 */
+	struct UnalignPartStorage
+	{
+		std::uint8_t entity[7];
+	};
+
+	struct UnalignPartInterface
+	{
+		std::uint16_t log_id;
+		std::uint16_t module_id;
 		std::uint16_t argument_length;
+		LogLevel level;
+	};
+
+	struct SignatureHeader
+	{
+		AlignPart align_part;
+		UnalignPartStorage unalign_part;
 	};
 
 
-	BinaryLogger(const std::string& name, std::shared_ptr<Sink> sink);
+	BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink);
 
-	const std::string& get_name() const
+	std::uint16_t get_log_id() const
 	{
-		return m_name;
+		UnalignPartInterface* unalign = reinterpret_cast<UnalignPartInterface*>(&m_signature.unalign_part);
+		return unalign->log_id;
 	}
 
 	LogLevel get_level() const
@@ -482,28 +503,28 @@ public:
 
 	template <typename ... Args>
 	void log(LogLevel level,
-			 std::int32_t module_id,
+			 std::uint16_t module_id,
 			 const char* file,
 			 const char* function,
-			 std::int32_t line,
+			 std::uint32_t line,
 			 const char* fmt,
 			 const Args& ... args);
 
 
 	void log(LogLevel level,
-			 std::int32_t module_id,
+			 std::uint16_t module_id,
 			 const char* file,
 			 const char* function,
-			 std::int32_t line,
+			 std::uint32_t line,
 			 const char* str);
 
 
 	template <typename T>
 	void log(LogLevel level,
-			 std::int32_t module_id,
+			 std::uint16_t module_id,
 			 const char* file,
 			 const char* function,
-			 std::int32_t line,
+			 std::uint32_t line,
 			 const T& value);
 
 private:
@@ -523,23 +544,30 @@ private:
 		return TimeValue { seconds, nano };
 	}
 
-	void generate_signature_header(LogLevel level,
-								   std::int32_t module_id,
-								   const char* file,
-								   const char* function,
-								   std::int32_t line,
-								   const char* descript)
+	void generate_signature(LogLevel level,
+							std::uint16_t module_id,
+							const char* file,
+							const char* function,
+							std::uint32_t line,
+							const char* descript)
 	{
-		m_signature.time = get_time_value();
-		m_signature.module_id = module_id;
-		m_signature.file_id = static_cast<std::int32_t>(StringTable::instance().get_str_index(file));
-		m_signature.function_id = static_cast<std::int32_t>(StringTable::instance().get_str_index(function));
-		m_signature.line = line;
-		m_signature.description_id = static_cast<std::int32_t>(StringTable::instance().get_str_index(descript));
-		m_signature.level = level;
+		m_signature.align_part.time = get_time_value();
+		m_signature.align_part.file_id = static_cast<decltype(m_signature.align_part.file_id)>(StringTable::instance().get_str_index(file));
+		m_signature.align_part.function_id = static_cast<decltype(m_signature.align_part.function_id)>(StringTable::instance().get_str_index(function));
+		m_signature.align_part.line = line;
+		m_signature.align_part.description_id = static_cast<decltype(m_signature.align_part.description_id)>(StringTable::instance().get_str_index(descript));
+
+		UnalignPartInterface* unalign = reinterpret_cast<UnalignPartInterface*>(&m_signature.unalign_part);
+		unalign->module_id = module_id;
+		unalign->level = level;
 	}
 
-	std::string m_name;
+	void write_signature() const
+	{
+		m_sink->write(reinterpret_cast<const char*>(&m_signature),
+					  sizeof(m_signature.align_part) + sizeof(m_signature.unalign_part));
+	}
+
 	LogLevel m_level = LogLevel::INFO;
 	std::shared_ptr<Sink> m_sink;
 	SignatureHeader m_signature;
@@ -550,32 +578,34 @@ private:
 
 
 template <typename Sink>
-BinaryLogger<Sink>::BinaryLogger(const std::string& name, std::shared_ptr<Sink> sink) :
-	m_name(name), m_sink(sink)
+BinaryLogger<Sink>::BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink) :
+	m_sink(sink)
 {
-	m_signature.log_id = static_cast<std::int32_t>(StringTable::instance().get_str_index(m_name.c_str()));
+	UnalignPartInterface* unalign = reinterpret_cast<UnalignPartInterface*>(&m_signature.unalign_part);
+	unalign->log_id = log_id;
 }
 
 
 template <typename Sink>
 template <typename ... Args>
 void BinaryLogger<Sink>::log(LogLevel level,
-							 std::int32_t module_id,
+							 std::uint16_t module_id,
 							 const char* file,
 							 const char* function,
-							 std::int32_t line,
+							 std::uint32_t line,
 							 const char* fmt,
 							 const Args& ... args)
 {
 	if (this->should_log(level))
 	{
-		generate_signature_header(level, module_id, file, function, line, fmt);
+		generate_signature(level, module_id, file, function, line, fmt);
 
 		m_writer.clear();
 		m_writer.write(fmt, args ...);
-		m_signature.argument_length = static_cast<std::uint16_t>(m_writer.length());
+		UnalignPartInterface* unalign = reinterpret_cast<UnalignPartInterface*>(&m_signature.unalign_part);
+		unalign->argument_length = static_cast<decltype(unalign->argument_length)>(m_writer.length());
 
-		m_sink->write(reinterpret_cast<const char*>(&m_signature), sizeof(m_signature));
+		write_signature();
 		auto view = m_writer.str_view();
 		m_sink->write(view.string, view.length);
 	}
@@ -584,17 +614,18 @@ void BinaryLogger<Sink>::log(LogLevel level,
 
 template <typename Sink>
 void BinaryLogger<Sink>::log(LogLevel level,
-							 std::int32_t module_id,
+							 std::uint16_t module_id,
 							 const char* file,
 							 const char* function,
-							 std::int32_t line,
+							 std::uint32_t line,
 							 const char* str)
 {
 	if (this->should_log(level))
 	{
-		generate_signature_header(level, module_id, file, function, line, str);
-		m_signature.argument_length = 0;
-		m_sink->write(reinterpret_cast<const char*>(&m_signature), sizeof(m_signature));
+		generate_signature(level, module_id, file, function, line, str);
+		UnalignPartInterface* unalign = reinterpret_cast<UnalignPartInterface*>(&m_signature.unalign_part);
+		unalign->argument_length = 0;
+		write_signature();
 	}
 }
 
@@ -602,21 +633,22 @@ void BinaryLogger<Sink>::log(LogLevel level,
 template <typename Sink>
 template <typename T>
 void BinaryLogger<Sink>::log(LogLevel level,
-							 std::int32_t module_id,
+							 std::uint16_t module_id,
 							 const char* file,
 							 const char* function,
-							 std::int32_t line,
+							 std::uint32_t line,
 							 const T& value)
 {
 	if (this->should_log(level))
 	{
-		generate_signature_header(level, module_id, file, function, line, "{}");
+		generate_signature(level, module_id, file, function, line, "{}");
 
 		m_writer.clear();
 		m_writer.write("{}", value);
-		m_signature.argument_length = static_cast<std::uint16_t>(m_writer.length());
+		UnalignPartInterface* unalign = reinterpret_cast<UnalignPartInterface*>(&m_signature.unalign_part);
+		unalign->argument_length = static_cast<decltype(unalign->argument_length)>(m_writer.length());
 
-		m_sink->write(reinterpret_cast<const char*>(&m_signature), sizeof(m_signature));
+		write_signature();
 		auto view = m_writer.str_view();
 		m_sink->write(view.string, view.length);
 	}
