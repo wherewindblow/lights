@@ -93,12 +93,12 @@ public:
 		return m_file != nullptr;
 	}
 
-	std::size_t read(char* buf, std::size_t len)
+	std::size_t read(void* buf, std::size_t len)
 	{
 		return std::fread(buf, sizeof(char), len, m_file);
 	}
 
-	std::size_t write(const char* buf, std::size_t len)
+	std::size_t write(const void* buf, std::size_t len)
 	{
 		return std::fwrite(buf, sizeof(char), len, m_file);
 	}
@@ -106,6 +106,28 @@ public:
 	void flush()
 	{
 		std::fflush(m_file);
+	}
+
+	int get_char()
+	{
+		return std::getc(m_file);
+	}
+
+	int put_char(int ch)
+	{
+		return std::putc(ch, m_file);
+	}
+
+	int unget_char(int ch)
+	{
+		return std::ungetc(ch, m_file);
+	}
+
+	int peek()
+	{
+		int ch = get_char();
+		unget_char(ch);
+		return ch;
 	}
 
 	bool eof()

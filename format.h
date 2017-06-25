@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cerrno>
+#include <ctime>
 #include <cstring>
 #include <string>
 #include <limits>
@@ -22,16 +23,16 @@
 namespace lights {
 
 #define LIGHTS_IMPLEMENT_SIGNED_FUNCTION(macro) \
-	macro(short) \
-	macro(int)   \
-	macro(long)  \
-	macro(long long)
+	macro(std::int8_t)        \
+	macro(std::int16_t)       \
+	macro(std::int32_t)       \
+	macro(std::int64_t)
 
 #define LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(macro) \
-	macro(unsigned short)     \
-	macro(unsigned int)       \
-	macro(unsigned long)      \
-	macro(unsigned long long) \
+	macro(std::uint8_t)       \
+	macro(std::uint16_t)      \
+	macro(std::uint32_t)      \
+	macro(std::uint64_t)
 
 #define LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(macro) \
 	LIGHTS_IMPLEMENT_SIGNED_FUNCTION(macro) \
@@ -62,17 +63,28 @@ struct IntegerFormatSpec
  */
 struct ErrorNumber
 {
-	int number;
-};
+	ErrorNumber() = default;
+	explicit ErrorNumber(int no): value(no) {}
 
-inline ErrorNumber to_error(int error_no)
-{
-	return ErrorNumber{ error_no };
-}
+	int value;
+};
 
 inline ErrorNumber current_error()
 {
-	return to_error(errno);
+	return ErrorNumber(errno);
+}
+
+struct Timestamp
+{
+	Timestamp() = default;
+	explicit Timestamp(std::time_t time): value(time) {}
+
+	std::time_t value;
+};
+
+inline Timestamp current_timestamp()
+{
+	return Timestamp(std::time(nullptr));
 }
 
 
@@ -465,7 +477,7 @@ public:
 
 	const char* format(ErrorNumber errer_no)
 	{
-		return this->format(errer_no.number);
+		return this->format(errer_no.value);
 	}
 
 	const char* format_current_error()
@@ -481,6 +493,20 @@ private:
 	// In GNU-specific version 100 charater can hold all unkown error.
 	char m_buf[100];
 };
+
+template <typename Sink>
+StringAdapter<Sink> write_2_digit(StringAdapter<Sink> out, unsigned num)
+{
+	if (num >= 10)
+	{
+		out << num;
+	}
+	else
+	{
+		out << '0' << num;
+	}
+	return out;
+}
 
 
 struct BinarySpecTag {};
@@ -824,6 +850,20 @@ inline void to_string(StringAdapter<Sink> out, ErrorNumber error_no)
 {
 	details::ErrorFormater formater;
 	out.append(formater.format(error_no));
+}
+
+template <typename Sink>
+inline void to_string(StringAdapter<Sink> out, Timestamp timestamp)
+{
+	std::tm tm;
+	localtime_r(&timestamp.value, &tm);
+
+	out << static_cast<unsigned>(tm.tm_year + 1900) << '-';
+	details::write_2_digit(out, static_cast<unsigned>(tm.tm_mon + 1)) << '-';
+	details::write_2_digit(out, static_cast<unsigned>(tm.tm_mday)) << ' ';
+	details::write_2_digit(out, static_cast<unsigned>(tm.tm_hour)) << ':';
+	details::write_2_digit(out, static_cast<unsigned>(tm.tm_min)) << ':';
+	details::write_2_digit(out, static_cast<unsigned>(tm.tm_sec));
 }
 
 /**
@@ -1191,9 +1231,9 @@ public:
 		this->append(str, std::strlen(str));
 	}
 
-	void append(const StringView& str)
+	void append(const StringView& view)
 	{
-		this->append(str.string, str.length);
+		this->append(view.string, view.length);
 	}
 
 	template <typename Arg, typename ... Args>
@@ -1286,6 +1326,19 @@ private:
 		return m_length + len <= max_size();
 	}
 
+	MemoryWriter& write_2_digit(unsigned num)
+	{
+		if (num >= 10)
+		{
+			*this << num;
+		}
+		else
+		{
+			*this << '0' << num;
+		}
+		return *this;
+	}
+
 	void hand_for_full(const char* str, size_t len);
 
 	std::size_t m_length = 0;
@@ -1375,7 +1428,7 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_MEMORY_WRITER_TO_STRING)
 #undef LIGHTS_MEMORY_WRITER_TO_STRING
 
 
-enum class InternalTypeCode: std::uint8_t
+enum class BinaryTypeCode: std::uint8_t
 {
 	INVALID = 0,
 	BOOL = 1,
@@ -1392,23 +1445,23 @@ enum class InternalTypeCode: std::uint8_t
 	MAX
 };
 
-inline InternalTypeCode get_type_code(bool)
+inline BinaryTypeCode get_type_code(bool)
 {
-	return InternalTypeCode::BOOL;
+	return BinaryTypeCode::BOOL;
 }
 
-inline InternalTypeCode get_type_code(char)
+inline BinaryTypeCode get_type_code(char)
 {
-	return InternalTypeCode::CHAR;
+	return BinaryTypeCode::CHAR;
 }
 
-inline InternalTypeCode get_type_code(const char*)
+inline BinaryTypeCode get_type_code(const char*)
 {
-	return InternalTypeCode::STRING;
+	return BinaryTypeCode::STRING;
 }
 
 template <typename T>
-inline InternalTypeCode get_type_code(T)
+inline BinaryTypeCode get_type_code(T)
 {
 	int offset;
 	switch (std::numeric_limits<std::make_unsigned_t<T>>::digits)
@@ -1432,11 +1485,11 @@ inline InternalTypeCode get_type_code(T)
 
 	offset *= 2;
 	offset += !std::numeric_limits<T>::is_signed ? 1 : 0;
-	return static_cast<InternalTypeCode>(static_cast<int>(InternalTypeCode::INT8_T) + offset);
+	return static_cast<BinaryTypeCode>(static_cast<int>(BinaryTypeCode::INT8_T) + offset);
 }
 
 
-inline std::uint8_t get_type_width(InternalTypeCode code)
+inline std::uint8_t get_type_width(BinaryTypeCode code)
 {
 	static std::uint8_t widths[] = {
 		0, // Invalid.
@@ -1448,7 +1501,7 @@ inline std::uint8_t get_type_width(InternalTypeCode code)
 	};
 
 	std::uint8_t index = static_cast<std::uint8_t>(code);
-	if (index < 0 || index >= static_cast<std::uint8_t>(InternalTypeCode::MAX))
+	if (index < 0 || index >= static_cast<std::uint8_t>(BinaryTypeCode::MAX))
 	{
 		return widths[0];
 	}
@@ -1466,7 +1519,7 @@ public:
 	{
 		if (can_append(1 + 1))
 		{
-			m_buffer[m_length++] = static_cast<std::uint8_t>(InternalTypeCode::CHAR);
+			m_buffer[m_length++] = static_cast<std::uint8_t>(BinaryTypeCode::CHAR);
 			m_buffer[m_length++] = static_cast<std::uint8_t>(ch);
 		}
 	}
@@ -1475,7 +1528,7 @@ public:
 	{
 		if (can_append(len + 2))
 		{
-			m_buffer[m_length++] = static_cast<std::uint8_t>(InternalTypeCode::STRING);
+			m_buffer[m_length++] = static_cast<std::uint8_t>(BinaryTypeCode::STRING);
 			m_buffer[m_length++] = static_cast<std::uint8_t>(len);
 			std::memcpy(m_buffer + m_length, str, len);
 			m_length += len;
@@ -1487,15 +1540,15 @@ public:
 		this->append(str, std::strlen(str));
 	}
 
-	void append(const StringView& str)
+	void append(const StringView& view)
 	{
-		this->append(str.string, str.length);
+		this->append(view.string, view.length);
 	}
 
 #define LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER(Type) \
 	BinaryStoreWriter& operator<< (Type n) \
 	{ \
-		InternalTypeCode type_code = get_type_code(n);\
+		BinaryTypeCode type_code = get_type_code(n);\
 		if (can_append(get_type_width(type_code) + 1)) \
 		{ \
 			m_buffer[m_length++] = static_cast<std::uint8_t>(type_code); \
@@ -1609,6 +1662,194 @@ inline void to_string(StringAdapter<BinaryStoreWriter<buffer_size>> out, Type n)
 LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_TO_STRING)
 
 #undef LIGHTS_BINARY_STORE_WRITER_TO_STRING
+
+
+template <std::size_t buffer_size>
+class BinaryRestoreWriter
+{
+public:
+	void append(char ch)
+	{
+		m_writer.append(ch);
+	}
+
+	void append(const char* str, std::size_t len)
+	{
+		m_writer.append(str, len);
+	}
+
+	void append(const char* str)
+	{
+		m_writer.append(str);
+	}
+
+	void append(const StringView& str)
+	{
+		m_writer.append(str);
+	}
+
+	template <typename Arg, typename ... Args>
+	void write_text(const char* fmt, const Arg& value, const Args& ... args)
+	{
+		// Must add namespace scope limit or cannot find suitable function.
+		lights::write(make_string_adapter(m_writer), fmt, value, args ...);
+	}
+
+	void write_binary(const char* fmt, const std::uint8_t* binary_store_args, std::size_t args_length);
+
+	template <typename T>
+	BinaryRestoreWriter& operator<< (const T& value)
+	{
+		make_string_adapter(m_writer) << value;
+		return *this;
+	}
+
+	const char* c_str()
+	{
+		return m_writer.c_str();
+	}
+
+	std::string str() const
+	{
+		return m_writer.str();
+	}
+
+
+	StringView str_view() const
+	{
+		return m_writer.str_view();
+	}
+
+	std::size_t length() const
+	{
+		return m_writer.length();
+	}
+
+	std::size_t size() const
+	{
+		return m_writer.size();
+	}
+
+	void clear()
+	{
+		m_writer.clear();
+	}
+
+	constexpr std::size_t max_size() const
+	{
+		return m_writer.max_size();
+	}
+
+	constexpr std::size_t capacity() const
+	{
+		return m_writer.capacity();
+	}
+
+private:
+	MemoryWriter<buffer_size> m_writer;
+};
+
+template <std::size_t buffer_size>
+void BinaryRestoreWriter<buffer_size>::write_binary(const char* fmt, const std::uint8_t* binary_store_args, std::size_t args_length)
+{
+	if (args_length == 0)
+	{
+		append(fmt);
+		return;
+	}
+
+	std::size_t i = 0;
+	for (; fmt[i] != '\0'; ++i)
+	{
+		if (fmt[i] == '{' &&
+			fmt[i+1] != '\0' &&
+			fmt[i+1] == '}')
+		{
+			break;
+		}
+	}
+
+	m_writer.append(fmt, i);
+	if (fmt[i] != '\0')
+	{
+		auto width = get_type_width(static_cast<BinaryTypeCode>(*binary_store_args));
+		auto value_begin = binary_store_args + 1;
+		switch (static_cast<BinaryTypeCode>(*binary_store_args))
+		{
+			case BinaryTypeCode::INVALID:
+				break;
+			case BinaryTypeCode::BOOL:
+			{
+				bool b = static_cast<bool>(*value_begin);
+				m_writer << b;
+				break;
+			}
+			case BinaryTypeCode::CHAR:
+			{
+				char ch = static_cast<char>(*value_begin);
+				m_writer << ch;
+				break;
+			}
+			case BinaryTypeCode::STRING:
+			{
+				width += binary_store_args[1] + 1;
+				m_writer.append(reinterpret_cast<const char*>(&binary_store_args[2]), binary_store_args[1]);
+				break;
+			}
+			case BinaryTypeCode::INT8_T:
+			{
+				auto p = reinterpret_cast<const std::int8_t*>(value_begin);
+				m_writer << *p;
+				break;
+			}
+			case BinaryTypeCode::UINT8_T:
+			{
+				auto p = value_begin;
+				m_writer << *p;
+				break;
+			}
+			case BinaryTypeCode::INT16_T:
+			{
+				auto p = reinterpret_cast<const std::int16_t*>(value_begin);
+				m_writer << *p;
+				break;
+			}
+			case BinaryTypeCode::UINT16_T:
+			{
+				auto p = reinterpret_cast<const std::uint16_t*>(value_begin);
+				m_writer << *p;
+				break;
+			}
+			case BinaryTypeCode::INT32_T:
+			{
+				auto p = reinterpret_cast<const std::int32_t*>(value_begin);
+				m_writer << *p;
+				break;
+			}
+			case BinaryTypeCode::UINT32_T:
+			{
+				auto p = reinterpret_cast<const std::uint32_t*>(value_begin);
+				m_writer << *p;
+				break;
+			}
+			case BinaryTypeCode::INT64_T:
+			{
+				auto p = reinterpret_cast<const std::int64_t*>(value_begin);
+				m_writer << *p;
+				break;
+			}
+			case BinaryTypeCode::UINT64_T:
+			{
+				auto p = reinterpret_cast<const std::uint64_t*>(value_begin);
+				m_writer << *p;
+				break;
+			}
+			case BinaryTypeCode::MAX:break;
+		}
+
+		write_binary(fmt + i + 2, binary_store_args + 1 + width, args_length - width);
+	}
+}
 
 
 /**
