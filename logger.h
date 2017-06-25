@@ -793,4 +793,15 @@ private:
 	BinaryRestoreWriter<MAX_BINARY_MESSAGE_SIZE> m_writer;
 };
 
+#define LIGHTS_LOG(logger, level, module, ...) \
+	logger.log(level, module, __FILE__, __func__, __LINE__, __VA_ARGS__);
+#define LIGHTS_DEBUG(logger, module, ...) \
+	LIGHTS_LOG(logger, lights::LogLevel::DEBUG, module, __VA_ARGS__);
+#define LIGHTS_INFO(logger, module, ...) \
+	LIGHTS_LOG(logger, lights::LogLevel::INFO, module, __VA_ARGS__);
+#define LIGHTS_WARN(logger, module, format, ...) \
+	LIGHTS_LOG(logger, lights::LogLevel::WARN, module, __VA_ARGS__);
+#define LIGHTS_ERROR(logger, module, format, ...) \
+	LIGHTS_LOG(logger, lights::LogLevel::ERROR, module, __VA_ARGS__);
+
 } // namespace lights
