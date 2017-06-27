@@ -17,9 +17,9 @@ namespace sinks {
 class CoutSink
 {
 public:
-	void write(const char* str, std::size_t len)
+	void write(const void* buf, std::size_t len)
 	{
-		std::cout.write(str, len);
+		std::cout.write(reinterpret_cast<const char*>(buf), len);
 	}
 
 	static std::shared_ptr<CoutSink> instance()
@@ -33,9 +33,9 @@ public:
 class CerrSink
 {
 public:
-	void write(const char* str, std::size_t len)
+	void write(const void* buf, std::size_t len)
 	{
-		std::cerr.write(str, len);
+		std::cerr.write(reinterpret_cast<const char*>(buf), len);
 	}
 
 	static std::shared_ptr<CerrSink> instance()

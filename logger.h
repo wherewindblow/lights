@@ -24,7 +24,7 @@ namespace lights {
 
 namespace details {
 
-static const std::string log_level_names[] = {
+static const StringView log_level_names[] = {
 	"debug", "info", "warnning", "error", "off"
 };
 
@@ -37,15 +37,15 @@ enum class LogLevel: std::uint8_t
 };
 
 
-inline const std::string& to_string(LogLevel level)
+inline const StringView to_string(LogLevel level)
 {
-	return details::log_level_names[static_cast<int>(level)];
+	return details::log_level_names[static_cast<std::uint8_t>(level)];
 }
 
 
 /**
  * Logger message to the backend sink.
- * @tparam Sink  Support `void write(const char* str, std::size_t len);`
+ * @tparam Sink  Support `void write(const void* buf, std::size_t len);`
  *
  * Message is compose by a signature header and message body.
  * Signature is compose by time, logger name and log level.
@@ -54,7 +54,7 @@ template <typename Sink>
 class TextLogger
 {
 public:
-	TextLogger(const std::string& name, std::shared_ptr<Sink> sink);
+	TextLogger(StringView name, std::shared_ptr<Sink> sink);
 
 	const std::string& get_name() const
 	{
@@ -73,51 +73,51 @@ public:
 
 
 	template <typename ... Args>
-	void log(LogLevel level, const char* fmt, const Args& ... args);
+	void log(LogLevel level, StringView fmt, const Args& ... args);
 
 	template <typename ... Args>
-	void debug(const char* fmt, const Args& ... args)
+	void debug(StringView fmt, const Args& ... args)
 	{
 		this->log(LogLevel::DEBUG, fmt, args ...);
 	}
 
 	template <typename ... Args>
-	void info(const char* fmt, const Args& ... args)
+	void info(StringView fmt, const Args& ... args)
 	{
 		this->log(LogLevel::INFO, fmt, args ...);
 	}
 
 	template <typename ... Args>
-	void warn(const char* fmt, const Args& ... args)
+	void warn(StringView fmt, const Args& ... args)
 	{
 		this->log(LogLevel::WARN, fmt, args ...);
 	}
 
 	template <typename ... Args>
-	void error(const char* fmt, const Args& ... args)
+	void error(StringView fmt, const Args& ... args)
 	{
 		this->log(LogLevel::ERROR, fmt, args ...);
 	}
 
 
-	void log(LogLevel level, const char* str);
+	void log(LogLevel level, StringView str);
 
-	void debug(const char* str)
+	void debug(StringView str)
 	{
 		this->log(LogLevel::DEBUG, str);
 	}
 
-	void info(const char* str)
+	void info(StringView str)
 	{
 		this->log(LogLevel::INFO, str);
 	}
 
-	void warn(const char* str)
+	void warn(StringView str)
 	{
 		this->log(LogLevel::WARN, str);
 	}
 
-	void error(const char* str)
+	void error(StringView str)
 	{
 		this->log(LogLevel::ERROR, str);
 	}
@@ -166,13 +166,13 @@ private:
 
 
 template <typename Sink>
-TextLogger<Sink>::TextLogger(const std::string& name, std::shared_ptr<Sink> sink) :
-	m_name(name), m_sink(sink) {}
+TextLogger<Sink>::TextLogger(StringView name, std::shared_ptr<Sink> sink) :
+	m_name(name.data), m_sink(sink) {}
 
 
 template <typename Sink>
 template <typename ... Args>
-void TextLogger<Sink>::log(LogLevel level, const char* fmt, const Args& ... args)
+void TextLogger<Sink>::log(LogLevel level, StringView fmt, const Args& ... args)
 {
 	if (this->should_log(level))
 	{
@@ -181,13 +181,13 @@ void TextLogger<Sink>::log(LogLevel level, const char* fmt, const Args& ... args
 		m_writer.write(fmt, args ...);
 		m_writer.append('\n');
 		lights::StringView view = m_writer.str_view();
-		m_sink->write(view.string, view.length);
+		m_sink->write(view.data, view.length);
 	}
 }
 
 
 template <typename Sink>
-void TextLogger<Sink>::log(LogLevel level, const char* str)
+void TextLogger<Sink>::log(LogLevel level, StringView str)
 {
 	if (this->should_log(level))
 	{
@@ -195,7 +195,7 @@ void TextLogger<Sink>::log(LogLevel level, const char* str)
 		this->generate_signature();
 		m_writer << str << '\n';
 		lights::StringView view = m_writer.str_view();
-		m_sink->write(view.string, view.length);
+		m_sink->write(view.data, view.length);
 	}
 }
 
@@ -210,7 +210,7 @@ void TextLogger<Sink>::log(LogLevel level, const T& value)
 		this->generate_signature();
 		m_writer << value << '\n';
 		lights::StringView view = m_writer.str_view();
-		m_sink->write(view.string, view.length);
+		m_sink->write(view.data, view.length);
 	}
 }
 
@@ -259,16 +259,16 @@ public:
 		return *instance_ptr;
 	}
 
-	static void init_instance(const std::string& filename)
+	static void init_instance(StringView filename)
 	{
 		instance_ptr = std::make_unique<StringTableImpl>(filename);
 	}
 
-	StringTableImpl(const std::string& filename);
+	StringTableImpl(StringView filename);
 
 	~StringTableImpl();
 
-	std::size_t get_str_index(const StringView& view)
+	std::size_t get_str_index(StringView view)
 	{
 		StringViewPtr str_ptr(&view, EmptyDeleter());
 		auto itr = m_str_hash.find(str_ptr);
@@ -282,22 +282,10 @@ public:
 		}
 	}
 
-	std::size_t get_str_index(const char* str)
-	{
-		StringView view = { str, std::strlen(str) };
-		return get_str_index(view);
-	}
-
-	std::size_t get_str_index(const std::string& str)
-	{
-		StringView view = { str.c_str(), str.length() };
-		return get_str_index(view);
-	}
-
-	std::size_t add_str(const StringView& view)
+	std::size_t add_str(StringView view)
 	{
 		char* storage = new char[view.length];
-		std::memcpy(storage, view.string, view.length);
+		std::memcpy(storage, view.data, view.length);
 
 		auto str_ptr = std::make_shared<StringView>(storage, view.length);
 		m_str_array.push_back(str_ptr);
@@ -318,7 +306,7 @@ private:
 	{
 		size_t operator()(const StringViewPtr& str) const noexcept
 		{
-			return std::_Hash_impl::hash(str->string, str->length);
+			return std::_Hash_impl::hash(str->data, str->length);
 		}
 	};
 
@@ -332,7 +320,7 @@ private:
 			}
 			else
 			{
-				return std::memcmp(lhs->string, rhs->string, rhs->length) == 0;
+				return std::memcmp(lhs->data, rhs->data, rhs->length) == 0;
 			}
 		}
 	};
@@ -346,7 +334,7 @@ private:
 	{
 		void operator()(const StringView* view) const noexcept
 		{
-			delete[] view->string;
+			delete[] view->data;
 			delete view;
 		}
 	};
@@ -366,9 +354,9 @@ std::unique_ptr<StringTableImpl<T>> StringTableImpl<T>::instance_ptr = nullptr;
 
 
 template <typename T>
-StringTableImpl<T>::StringTableImpl(const std::string& filename)
+StringTableImpl<T>::StringTableImpl(StringView filename)
 {
-	m_file.open(filename);
+	m_file.open(filename.data);
 	if (m_file.is_open())
 	{
 		std::string line;
@@ -380,7 +368,7 @@ StringTableImpl<T>::StringTableImpl(const std::string& filename)
 	}
 	else
 	{
-		m_file.open(filename, std::ios_base::out); // Create file.
+		m_file.open(filename.data, std::ios_base::out); // Create file.
 		if (!m_file.is_open())
 		{
 			throw std::runtime_error(format("StringTableImpl: cannot open file: \"{}\"", filename));
@@ -398,7 +386,7 @@ StringTableImpl<T>::~StringTableImpl()
 		m_file.clear();
 		for (std::size_t i = m_last_index + 1; m_file && i < m_str_array.size(); ++i)
 		{
-			m_file.write(m_str_array[i]->string, m_str_array[i]->length) << '\n';
+			m_file.write(m_str_array[i]->data, m_str_array[i]->length) << '\n';
 		}
 		m_file.close();
 	}
@@ -573,7 +561,7 @@ private:
 
 /**
  * Logger message to the backend sink.
- * @tparam Sink  Support `void write(const char* str, std::size_t len);`
+ * @tparam Sink  Support `void write(const void* buf, std::size_t len);`
  */
 template <typename Sink>
 class BinaryLogger
@@ -600,26 +588,26 @@ public:
 	template <typename ... Args>
 	void log(LogLevel level,
 			 std::uint16_t module_id,
-			 const char* file,
-			 const char* function,
+			 StringView file,
+			 StringView function,
 			 std::uint32_t line,
-			 const char* fmt,
+			 StringView fmt,
 			 const Args& ... args);
 
 
 	void log(LogLevel level,
 			 std::uint16_t module_id,
-			 const char* file,
-			 const char* function,
+			 StringView file,
+			 StringView function,
 			 std::uint32_t line,
-			 const char* str);
+			 StringView str);
 
 
 	template <typename T>
 	void log(LogLevel level,
 			 std::uint16_t module_id,
-			 const char* file,
-			 const char* function,
+			 StringView file,
+			 StringView function,
 			 std::uint32_t line,
 			 const T& value);
 
@@ -631,10 +619,10 @@ private:
 
 	void generate_signature(LogLevel level,
 							std::uint16_t module_id,
-							const char* file,
-							const char* function,
+							StringView file,
+							StringView function,
 							std::uint32_t line,
-							const char* descript)
+							StringView descript)
 	{
 		m_signature.set_time(get_precise_time());
 		StringTable& str_table = StringTable::instance();
@@ -666,10 +654,10 @@ template <typename Sink>
 template <typename ... Args>
 void BinaryLogger<Sink>::log(LogLevel level,
 							 std::uint16_t module_id,
-							 const char* file,
-							 const char* function,
+							 StringView file,
+							 StringView function,
 							 std::uint32_t line,
-							 const char* fmt,
+							 StringView fmt,
 							 const Args& ... args)
 {
 	if (this->should_log(level))
@@ -680,9 +668,9 @@ void BinaryLogger<Sink>::log(LogLevel level,
 		m_writer.write(fmt, args ...);
 		m_signature.set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
 
-		m_sink->write(reinterpret_cast<const char*>(&m_signature), m_signature.get_memory_size());
+		m_sink->write(&m_signature, m_signature.get_memory_size());
 		auto view = m_writer.str_view();
-		m_sink->write(view.string, view.length);
+		m_sink->write(view.data, view.length);
 	}
 }
 
@@ -690,16 +678,16 @@ void BinaryLogger<Sink>::log(LogLevel level,
 template <typename Sink>
 void BinaryLogger<Sink>::log(LogLevel level,
 							 std::uint16_t module_id,
-							 const char* file,
-							 const char* function,
+							 StringView file,
+							 StringView function,
 							 std::uint32_t line,
-							 const char* str)
+							 StringView str)
 {
 	if (this->should_log(level))
 	{
 		generate_signature(level, module_id, file, function, line, str);
 		m_signature.set_argument_length(0);
-		m_sink->write(reinterpret_cast<const char*>(&m_signature), m_signature.get_memory_size());
+		m_sink->write(&m_signature, m_signature.get_memory_size());
 	}
 }
 
@@ -708,8 +696,8 @@ template <typename Sink>
 template <typename T>
 void BinaryLogger<Sink>::log(LogLevel level,
 							 std::uint16_t module_id,
-							 const char* file,
-							 const char* function,
+							 StringView file,
+							 StringView function,
 							 std::uint32_t line,
 							 const T& value)
 {
@@ -721,9 +709,9 @@ void BinaryLogger<Sink>::log(LogLevel level,
 		m_writer.write("{}", value);
 		m_signature.set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
 
-		m_sink->write(reinterpret_cast<const char*>(&m_signature), m_signature.get_memory_size());
+		m_sink->write(&m_signature, m_signature.get_memory_size());
 		auto view = m_writer.str_view();
-		m_sink->write(view.string, view.length);
+		m_sink->write(view.data, view.length);
 	}
 }
 
@@ -731,16 +719,16 @@ void BinaryLogger<Sink>::log(LogLevel level,
 class BinaryLogReader
 {
 public:
-	BinaryLogReader(const std::string& log_filename) :
+	BinaryLogReader(StringView log_filename) :
 		m_file(log_filename, "rb")
 	{
 	}
 
-	const char* read()
+	StringView read()
 	{
 		m_writer.clear();
 		auto len = m_file.read(&m_signature, m_signature.get_memory_size());
-		if (len == 0)
+		if (len != m_signature.get_memory_size())
 		{
 			return nullptr;
 		}
@@ -756,7 +744,7 @@ public:
 					   m_signature.get_log_id(),
 					   m_signature.get_module_id());
 
-		m_writer.write_binary(str_table[m_signature.get_description_id()].string,
+		m_writer.write_binary(str_table[m_signature.get_description_id()].data,
 					   arguments.get(),
 					   m_signature.get_argument_length());
 
@@ -765,7 +753,7 @@ public:
 					   m_signature.get_line(),
 					   str_table[m_signature.get_function_id()]);
 
-		return m_writer.c_str();
+		return m_writer.str_view();
 	}
 
 	/**
@@ -793,15 +781,6 @@ private:
 	BinaryRestoreWriter<MAX_BINARY_MESSAGE_SIZE> m_writer;
 };
 
-#define LIGHTS_LOG(logger, level, module, ...) \
-	logger.log(level, module, __FILE__, __func__, __LINE__, __VA_ARGS__);
-#define LIGHTS_DEBUG(logger, module, ...) \
-	LIGHTS_LOG(logger, lights::LogLevel::DEBUG, module, __VA_ARGS__);
-#define LIGHTS_INFO(logger, module, ...) \
-	LIGHTS_LOG(logger, lights::LogLevel::INFO, module, __VA_ARGS__);
-#define LIGHTS_WARN(logger, module, format, ...) \
-	LIGHTS_LOG(logger, lights::LogLevel::WARN, module, __VA_ARGS__);
-#define LIGHTS_ERROR(logger, module, format, ...) \
-	LIGHTS_LOG(logger, lights::LogLevel::ERROR, module, __VA_ARGS__);
+
 
 } // namespace lights

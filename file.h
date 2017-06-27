@@ -31,13 +31,10 @@ class FileStream
 public:
 	FileStream() = default;
 
-	FileStream(const char* filename, const char* modes)
+	FileStream(StringView filename, StringView modes)
 	{
 		this->open(filename, modes);
 	}
-
-	FileStream(const std::string& filename, const std::string& modes) :
-		FileStream(filename.c_str(), modes.c_str()) {}
 
 	~FileStream()
 	{
@@ -50,10 +47,10 @@ public:
 	/**
 	 * @throw Thrown std::runtime_error when have error.
 	 */
-	void open(const char* filename, const char* modes)
+	void open(StringView filename, StringView modes)
 	{
 		assert(!is_open() && "Cannot open file, becase there is handler that is not close.");
-		m_file = std::fopen(filename, modes);
+		m_file = std::fopen(filename.data, modes.data);
 		if (m_file == nullptr)
 		{
 			FileStream::open_file_failure(filename);
@@ -63,29 +60,13 @@ public:
 	/**
 	 * @throw Thrown std::runtime_error when have error.
 	 */
-	void open(const std::string& filename, const std::string& modes)
+	void reopen(StringView filename, StringView modes)
 	{
-		this->open(filename.c_str(), modes.c_str());
-	}
-
-	/**
-	 * @throw Thrown std::runtime_error when have error.
-	 */
-	void reopen(const char* filename, const char* modes)
-	{
-		if (std::freopen(filename, modes, m_file) == nullptr)
+		if (std::freopen(filename.data, modes.data, m_file) == nullptr)
 		{
 			m_file = nullptr;
 			FileStream::open_file_failure(filename);
 		}
-	}
-
-	/**
-	 * @throw Thrown std::runtime_error when have error.
-	 */
-	void reopen(const std::string& filename, const std::string& modes)
-	{
-		this->reopen(filename.c_str(), modes.c_str());
 	}
 
 	bool is_open() const
@@ -188,7 +169,7 @@ public:
 	}
 
 private:
-	static void open_file_failure(const char* filename)
+	static void open_file_failure(StringView filename)
 	{
 		MemoryWriter<> writer;
 		writer.write("FileStream: Open \"{}\" failure: {}", filename, current_error());

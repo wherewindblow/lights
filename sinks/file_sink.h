@@ -29,18 +29,15 @@ public:
 	 * @param filename  The file to be write.
 	 * @throw Thrown std::runtime_error when open failure.
 	 */
-	SimpleFileSink(const char* filename) :
-		m_file(filename, "ab+")
+	SimpleFileSink(StringView filename) :
+		m_file(filename.data, "ab+")
 	{
 		m_file.setbuf(nullptr);
 	}
 
-	SimpleFileSink(const std::string& filename) :
-		SimpleFileSink(filename.c_str()) {}
-
-	void write(const char* str, std::size_t len)
+	void write(const void* buf, std::size_t len)
 	{
-		m_file.write(str, len);
+		m_file.write(buf, len);
 	}
 
 private:
@@ -97,14 +94,14 @@ public:
 		this->rotate();
 	}
 
-	void write(const char* str, std::size_t len)
+	void write(const void* buf, std::size_t len)
 	{
 		while (m_current_size + len > m_max_size)
 		{
 			this->fill_remain();
 			this->rotate();
 		}
-		m_file.write(str, len);
+		m_file.write(buf, len);
 		m_current_size += len;
 	}
 
@@ -208,14 +205,14 @@ public:
 		rotate();
 	}
 
-	void write(const char* str, std::size_t len)
+	void write(const void* buf, std::size_t len)
 	{
 		std::time_t now = std::time(nullptr);
 		if (now >= m_next_rotating_time)
 		{
 			rotate();
 		}
-		m_file.write(str, len);
+		m_file.write(buf, len);
 	}
 
 	void rotate()
@@ -254,7 +251,7 @@ template <> \
 class TextLogger<Sink> \
 { \
 public: \
-    TextLogger(const std::string& name, std::shared_ptr<Sink> sink); \
+    TextLogger(StringView name, std::shared_ptr<Sink> sink); \
 	~TextLogger(); \
 \
     const std::string& get_name() const \
@@ -274,66 +271,66 @@ public: \
 \
 \
     template <typename ... Args> \
-    void log(LogLevel level, const char* fmt, const Args& ... args) \
+    void log(LogLevel level, StringView fmt, const Args& ... args) \
     { \
         if (this->should_log(level)) \
         { \
-            this->generate_signature_header(); \
+            this->generate_signature(); \
             m_writer->write(fmt, args ...); \
             m_writer->append('\n'); \
         } \
     } \
 \
     template <typename ... Args> \
-    void debug(const char* fmt, const Args& ... args) \
+    void debug(StringView fmt, const Args& ... args) \
     { \
         this->log(LogLevel::DEBUG, fmt, args ...); \
     } \
 \
     template <typename ... Args> \
-    void info(const char* fmt, const Args& ... args) \
+    void info(StringView fmt, const Args& ... args) \
     { \
         this->log(LogLevel::INFO, fmt, args ...); \
     } \
 \
     template <typename ... Args> \
-    void warn(const char* fmt, const Args& ... args) \
+    void warn(StringView fmt, const Args& ... args) \
     { \
         this->log(LogLevel::WARN, fmt, args ...); \
     } \
 \
     template <typename ... Args> \
-    void error(const char* fmt, const Args& ... args) \
+    void error(StringView fmt, const Args& ... args) \
     { \
         this->log(LogLevel::ERROR, fmt, args ...); \
     } \
 \
 \
-    void log(LogLevel level, const char* str) \
+    void log(LogLevel level, StringView str) \
     { \
         if (this->should_log(level)) \
         { \
-            this->generate_signature_header(); \
+            this->generate_signature(); \
             *m_writer << str << '\n'; \
         } \
     } \
 \
-    void debug(const char* str) \
+    void debug(StringView str) \
     { \
         this->log(LogLevel::DEBUG, str); \
     } \
 \
-    void info(const char* str) \
+    void info(StringView str) \
     { \
         this->log(LogLevel::INFO, str); \
     } \
 \
-    void warn(const char* str) \
+    void warn(StringView str) \
     { \
         this->log(LogLevel::WARN, str); \
     } \
 \
-    void error(const char* str) \
+    void error(StringView str) \
     { \
         this->log(LogLevel::ERROR, str); \
     } \
@@ -344,7 +341,7 @@ public: \
     { \
         if (this->should_log(level)) \
         { \
-            this->generate_signature_header(); \
+            this->generate_signature(); \
             *m_writer << value << '\n'; \
         } \
     } \
@@ -379,21 +376,7 @@ private: \
         return m_level <= level; \
     } \
 \
-    template <std::size_t N> \
-    static lights::MemoryWriter<N>&  write_2_digit(lights::MemoryWriter<N>& writer, unsigned num) \
-    { \
-        if (num >= 10) \
-        { \
-            writer << num; \
-        } \
-        else \
-        { \
-            writer << '0' << num; \
-        } \
-        return writer; \
-    } \
-\
-    void generate_signature_header(); \
+    void generate_signature(); \
 \
     std::string m_name; \
     LogLevel m_level = LogLevel::INFO; \

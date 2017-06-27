@@ -17,9 +17,9 @@ namespace sinks {
 class StdoutSink
 {
 public:
-	void write(const char* str, std::size_t len)
+	void write(const void* buf, std::size_t len)
 	{
-		std::fwrite(str, sizeof(char), len, stdout);
+		std::fwrite(buf, sizeof(char), len, stdout);
 	}
 
 	static std::shared_ptr<StdoutSink> instance()
@@ -33,9 +33,9 @@ public:
 class StderrSink
 {
 public:
-	void write(const char* str, std::size_t len)
+	void write(const void* buf, std::size_t len)
 	{
-		std::fwrite(str, sizeof(char), len, stderr);
+		std::fwrite(buf, sizeof(char), len, stderr);
 	}
 
 	static std::shared_ptr<StderrSink> instance()

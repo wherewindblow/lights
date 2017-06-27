@@ -91,20 +91,29 @@ inline Timestamp current_timestamp()
 /**
  * View of string, can reduce data copy.
  */
-struct StringView
+class StringView
 {
+public:
 	StringView() = default;
-	StringView(const char* str, std::size_t len) :
-		string(str), length(len) {}
 
-	const char* string;
+	StringView(const char* str, std::size_t len) :
+		data(str), length(len) {}
+
+	StringView(const char* str) :
+		data(str), length(std::strlen(str)) {}
+
+	StringView(const std::string& str) :
+		data(str.data()), length(str.length()) {}
+
+	const char* data;
 	std::size_t length;
 };
+
 
 template <typename Ostream>
 Ostream& operator<< (Ostream& out, StringView view)
 {
-	out.write(view.string, view.length);
+	out.write(view.data, view.length);
 	return out;
 }
 
@@ -134,19 +143,14 @@ public:
 		}
 	}
 
-	void append(const char* str, std::size_t len)
+	void append(StringView view)
 	{
-		while (len != 0)
+		while (view.length != 0)
 		{
-			this->append(*str);
-			++str;
-			--len;
+			this->append(*view.data);
+			++view.data;
+			--view.length;
 		}
-	}
-
-	void append(const char* str)
-	{
-		this->append(str, std::strlen(str));
 	}
 
 private:
@@ -179,14 +183,9 @@ public:
 		m_sink.append(num, ch);
 	}
 
-	void append(const char* str, std::size_t len)
+	void append(StringView view)
 	{
-		m_sink.append(str, len);
-	}
-
-	void append(const char* str)
-	{
-		m_sink.append(str);
+		m_sink.append(view.data, view.length);
 	}
 
 private:
@@ -215,7 +214,7 @@ public:
 
 	virtual std::streamsize	xsputn(const char* s, std::streamsize n) override
 	{
-		m_string.append(s, static_cast<std::size_t>(n));
+		m_string.append({s, static_cast<std::size_t>(n)});
 		return n;
 	}
 
@@ -242,7 +241,7 @@ public:
 	}
 
 #define LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_UNSIGNED(Type) \
-	const char* format(Type n)                        \
+	StringView format(Type n)                         \
 	{                                                 \
 		this->reset_state();                          \
 		return this->format_unsigned(n, m_begin);     \
@@ -253,7 +252,7 @@ public:
 #undef LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_UNSIGNED
 
 #define LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_SIGNED(Type) \
-	const char* format(Type n)                      \
+	StringView format(Type n)                      \
 	{                                               \
 		this->reset_state();                        \
 		return format_signed(n, m_begin);           \
@@ -456,7 +455,7 @@ char* IntegerFormater::format_unsigned(UnsignedInteger n, char* output)
 class ErrorFormater
 {
 public:
-	const char* format(int errer_no)
+	StringView format(int errer_no)
 	{
 		// Not use sys_nerr and sys_errlist directly, although the are easy to control.
 		// Because sys_nerr may bigger that sys_errlist size and sys_errlist may have't
@@ -475,12 +474,12 @@ public:
 #endif
 	}
 
-	const char* format(ErrorNumber errer_no)
+	StringView format(ErrorNumber errer_no)
 	{
 		return this->format(errer_no.value);
 	}
 
-	const char* format_current_error()
+	StringView format_current_error()
 	{
 		return this->format(errno);
 	}
@@ -681,7 +680,7 @@ void OctalFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
 	{
 		out.append('-');
 	}
-	out.append(ptr, num);
+	out.append({ptr, num});
 }
 
 
@@ -737,7 +736,7 @@ void HexFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
 	{
 		out.append('-');
 	}
-	out.append(ptr, num);
+	out.append({ptr, num});
 }
 
 
@@ -822,7 +821,7 @@ inline void to_string(StringAdapter<Sink> out, float n)
 	char buf[std::numeric_limits<float>::max_exponent10 + 1 +
 		std::numeric_limits<float>::digits10 + 1];
 	int writen = std::sprintf(buf, "%f", n);
-	out.append(buf, static_cast<std::size_t>(writen));
+	out.append({buf, static_cast<std::size_t>(writen)});
 }
 
 template <typename Sink>
@@ -832,7 +831,7 @@ inline void to_string(StringAdapter<Sink> out, double n)
 	// sprintf on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2).
 	char buf[100 + 1 + std::numeric_limits<double>::digits10 + 1];
 	int writen = std::snprintf(buf, sizeof(buf), "%f", n);
-	out.append(buf, static_cast<std::size_t>(writen));
+	out.append({buf, static_cast<std::size_t>(writen)});
 }
 
 template <typename Sink>
@@ -842,7 +841,7 @@ inline void to_string(StringAdapter<Sink> out, long double n)
 	// sprintf on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2).
 	char buf[100 + 1 + std::numeric_limits<long double>::digits10 + 1];
 	int writen = std::snprintf(buf, sizeof(buf), "%Lf", n);
-	out.append(buf, static_cast<std::size_t>(writen));
+	out.append({buf, static_cast<std::size_t>(writen)});
 }
 
 template <typename Sink>
@@ -993,14 +992,13 @@ template <typename Sink, typename Integer>
 inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::DecimalSpecTag> spec)
 {
 	details::IntegerFormater formater;
-	const char* str = formater.format(spec.value);
-	int len = static_cast<int>(std::strlen(str));
+	StringView view = formater.format(spec.value);
 
-	if (spec.width != INVALID_INDEX && len < spec.width)
+	if (spec.width != INVALID_INDEX && view.length < static_cast<std::size_t>(spec.width))
 	{
-		out.append(spec.width - len, spec.fill);
+		out.append(static_cast<std::size_t>(spec.width) - view.length, spec.fill);
 	}
-	out.append(str);
+	out.append(view);
 }
 
 
@@ -1032,13 +1030,13 @@ inline void append(StringAdapter<Sink> out, const char* str)
 template <typename Sink>
 inline void append(StringAdapter<Sink> out, const std::string& str)
 {
-	out.append(str.c_str(), str.length());
+	out.append(str);
 }
 
 template <typename Sink>
-inline void append(StringAdapter<Sink> out, const StringView& str)
+inline void append(StringAdapter<Sink> out, StringView str)
 {
-	out.append(str.string, str.length);
+	out.append(str);
 }
 
 
@@ -1060,7 +1058,7 @@ inline StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value)
 
 
 template <typename Sink>
-inline void write(StringAdapter<Sink> out, const char* fmt)
+inline void write(StringAdapter<Sink> out, StringView fmt)
 {
 	out.append(fmt);
 }
@@ -1086,51 +1084,26 @@ inline void write(StringAdapter<Sink> out, const char* fmt)
  *       If all user function are implemented, the priority is 2), 3), 4) and 1).
  */
 template <typename Sink, typename Arg, typename ... Args>
-void write(StringAdapter<Sink> out, const char* fmt, const Arg& value, const Args& ... args)
+void write(StringAdapter<Sink> out, StringView fmt, const Arg& value, const Args& ... args)
 {
 	std::size_t i = 0;
-	for (; fmt[i] != '\0'; ++i)
+	for (; i < fmt.length; ++i)
 	{
-		if (fmt[i] == '{' &&
-			fmt[i+1] != '\0' &&
-			fmt[i+1] == '}')
+		if (fmt.data[i] == '{' &&
+			i + 1 < fmt.length &&
+			fmt.data[i+1] == '}')
 		{
 			break;
 		}
 	}
 
-	out.append(fmt, i);
-	if (fmt[i] != '\0')
+	out.append({fmt.data, i});
+	if (i < fmt.length)
 	{
 		append(out, value);
-		write(out, fmt + i + 2, args ...);
+		StringView view(fmt.data + i + 2, fmt.length - i - 2);
+		write(out, view, args ...);
 	}
-}
-
-/**
- * Write to the end of string that use @c fmt and @c args ...
- * @param out  Output holder.
- * @param fmt   Format that use '{}' as placeholder.
- * @param args  Variadic arguments that can be any type.
- * @return Formated string.
- * @note If args is user type, it must have a user function as
- *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
- *         2) `StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value);`
- *         3) `void append(StringAdapter<Sink> out, const T& value);`
- *         4) `void to_string(StringAdapter<Sink> out, const T& value);`
- *       1) General way to use with @c std::ostream to format.
- *       2), 3) and 4) is optimize way with format.
- *          The implementation can use insertion operator (<<)
- *          between @c sink and @c value. But must use
- *            `using lights::operator<<`.
- *          After implement the user function, it also can be use
- *          in another user function as insertion operator.
- *       If all user function are implemented, the priority is 2), 3), 4) and 1).
- */
-template <typename Sink, typename Arg, typename ... Args>
-inline void write(StringAdapter<Sink> out, const std::string& fmt, const Arg& value, const Args& ... args)
-{
-	write(out, fmt.c_str(), value, args ...);
 }
 
 
@@ -1138,7 +1111,7 @@ template <std::size_t buffer_size>
 class BinaryStoreWriter;
 
 template <std::size_t buffer_size>
-inline void write(StringAdapter<BinaryStoreWriter<buffer_size>> out, const char* fmt)
+inline void write(StringAdapter<BinaryStoreWriter<buffer_size>> out, StringView fmt)
 {
 }
 
@@ -1146,23 +1119,24 @@ inline void write(StringAdapter<BinaryStoreWriter<buffer_size>> out, const char*
 // into this function.
 template <std::size_t buffer_size, typename Arg, typename ... Args>
 void write(StringAdapter<BinaryStoreWriter<buffer_size>> out,
-	const char* fmt, const Arg& value, const Args& ... args)
+		   StringView fmt, const Arg& value, const Args& ... args)
 {
 	std::size_t i = 0;
-	for (; fmt[i] != '\0'; ++i)
+	for (; i < fmt.length; ++i)
 	{
-		if (fmt[i] == '{' &&
-			fmt[i + 1] != '\0' &&
-			fmt[i + 1] == '}')
+		if (fmt.data[i] == '{' &&
+			i + 1 < fmt.length &&
+			fmt.data[i + 1] == '}')
 		{
 			break;
 		}
 	}
 
-	if (fmt[i] != '\0')
+	if (i < fmt.length)
 	{
 		append(out, value);
-		write(out, fmt + i + 2, args ...);
+		StringView view(fmt.data + i + 2, fmt.length - i - 2);
+		write(out, view, args ...);
 	}
 }
 
@@ -1209,35 +1183,26 @@ public:
 	 * @param len  Length of character to append.
 	 * @note If the internal buffer is full will have no effect.
 	 */
-	void append(const char* str, std::size_t len)
+	void append(StringView view)
 	{
-		if (can_append(len))
+		if (can_append(view.length))
 		{
-			std::memcpy(m_buffer + m_length, str, len);
-			m_length += len;
+			std::memcpy(m_buffer + m_length, view.data, view.length);
+			m_length += view.length;
 		}
 		else // Have not enought space to hold all.
 		{
 			// Append to the remaining place.
-			append(str, max_size() - m_length);
-			len -= (max_size() - m_length);
+			StringView part(view.data, max_size() - m_length);
+			append(part);
+			view.length -= (max_size() - m_length);
 
-			hand_for_full(str, len);
+			hand_for_full(view);
 		}
 	}
 
-	void append(const char* str)
-	{
-		this->append(str, std::strlen(str));
-	}
-
-	void append(const StringView& view)
-	{
-		this->append(view.string, view.length);
-	}
-
 	template <typename Arg, typename ... Args>
-	void write(const char* fmt, const Arg& value, const Args& ... args)
+	void write(StringView fmt, const Arg& value, const Args& ... args)
 	{
 		// Must add namespace scope limit or cannot find suitable function.
 		lights::write(make_string_adapter(*this), fmt, value, args ...);
@@ -1339,7 +1304,7 @@ private:
 		return *this;
 	}
 
-	void hand_for_full(const char* str, size_t len);
+	void hand_for_full(StringView view);
 
 	std::size_t m_length = 0;
 	char m_buffer[buffer_size];
@@ -1348,29 +1313,30 @@ private:
 
 
 template <std::size_t buffer_size>
-void MemoryWriter<buffer_size>::hand_for_full(const char* str, size_t len)
+void MemoryWriter<buffer_size>::hand_for_full(StringView view)
 {
 	if (m_full_handler)
 	{
 		m_full_handler(str_view());
 		clear();
-		if (len <= max_size())
+		if (view.length <= max_size())
 		{
-			append(str, len);
+			append(view);
 		}
 		else // Have not enought space to hold all.
 		{
-			while (len)
+			while (view.length)
 			{
-				std::size_t append_len = (len <= max_size()) ? len : max_size();
-				append(str, append_len);
+				std::size_t append_len = (view.length <= max_size()) ? view.length : max_size();
+				StringView part(view.data, append_len);
+				append(part);
 				if (append_len == max_size())
 				{
 					m_full_handler(str_view());
 					clear();
 				}
-				str += append_len;
-				len -= append_len;
+				view.data += append_len;
+				view.length -= append_len;
 			}
 		}
 	}
@@ -1397,14 +1363,9 @@ public:
 		}
 	}
 
-	void append(const char* str, std::size_t len)
+	void append(StringView view)
 	{
-		m_sink.append(str, len);
-	}
-
-	void append(const char* str)
-	{
-		m_sink.append(str);
+		m_sink.append(view);
 	}
 
 	MemoryWriter<buffer_size>& get_internal_sink()
@@ -1524,25 +1485,15 @@ public:
 		}
 	}
 
-	void append(const char* str, std::size_t len)
+	void append(StringView view)
 	{
-		if (can_append(len + 2))
+		if (can_append(view.length + 2))
 		{
 			m_buffer[m_length++] = static_cast<std::uint8_t>(BinaryTypeCode::STRING);
-			m_buffer[m_length++] = static_cast<std::uint8_t>(len);
-			std::memcpy(m_buffer + m_length, str, len);
-			m_length += len;
+			m_buffer[m_length++] = static_cast<std::uint8_t>(view.length);
+			std::memcpy(m_buffer + m_length, view.data, view.length);
+			m_length += view.length;
 		}
-	}
-
-	void append(const char* str)
-	{
-		this->append(str, std::strlen(str));
-	}
-
-	void append(const StringView& view)
-	{
-		this->append(view.string, view.length);
 	}
 
 #define LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER(Type) \
@@ -1564,7 +1515,7 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER)
 #undef LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER
 
 	template <typename Arg, typename ... Args>
-	void write(const char* fmt, const Arg& value, const Args& ... args)
+	void write(StringView fmt, const Arg& value, const Args& ... args)
 	{
 		lights::write(make_string_adapter(*this), fmt, value, args ...);
 	}
@@ -1632,14 +1583,9 @@ public:
 		}
 	}
 
-	void append(const char* str, std::size_t len)
+	void append(StringView view)
 	{
-		m_sink.append(str, len);
-	}
-
-	void append(const char* str)
-	{
-		m_sink.append(str);
+		m_sink.append(view);
 	}
 
 	BinaryStoreWriter<buffer_size>& get_internal_sink()
@@ -1673,29 +1619,19 @@ public:
 		m_writer.append(ch);
 	}
 
-	void append(const char* str, std::size_t len)
+	void append(StringView view)
 	{
-		m_writer.append(str, len);
-	}
-
-	void append(const char* str)
-	{
-		m_writer.append(str);
-	}
-
-	void append(const StringView& str)
-	{
-		m_writer.append(str);
+		m_writer.append(view);
 	}
 
 	template <typename Arg, typename ... Args>
-	void write_text(const char* fmt, const Arg& value, const Args& ... args)
+	void write_text(StringView fmt, const Arg& value, const Args& ... args)
 	{
 		// Must add namespace scope limit or cannot find suitable function.
 		lights::write(make_string_adapter(m_writer), fmt, value, args ...);
 	}
 
-	void write_binary(const char* fmt, const std::uint8_t* binary_store_args, std::size_t args_length);
+	void write_binary(StringView fmt, const std::uint8_t* binary_store_args, std::size_t args_length);
 
 	template <typename T>
 	BinaryRestoreWriter& operator<< (const T& value)
@@ -1750,7 +1686,7 @@ private:
 };
 
 template <std::size_t buffer_size>
-void BinaryRestoreWriter<buffer_size>::write_binary(const char* fmt, const std::uint8_t* binary_store_args, std::size_t args_length)
+void BinaryRestoreWriter<buffer_size>::write_binary(StringView fmt, const std::uint8_t* binary_store_args, std::size_t args_length)
 {
 	if (args_length == 0)
 	{
@@ -1759,18 +1695,18 @@ void BinaryRestoreWriter<buffer_size>::write_binary(const char* fmt, const std::
 	}
 
 	std::size_t i = 0;
-	for (; fmt[i] != '\0'; ++i)
+	for (; i < fmt.length; ++i)
 	{
-		if (fmt[i] == '{' &&
-			fmt[i+1] != '\0' &&
-			fmt[i+1] == '}')
+		if (fmt.data[i] == '{' &&
+			i + 1 < fmt.length &&
+			fmt.data[i+1] == '}')
 		{
 			break;
 		}
 	}
 
-	m_writer.append(fmt, i);
-	if (fmt[i] != '\0')
+	m_writer.append({fmt.data, i});
+	if (i < fmt.length)
 	{
 		auto width = get_type_width(static_cast<BinaryTypeCode>(*binary_store_args));
 		auto value_begin = binary_store_args + 1;
@@ -1793,7 +1729,7 @@ void BinaryRestoreWriter<buffer_size>::write_binary(const char* fmt, const std::
 			case BinaryTypeCode::STRING:
 			{
 				width += binary_store_args[1] + 1;
-				m_writer.append(reinterpret_cast<const char*>(&binary_store_args[2]), binary_store_args[1]);
+				m_writer.append({reinterpret_cast<const char*>(&binary_store_args[2]), binary_store_args[1]});
 				break;
 			}
 			case BinaryTypeCode::INT8_T:
@@ -1847,7 +1783,8 @@ void BinaryRestoreWriter<buffer_size>::write_binary(const char* fmt, const std::
 			case BinaryTypeCode::MAX:break;
 		}
 
-		write_binary(fmt + i + 2, binary_store_args + 1 + width, args_length - width);
+		StringView view(fmt.data + i + 2, fmt.length - i - 2);
+		write_binary(view, binary_store_args + 1 + width, args_length - width);
 	}
 }
 
@@ -1872,36 +1809,11 @@ void BinaryRestoreWriter<buffer_size>::write_binary(const char* fmt, const std::
  *       If all user function are implemented, the priority is 2), 3), 4) and 1).
  */
 template <typename... Args>
-inline std::string format(const char* fmt, const Args& ... args)
+inline std::string format(StringView fmt, const Args& ... args)
 {
 	std::string out;
 	write(make_string_adapter(out), fmt, args ...);
 	return out;
-}
-
-/**
- * Format string that use @c fmt and @c args ...
- * @param fmt   Format that use '{}' as placeholder.
- * @param args  Variadic arguments that can be any type.
- * @return Formated string.
- * @note If args is user type, it must have a user function as
- *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
- *         2) `StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value);`
- *         3) `void append(StringAdapter<Sink> out, const T& value);`
- *         4) `void to_string(StringAdapter<Sink> out, const T& value);`
- *       1) General way to use with @c std::ostream to format.
- *       2), 3) and 4) is optimize way with format.
- *          The implementation can use insertion operator (<<)
- *          between @c sink and @c value. But must use
- *            `using lights::operator<<`.
- *          After implement the user function, it also can be use
- *          in another user function as insertion operator.
- *       If all user function are implemented, the priority is 2), 3), 4) and 1).
- */
-template <typename... Args>
-inline std::string format(const std::string& fmt, const Args& ... args)
-{
-	return format(fmt.c_str(), args ...);
 }
 
 } // namespace lights

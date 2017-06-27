@@ -16,7 +16,7 @@ namespace sinks {
 class NullSink
 {
 public:
-	void write(const char* str, std::size_t len)
+	void write(const void* buf, std::size_t len)
 	{}
 
 	static std::shared_ptr<NullSink> instance()
