@@ -286,8 +286,9 @@ public:
 	{
 		char* storage = new char[view.length];
 		std::memcpy(storage, view.data, view.length);
+		StringView* new_view = new StringView(storage, view.length);
+		StringViewPtr str_ptr(new_view, StringDeleter());
 
-		auto str_ptr = std::make_shared<StringView>(storage, view.length);
 		m_str_array.push_back(str_ptr);
 		auto pair = std::make_pair(str_ptr, m_str_array.size() - 1);
 		m_str_hash.insert(pair);
