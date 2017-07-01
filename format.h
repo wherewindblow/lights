@@ -1126,7 +1126,7 @@ void write(StringAdapter<BinaryStoreWriter<buffer_size>> out,
 	{
 		if (fmt.data[i] == '{' &&
 			i + 1 < fmt.length &&
-			fmt.data[i + 1] == '}')
+			fmt.data[i+1] == '}')
 		{
 			break;
 		}
@@ -1134,7 +1134,7 @@ void write(StringAdapter<BinaryStoreWriter<buffer_size>> out,
 
 	if (i < fmt.length)
 	{
-		append(out, value);
+		out.get_internal_sink().add_composed_type(value);
 		StringView view(fmt.data + i + 2, fmt.length - i - 2);
 		write(out, view, args ...);
 	}
@@ -1157,7 +1157,7 @@ public:
 	 */
 	void append(char ch)
 	{
-		if (can_append(1))
+		if (can_append(sizeof(ch)))
 		{
 			m_buffer[m_length] = ch;
 			++m_length;
@@ -1168,7 +1168,7 @@ public:
 			{
 				m_full_handler(str_view());
 				clear();
-				if (1 <= max_size())
+				if (sizeof(ch) <= max_size())
 				{
 					append(ch);
 				}
@@ -1291,19 +1291,6 @@ private:
 		return m_length + len <= max_size();
 	}
 
-	MemoryWriter& write_2_digit(unsigned num)
-	{
-		if (num >= 10)
-		{
-			*this << num;
-		}
-		else
-		{
-			*this << '0' << num;
-		}
-		return *this;
-	}
-
 	void hand_for_full(StringView view);
 
 	std::size_t m_length = 0;
@@ -1403,6 +1390,7 @@ enum class BinaryTypeCode: std::uint8_t
 	UINT32_T = 9,
 	INT64_T = 10,
 	UINT64_T = 11,
+	COMPOSED_TYPE  = 12,
 	MAX
 };
 
@@ -1454,11 +1442,13 @@ inline std::uint8_t get_type_width(BinaryTypeCode code)
 {
 	static std::uint8_t widths[] = {
 		0, // Invalid.
-		1, 1, 1, // bool, char and string.
+		1, 1, // bool and char
+		1,    // string.
 		1, 1, // 8 bits
 		2, 2, // 16 bits
 		4, 4, // 32 bits
-		8, 8  // 64 bits
+		8, 8, // 64 bits
+		2,    // user-define composed type
 	};
 
 	std::uint8_t index = static_cast<std::uint8_t>(code);
@@ -1476,10 +1466,21 @@ template <std::size_t buffer_size>
 class BinaryStoreWriter
 {
 public:
+	enum FormatComposedTypeState
+	{
+		NO_INIT,
+		STARTED,
+		ENDED
+	};
+
 	void append(char ch)
 	{
-		if (can_append(1 + 1))
+		if (can_append(sizeof(BinaryTypeCode) + sizeof(ch)))
 		{
+			if (m_state == FormatComposedTypeState::STARTED)
+			{
+				++m_composed_member_num;
+			}
 			m_buffer[m_length++] = static_cast<std::uint8_t>(BinaryTypeCode::CHAR);
 			m_buffer[m_length++] = static_cast<std::uint8_t>(ch);
 		}
@@ -1487,8 +1488,12 @@ public:
 
 	void append(StringView view)
 	{
-		if (can_append(view.length + 2))
+		if (can_append(view.length + sizeof(BinaryTypeCode) + sizeof(std::uint8_t)))
 		{
+			if (m_state == FormatComposedTypeState::STARTED)
+			{
+				++m_composed_member_num;
+			}
 			m_buffer[m_length++] = static_cast<std::uint8_t>(BinaryTypeCode::STRING);
 			m_buffer[m_length++] = static_cast<std::uint8_t>(view.length);
 			std::memcpy(m_buffer + m_length, view.data, view.length);
@@ -1499,9 +1504,13 @@ public:
 #define LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER(Type) \
 	BinaryStoreWriter& operator<< (Type n) \
 	{ \
-		BinaryTypeCode type_code = get_type_code(n);\
-		if (can_append(get_type_width(type_code) + 1)) \
+		BinaryTypeCode type_code = get_type_code(n); \
+		if (can_append(sizeof(BinaryTypeCode) + get_type_width(type_code))) \
 		{ \
+			if (m_state == FormatComposedTypeState::STARTED) \
+			{ \
+				++m_composed_member_num;\
+			} \
 			m_buffer[m_length++] = static_cast<std::uint8_t>(type_code); \
 			Type* p = reinterpret_cast<Type *>(&m_buffer[m_length]); \
 			*p = n; \
@@ -1513,6 +1522,41 @@ public:
 LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER)
 
 #undef LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER
+
+	/**
+	 * It's only for write format to call and easy to restore.
+	 */
+	template <typename T>
+	void add_composed_type(const T& value)
+	{
+		if (m_state == FormatComposedTypeState::STARTED) // Reduce recursion.
+		{
+			make_string_adapter(*this) << value;
+		}
+		else
+		{
+			m_composed_member_num = 0;
+			std::uint8_t* type = m_buffer + m_length;
+			auto composed_member_num = reinterpret_cast<std::uint16_t*>(m_buffer + m_length + sizeof(BinaryTypeCode));
+			const auto composed_header_len = sizeof(BinaryTypeCode) + sizeof(std::uint16_t) / sizeof(std::uint8_t);
+			m_length += composed_header_len;
+			m_state = FormatComposedTypeState::STARTED;
+			make_string_adapter(*this) << value;
+			m_state = FormatComposedTypeState::ENDED;
+
+			if (m_composed_member_num > 1)
+			{
+				*type = static_cast<std::uint8_t>(BinaryTypeCode::COMPOSED_TYPE);
+				*composed_member_num = m_composed_member_num;
+			}
+			else
+			{
+				std::size_t len = (m_buffer + m_length) - reinterpret_cast<std::uint8_t*>(composed_member_num + 1);
+				std::memmove(type, composed_member_num + 1, len);
+				m_length -= composed_header_len;
+			}
+		}
+	}
 
 	template <typename Arg, typename ... Args>
 	void write(StringView fmt, const Arg& value, const Args& ... args)
@@ -1561,6 +1605,8 @@ private:
 
 	std::size_t m_length = 0;
 	std::uint8_t m_buffer[buffer_size];
+	FormatComposedTypeState m_state = FormatComposedTypeState::NO_INIT;
+	std::uint16_t m_composed_member_num = 0;
 };
 
 template <>
@@ -1682,6 +1728,8 @@ public:
 	}
 
 private:
+	std::uint8_t write_argument(const uint8_t* binary_store_args);
+
 	MemoryWriter<buffer_size> m_writer;
 };
 
@@ -1708,84 +1756,101 @@ void BinaryRestoreWriter<buffer_size>::write_binary(StringView fmt, const std::u
 	m_writer.append({fmt.data, i});
 	if (i < fmt.length)
 	{
-		auto width = get_type_width(static_cast<BinaryTypeCode>(*binary_store_args));
-		auto value_begin = binary_store_args + 1;
-		switch (static_cast<BinaryTypeCode>(*binary_store_args))
-		{
-			case BinaryTypeCode::INVALID:
-				break;
-			case BinaryTypeCode::BOOL:
-			{
-				bool b = static_cast<bool>(*value_begin);
-				m_writer << b;
-				break;
-			}
-			case BinaryTypeCode::CHAR:
-			{
-				char ch = static_cast<char>(*value_begin);
-				m_writer << ch;
-				break;
-			}
-			case BinaryTypeCode::STRING:
-			{
-				width += binary_store_args[1] + 1;
-				m_writer.append({reinterpret_cast<const char*>(&binary_store_args[2]), binary_store_args[1]});
-				break;
-			}
-			case BinaryTypeCode::INT8_T:
-			{
-				auto p = reinterpret_cast<const std::int8_t*>(value_begin);
-				m_writer << *p;
-				break;
-			}
-			case BinaryTypeCode::UINT8_T:
-			{
-				auto p = value_begin;
-				m_writer << *p;
-				break;
-			}
-			case BinaryTypeCode::INT16_T:
-			{
-				auto p = reinterpret_cast<const std::int16_t*>(value_begin);
-				m_writer << *p;
-				break;
-			}
-			case BinaryTypeCode::UINT16_T:
-			{
-				auto p = reinterpret_cast<const std::uint16_t*>(value_begin);
-				m_writer << *p;
-				break;
-			}
-			case BinaryTypeCode::INT32_T:
-			{
-				auto p = reinterpret_cast<const std::int32_t*>(value_begin);
-				m_writer << *p;
-				break;
-			}
-			case BinaryTypeCode::UINT32_T:
-			{
-				auto p = reinterpret_cast<const std::uint32_t*>(value_begin);
-				m_writer << *p;
-				break;
-			}
-			case BinaryTypeCode::INT64_T:
-			{
-				auto p = reinterpret_cast<const std::int64_t*>(value_begin);
-				m_writer << *p;
-				break;
-			}
-			case BinaryTypeCode::UINT64_T:
-			{
-				auto p = reinterpret_cast<const std::uint64_t*>(value_begin);
-				m_writer << *p;
-				break;
-			}
-			case BinaryTypeCode::MAX:break;
-		}
+		auto width = write_argument(binary_store_args);
 
 		StringView view(fmt.data + i + 2, fmt.length - i - 2);
-		write_binary(view, binary_store_args + 1 + width, args_length - width);
+		write_binary(view, binary_store_args + width, args_length - width);
 	}
+}
+
+template <std::size_t buffer_size>
+std::uint8_t BinaryRestoreWriter<buffer_size>::write_argument(const std::uint8_t* binary_store_args)
+{
+	auto width = get_type_width(static_cast<BinaryTypeCode>(*binary_store_args));
+	auto value_begin = binary_store_args + sizeof(BinaryTypeCode);
+	switch (static_cast<BinaryTypeCode>(*binary_store_args))
+	{
+		case BinaryTypeCode::INVALID:
+			break;
+		case BinaryTypeCode::BOOL:
+		{
+			bool b = static_cast<bool>(*value_begin);
+			m_writer << b;
+			break;
+		}
+		case BinaryTypeCode::CHAR:
+		{
+			char ch = static_cast<char>(*value_begin);
+			m_writer << ch;
+			break;
+		}
+		case BinaryTypeCode::STRING:
+		{
+			width += binary_store_args[1];
+			m_writer.append({reinterpret_cast<const char*>(&binary_store_args[2]), binary_store_args[1]});
+			break;
+		}
+		case BinaryTypeCode::INT8_T:
+		{
+			auto p = reinterpret_cast<const int8_t*>(value_begin);
+			m_writer << *p;
+			break;
+		}
+		case BinaryTypeCode::UINT8_T:
+		{
+			auto p = value_begin;
+			m_writer << *p;
+			break;
+		}
+		case BinaryTypeCode::INT16_T:
+		{
+			auto p = reinterpret_cast<const int16_t*>(value_begin);
+			m_writer << *p;
+			break;
+		}
+		case BinaryTypeCode::UINT16_T:
+		{
+			auto p = reinterpret_cast<const uint16_t*>(value_begin);
+			m_writer << *p;
+			break;
+		}
+		case BinaryTypeCode::INT32_T:
+		{
+			auto p = reinterpret_cast<const int32_t*>(value_begin);
+			m_writer << *p;
+			break;
+		}
+		case BinaryTypeCode::UINT32_T:
+		{
+			auto p = reinterpret_cast<const uint32_t*>(value_begin);
+			m_writer << *p;
+			break;
+		}
+		case BinaryTypeCode::INT64_T:
+		{
+			auto p = reinterpret_cast<const int64_t*>(value_begin);
+			m_writer << *p;
+			break;
+		}
+		case BinaryTypeCode::UINT64_T:
+		{
+			auto p = reinterpret_cast<const uint64_t*>(value_begin);
+			m_writer << *p;
+			break;
+		}
+		case BinaryTypeCode::COMPOSED_TYPE:
+		{
+			auto member_num = reinterpret_cast<const uint16_t*>(value_begin);
+			for (std::size_t i = 0; i < *member_num; ++i)
+			{
+				width += write_argument(binary_store_args + sizeof(BinaryTypeCode) + width);
+			}
+			break;
+		}
+		case BinaryTypeCode::MAX:
+			break;
+	}
+	return width + sizeof(BinaryTypeCode);
 }
 
 
