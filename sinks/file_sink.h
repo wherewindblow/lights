@@ -381,7 +381,7 @@ private: \
     std::string m_name; \
     LogLevel m_level = LogLevel::INFO; \
     std::shared_ptr<Sink> m_sink; \
-    std::unique_ptr<MemoryWriter<BUFSIZ>> m_writer; \
+    std::unique_ptr<TextWriter<BUFSIZ>> m_writer; \
 }; \
 
 

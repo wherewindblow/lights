@@ -171,7 +171,7 @@ public:
 private:
 	static void open_file_failure(StringView filename)
 	{
-		MemoryWriter<> writer;
+		TextWriter<> writer;
 		writer.write("FileStream: Open \"{}\" failure: {}", filename, current_error());
 		throw std::runtime_error(writer.c_str());
 	}

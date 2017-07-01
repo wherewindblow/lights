@@ -11,7 +11,7 @@ namespace lights {
 
 #define LIGHTS_LOGGER_FILE_SINK_NO_INLINE(Sink) \
 TextLogger<Sink>::TextLogger(StringView name, std::shared_ptr<Sink> sink) : \
-	m_name(name.data), m_sink(sink), m_writer(std::make_unique<MemoryWriter<BUFSIZ>>()) \
+	m_name(name.data), m_sink(sink), m_writer(std::make_unique<TextWriter<BUFSIZ>>()) \
 { \
 	m_writer->set_full_handler([&](StringView view){ \
 		m_sink->write(view.data, view.length); \

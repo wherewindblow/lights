@@ -1141,10 +1141,10 @@ void write(StringAdapter<BinaryStoreWriter<buffer_size>> out,
 }
 
 
-const std::size_t MEMORY_WRITER_DEFAULT_SIZE = 500;
+const std::size_t TEXT_WRITER_DEFAULT_SIZE = 500;
 
-template <std::size_t buffer_size = MEMORY_WRITER_DEFAULT_SIZE>
-class MemoryWriter
+template <std::size_t buffer_size = TEXT_WRITER_DEFAULT_SIZE>
+class TextWriter
 {
 public:
 	using FullHandler = std::function<void(StringView)>;
@@ -1208,8 +1208,8 @@ public:
 		lights::write(make_string_adapter(*this), fmt, value, args ...);
 	}
 
-#define LIGHTS_MEMORY_WRITER_APPEND_INTEGER(Type)           \
-	MemoryWriter& operator<< (Type n)                       \
+#define LIGHTS_TEXT_WRITER_APPEND_INTEGER(Type)           \
+	TextWriter& operator<< (Type n)                       \
 	{                                                       \
 		auto len = details::IntegerFormater::need_space(n); \
 		if (can_append(len))                                \
@@ -1220,12 +1220,12 @@ public:
 		return *this;                                       \
 	}
 
-	LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_MEMORY_WRITER_APPEND_INTEGER)
+	LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_TEXT_WRITER_APPEND_INTEGER)
 
-#undef LIGHTS_MEMORY_WRITER_APPEND_INTEGER
+#undef LIGHTS_TEXT_WRITER_APPEND_INTEGER
 
 	template <typename T>
-	MemoryWriter& operator<< (const T& value)
+	TextWriter& operator<< (const T& value)
 	{
 		make_string_adapter(*this) << value;
 		return *this;
@@ -1300,7 +1300,7 @@ private:
 
 
 template <std::size_t buffer_size>
-void MemoryWriter<buffer_size>::hand_for_full(StringView view)
+void TextWriter<buffer_size>::hand_for_full(StringView view)
 {
 	if (m_full_handler)
 	{
@@ -1332,10 +1332,10 @@ void MemoryWriter<buffer_size>::hand_for_full(StringView view)
 
 template <>
 template <std::size_t buffer_size>
-class StringAdapter<MemoryWriter<buffer_size>>
+class StringAdapter<TextWriter<buffer_size>>
 {
 public:
-	StringAdapter(MemoryWriter<buffer_size>& sink) : m_sink(sink) {}
+	StringAdapter(TextWriter<buffer_size>& sink) : m_sink(sink) {}
 
 	void append(char ch)
 	{
@@ -1355,25 +1355,25 @@ public:
 		m_sink.append(view);
 	}
 
-	MemoryWriter<buffer_size>& get_internal_sink()
+	TextWriter<buffer_size>& get_internal_sink()
 	{
 		return m_sink;
 	}
 
 private:
-	MemoryWriter<buffer_size>& m_sink;
+	TextWriter<buffer_size>& m_sink;
 };
 
-#define LIGHTS_MEMORY_WRITER_TO_STRING(Type) \
+#define LIGHTS_TEXT_WRITER_TO_STRING(Type) \
 template <std::size_t buffer_size> \
-inline void to_string(StringAdapter<MemoryWriter<buffer_size>> out, Type n) \
+inline void to_string(StringAdapter<TextWriter<buffer_size>> out, Type n) \
 { \
 	out.get_internal_sink() << n; \
 }
 
-LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_MEMORY_WRITER_TO_STRING)
+LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_TEXT_WRITER_TO_STRING)
 
-#undef LIGHTS_MEMORY_WRITER_TO_STRING
+#undef LIGHTS_TEXT_WRITER_TO_STRING
 
 
 enum class BinaryTypeCode: std::uint8_t
@@ -1729,8 +1729,7 @@ public:
 
 private:
 	std::uint8_t write_argument(const uint8_t* binary_store_args);
-
-	MemoryWriter<buffer_size> m_writer;
+	TextWriter<buffer_size> m_writer;
 };
 
 template <std::size_t buffer_size>

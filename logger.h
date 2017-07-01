@@ -161,7 +161,7 @@ private:
 	std::string m_name;
 	LogLevel m_level = LogLevel::INFO;
 	std::shared_ptr<Sink> m_sink;
-	MemoryWriter<> m_writer;
+	TextWriter<> m_writer;
 };
 
 
