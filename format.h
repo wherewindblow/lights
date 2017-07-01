@@ -1696,7 +1696,6 @@ public:
 		return m_writer.str();
 	}
 
-
 	StringView str_view() const
 	{
 		return m_writer.str_view();
@@ -1728,7 +1727,11 @@ public:
 	}
 
 private:
+	/**
+	 * Write a argument and get the width of argument.
+	 */
 	std::uint8_t write_argument(const uint8_t* binary_store_args);
+
 	TextWriter<buffer_size> m_writer;
 };
 
@@ -1756,7 +1759,6 @@ void BinaryRestoreWriter<buffer_size>::write_binary(StringView fmt, const std::u
 	if (i < fmt.length)
 	{
 		auto width = write_argument(binary_store_args);
-
 		StringView view(fmt.data + i + 2, fmt.length - i - 2);
 		write_binary(view, binary_store_args + width, args_length - width);
 	}

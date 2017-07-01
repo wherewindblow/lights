@@ -588,26 +588,26 @@ public:
 	template <typename ... Args>
 	void log(LogLevel level,
 			 std::uint16_t module_id,
-			 StringView file,
-			 StringView function,
+			 const char* file,
+			 const char* function,
 			 std::uint32_t line,
-			 StringView fmt,
+			 const char* fmt,
 			 const Args& ... args);
 
 
 	void log(LogLevel level,
 			 std::uint16_t module_id,
-			 StringView file,
-			 StringView function,
+			 const char* file,
+			 const char* function,
 			 std::uint32_t line,
-			 StringView str);
+			 const char* str);
 
 
 	template <typename T>
 	void log(LogLevel level,
 			 std::uint16_t module_id,
-			 StringView file,
-			 StringView function,
+			 const char* file,
+			 const char* function,
 			 std::uint32_t line,
 			 const T& value);
 
@@ -654,10 +654,10 @@ template <typename Sink>
 template <typename ... Args>
 void BinaryLogger<Sink>::log(LogLevel level,
 							 std::uint16_t module_id,
-							 StringView file,
-							 StringView function,
+							 const char* file,
+							 const char* function,
 							 std::uint32_t line,
-							 StringView fmt,
+							 const char* fmt,
 							 const Args& ... args)
 {
 	if (this->should_log(level))
@@ -678,10 +678,10 @@ void BinaryLogger<Sink>::log(LogLevel level,
 template <typename Sink>
 void BinaryLogger<Sink>::log(LogLevel level,
 							 std::uint16_t module_id,
-							 StringView file,
-							 StringView function,
+							 const char* file,
+							 const char* function,
 							 std::uint32_t line,
-							 StringView str)
+							 const char* str)
 {
 	if (this->should_log(level))
 	{
@@ -696,8 +696,8 @@ template <typename Sink>
 template <typename T>
 void BinaryLogger<Sink>::log(LogLevel level,
 							 std::uint16_t module_id,
-							 StringView file,
-							 StringView function,
+							 const char* file,
+							 const char* function,
 							 std::uint32_t line,
 							 const T& value)
 {
@@ -780,7 +780,5 @@ private:
 	BinaryMessageSignature m_signature;
 	BinaryRestoreWriter<MAX_BINARY_MESSAGE_SIZE> m_writer;
 };
-
-
 
 } // namespace lights
