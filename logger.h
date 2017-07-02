@@ -398,9 +398,6 @@ StringTableImpl<T>::~StringTableImpl()
 using StringTable = details::StringTableImpl<>;
 
 
-static constexpr std::size_t MAX_BINARY_MESSAGE_SIZE = 1000;
-
-
 struct PreciseTime
 {
 	std::int64_t seconds;
@@ -638,8 +635,7 @@ private:
 	LogLevel m_level = LogLevel::INFO;
 	std::shared_ptr<Sink> m_sink;
 	BinaryMessageSignature m_signature;
-
-	BinaryStoreWriter<MAX_BINARY_MESSAGE_SIZE> m_writer;
+	BinaryStoreWriter<WRITER_BUFFER_SIZE_LARGE> m_writer;
 };
 
 
@@ -779,7 +775,7 @@ public:
 private:
 	FileStream m_file;
 	BinaryMessageSignature m_signature;
-	BinaryRestoreWriter<MAX_BINARY_MESSAGE_SIZE> m_writer;
+	BinaryRestoreWriter<WRITER_BUFFER_SIZE_LARGE> m_writer;
 };
 
 } // namespace lights

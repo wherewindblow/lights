@@ -1141,9 +1141,17 @@ void write(StringAdapter<BinaryStoreWriter<buffer_size>> out,
 }
 
 
-const std::size_t TEXT_WRITER_DEFAULT_SIZE = 500;
+enum WriterBufferSize: std::size_t
+{
+	WRITER_BUFFER_SIZE_SMALL = 100,
+	WRITER_BUFFER_SIZE_MIDDLE = 500,
+	WRITER_BUFFER_SIZE_LARGE = 1000,
+	WRITER_BUFFER_SIZE_HUGE = 4000,
+	WRITER_BUFFER_SIZE_DEFAULT = WRITER_BUFFER_SIZE_MIDDLE,
+};
 
-template <std::size_t buffer_size = TEXT_WRITER_DEFAULT_SIZE>
+
+template <std::size_t buffer_size = WRITER_BUFFER_SIZE_DEFAULT>
 class TextWriter
 {
 public:
@@ -1462,7 +1470,7 @@ inline std::uint8_t get_type_width(BinaryTypeCode code)
 	}
 }
 
-template <std::size_t buffer_size>
+template <std::size_t buffer_size = WRITER_BUFFER_SIZE_DEFAULT>
 class BinaryStoreWriter
 {
 public:
@@ -1656,7 +1664,7 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_TO_STRING)
 #undef LIGHTS_BINARY_STORE_WRITER_TO_STRING
 
 
-template <std::size_t buffer_size>
+template <std::size_t buffer_size = WRITER_BUFFER_SIZE_DEFAULT>
 class BinaryRestoreWriter
 {
 public:
