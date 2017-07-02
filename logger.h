@@ -253,15 +253,16 @@ class StringTableImpl
 {
 public:
 	using StringViewPtr = std::shared_ptr<const StringView>;
+	using StringTablePtr = std::shared_ptr<StringTableImpl>;
 
-	static StringTableImpl& instance()
+	static StringTablePtr& instance()
 	{
-		return *instance_ptr;
+		return instance_ptr;
 	}
 
 	static void init_instance(StringView filename)
 	{
-		instance_ptr = std::make_unique<StringTableImpl>(filename);
+		instance_ptr = std::make_shared<StringTableImpl>(filename);
 	}
 
 	StringTableImpl(StringView filename);
@@ -300,8 +301,13 @@ public:
 		return *m_str_array[index];
 	}
 
+	StringView get_str(std::size_t index) const
+	{
+		return (*this)[index];
+	}
+
 private:
-	static std::unique_ptr<StringTableImpl> instance_ptr;
+	static StringTablePtr instance_ptr;
 
 	struct StringHash
 	{
@@ -351,7 +357,7 @@ private:
 
 
 template <typename T>
-std::unique_ptr<StringTableImpl<T>> StringTableImpl<T>::instance_ptr = nullptr;
+typename StringTableImpl<T>::StringTablePtr StringTableImpl<T>::instance_ptr = nullptr;
 
 
 template <typename T>
@@ -396,6 +402,7 @@ StringTableImpl<T>::~StringTableImpl()
 } // namespace details
 
 using StringTable = details::StringTableImpl<>;
+using StringTablePtr = details::StringTableImpl<>::StringTablePtr;
 
 
 struct PreciseTime
@@ -565,7 +572,7 @@ template <typename Sink>
 class BinaryLogger
 {
 public:
-	BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink);
+	BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink, StringTablePtr str_table = StringTable::instance());
 
 	std::uint16_t get_log_id() const
 	{
@@ -582,7 +589,6 @@ public:
 		m_level = level;
 	}
 
-
 	template <typename ... Args>
 	void log(LogLevel level,
 			 std::uint16_t module_id,
@@ -592,14 +598,12 @@ public:
 			 const char* fmt,
 			 const Args& ... args);
 
-
 	void log(LogLevel level,
 			 std::uint16_t module_id,
 			 const char* file,
 			 const char* function,
 			 std::uint32_t line,
 			 const char* str);
-
 
 	template <typename T>
 	void log(LogLevel level,
@@ -623,25 +627,25 @@ private:
 							StringView descript)
 	{
 		m_signature.set_time(get_precise_time());
-		StringTable& str_table = StringTable::instance();
-		m_signature.set_file_id(static_cast<std::uint32_t>(str_table.get_str_index(file)));
-		m_signature.set_function_id(static_cast<std::uint32_t>(str_table.get_str_index(function)));
+		m_signature.set_file_id(static_cast<std::uint32_t>(m_str_table->get_str_index(file)));
+		m_signature.set_function_id(static_cast<std::uint32_t>(m_str_table->get_str_index(function)));
 		m_signature.set_line(line);
-		m_signature.set_description_id(static_cast<std::uint32_t>(str_table.get_str_index(descript)));
+		m_signature.set_description_id(static_cast<std::uint32_t>(m_str_table->get_str_index(descript)));
 		m_signature.set_module_id(module_id);
 		m_signature.set_level(level);
 	}
 
 	LogLevel m_level = LogLevel::INFO;
 	std::shared_ptr<Sink> m_sink;
+	StringTablePtr m_str_table;
 	BinaryMessageSignature m_signature;
 	BinaryStoreWriter<WRITER_BUFFER_SIZE_LARGE> m_writer;
 };
 
 
 template <typename Sink>
-BinaryLogger<Sink>::BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink) :
-	m_sink(sink)
+BinaryLogger<Sink>::BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink, StringTablePtr str_table) :
+	m_sink(sink), m_str_table(str_table)
 {
 	m_signature.set_log_id(log_id);
 }
@@ -716,8 +720,8 @@ void BinaryLogger<Sink>::log(LogLevel level,
 class BinaryLogReader
 {
 public:
-	BinaryLogReader(StringView log_filename) :
-		m_file(log_filename, "rb")
+	BinaryLogReader(StringView log_filename, StringTablePtr str_table = StringTable::instance()) :
+		m_file(log_filename, "rb"), m_str_table(str_table)
 	{
 	}
 
@@ -732,7 +736,6 @@ public:
 
 		std::unique_ptr<std::uint8_t[]> arguments(new std::uint8_t[m_signature.get_argument_length()]);
 		m_file.read(arguments.get(), m_signature.get_argument_length());
-		StringTable& str_table = StringTable::instance();
 
 		m_writer.write_text("[{}.{}] [{}] [{}.{}] ",
 					   Timestamp(m_signature.get_time().seconds),
@@ -741,14 +744,14 @@ public:
 					   m_signature.get_log_id(),
 					   m_signature.get_module_id());
 
-		m_writer.write_binary(str_table[m_signature.get_description_id()].data,
+		m_writer.write_binary(m_str_table->get_str(m_signature.get_description_id()).data,
 					   arguments.get(),
 					   m_signature.get_argument_length());
 
 		m_writer.write_text("  [{}:{}] [{}]",
-					   str_table[m_signature.get_file_id()],
+							m_str_table->get_str(m_signature.get_file_id()),
 					   m_signature.get_line(),
-					   str_table[m_signature.get_function_id()]);
+							m_str_table->get_str(m_signature.get_function_id()));
 
 		return m_writer.str_view();
 	}
@@ -774,6 +777,7 @@ public:
 
 private:
 	FileStream m_file;
+	StringTablePtr m_str_table;
 	BinaryMessageSignature m_signature;
 	BinaryRestoreWriter<WRITER_BUFFER_SIZE_LARGE> m_writer;
 };
