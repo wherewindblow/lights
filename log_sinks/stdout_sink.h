@@ -12,7 +12,7 @@
 
 
 namespace lights {
-namespace sinks {
+namespace log_sinks {
 
 class StdoutSink
 {
@@ -45,5 +45,5 @@ public:
 	};
 };
 
-} // namespace sinks
+} // namespace log_sinks
 } // namespace lights

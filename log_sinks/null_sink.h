@@ -11,7 +11,7 @@
 
 
 namespace lights {
-namespace sinks {
+namespace log_sinks {
 
 class NullSink
 {
@@ -26,5 +26,5 @@ public:
 	};
 };
 
-} // namespace sinks
+} // namespace log_sinks
 } // namespace lights

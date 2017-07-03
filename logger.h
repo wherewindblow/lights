@@ -180,7 +180,7 @@ void TextLogger<Sink>::log(LogLevel level, StringView fmt, const Args& ... args)
 		this->generate_signature();
 		m_writer.write(fmt, args ...);
 		m_writer.append('\n');
-		lights::StringView view = m_writer.str_view();
+		StringView view = m_writer.str_view();
 		m_sink->write(view.data, view.length);
 	}
 }
@@ -194,7 +194,7 @@ void TextLogger<Sink>::log(LogLevel level, StringView str)
 		m_writer.clear();
 		this->generate_signature();
 		m_writer << str << '\n';
-		lights::StringView view = m_writer.str_view();
+		StringView view = m_writer.str_view();
 		m_sink->write(view.data, view.length);
 	}
 }
@@ -209,7 +209,7 @@ void TextLogger<Sink>::log(LogLevel level, const T& value)
 		m_writer.clear();
 		this->generate_signature();
 		m_writer << value << '\n';
-		lights::StringView view = m_writer.str_view();
+		StringView view = m_writer.str_view();
 		m_sink->write(view.data, view.length);
 	}
 }

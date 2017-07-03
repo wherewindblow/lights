@@ -105,6 +105,11 @@ public:
 	StringView(const std::string& str) :
 		data(str.data()), length(str.length()) {}
 
+	std::string to_string()
+	{
+		return std::string(data, length);
+	}
+
 	const char* data;
 	std::size_t length;
 };
@@ -118,17 +123,17 @@ Ostream& operator<< (Ostream& out, StringView view)
 }
 
 /**
- * StringAdapter adapter Sink to a abstract string.
+ * Adapter Sink to provide same interface.
  * It's light weight and can be use as pass by value.
  * @tparam Sink  To be write backend.
  * @note This class template cannot to be use, and must to be
  *       instantiation and implement the method by user.
  */
 template <typename Sink>
-class StringAdapter
+class FormatSinkAdapter
 {
 public:
-	StringAdapter(Sink& sink) = delete;
+	FormatSinkAdapter(Sink& sink) = delete;
 
 	void append(char ch)
 	{
@@ -158,20 +163,20 @@ private:
 };
 
 /**
- * Helper function to create StringAdapter.
+ * Helper function to create adapter.
  */
 template <typename T>
-inline StringAdapter<T> make_string_adapter(T& value)
+inline FormatSinkAdapter<T> make_format_sink_adapter(T& value)
 {
-	return StringAdapter<T>(value);
+	return FormatSinkAdapter<T>(value);
 }
 
 
 template <>
-class StringAdapter<std::string>
+class FormatSinkAdapter<std::string>
 {
 public:
-	StringAdapter(std::string& sink) : m_sink(sink) {}
+	FormatSinkAdapter(std::string& sink) : m_sink(sink) {}
 
 	void append(char ch)
 	{
@@ -219,7 +224,7 @@ public:
 	}
 
 private:
-	StringAdapter<Sink>& m_string;
+	FormatSinkAdapter<Sink>& m_string;
 };
 
 
@@ -494,7 +499,7 @@ private:
 };
 
 template <typename Sink>
-StringAdapter<Sink> write_2_digit(StringAdapter<Sink> out, unsigned num)
+FormatSinkAdapter<Sink> write_2_digit(FormatSinkAdapter<Sink> out, unsigned num)
 {
 	if (num >= 10)
 	{
@@ -590,14 +595,14 @@ class BinaryFormater<UnsignedInteger, false>
 {
 public:
 	template <typename Sink>
-	static void format(StringAdapter<Sink> out,
+	static void format(FormatSinkAdapter<Sink> out,
 					   IntegerFormatSpec<UnsignedInteger, details::BinarySpecTag> spec,
 					   bool negative = false);
 };
 
 template <typename UnsignedInteger>
 template <typename Sink>
-void BinaryFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
+void BinaryFormater<UnsignedInteger, false>::format(FormatSinkAdapter<Sink> out,
 													IntegerFormatSpec<UnsignedInteger, details::BinarySpecTag> spec,
 													bool negative)
 {
@@ -640,14 +645,14 @@ class OctalFormater<UnsignedInteger, false>
 {
 public:
 	template <typename Sink>
-	static void format(StringAdapter<Sink> out,
+	static void format(FormatSinkAdapter<Sink> out,
 					   IntegerFormatSpec<UnsignedInteger, details::OctalSpecTag> spec,
 					   bool negative = false);
 };
 
 template <typename UnsignedInteger>
 template <typename Sink>
-void OctalFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
+void OctalFormater<UnsignedInteger, false>::format(FormatSinkAdapter<Sink> out,
 												   IntegerFormatSpec<UnsignedInteger, details::OctalSpecTag> spec,
 												   bool negative)
 {
@@ -695,14 +700,14 @@ class HexFormater<UnsignedInteger, false>
 {
 public:
 	template <typename Sink, typename Tag>
-	static void format(StringAdapter<Sink> out,
+	static void format(FormatSinkAdapter<Sink> out,
 					   IntegerFormatSpec<UnsignedInteger, Tag> spec,
 					   bool negative = false);
 };
 
 template <typename UnsignedInteger>
 template <typename Sink, typename Tag>
-void HexFormater<UnsignedInteger, false>::format(StringAdapter<Sink> out,
+void HexFormater<UnsignedInteger, false>::format(FormatSinkAdapter<Sink> out,
 												 IntegerFormatSpec<UnsignedInteger, Tag> spec,
 												 bool negative)
 {
@@ -749,7 +754,7 @@ class formater_name<SignedInteger, true>                                        
 {                                                                                     \
 public:                                                                               \
 	template <typename Sink, typename Tag>                                            \
-	static void format(StringAdapter<Sink> out, IntegerFormatSpec<SignedInteger, Tag> spec) \
+	static void format(FormatSinkAdapter<Sink> out, IntegerFormatSpec<SignedInteger, Tag> spec) \
 	{                                                                                 \
 		using UnsignedInteger = std::make_unsigned_t<SignedInteger>;                  \
 		UnsignedInteger absolute = static_cast<UnsignedInteger>(spec.value);          \
@@ -782,7 +787,7 @@ LIGHTS_DETAILS_UNSIGNED_SPEC_FORMATER(HexFormater)
  * @param value  User type.
  */
 template <typename Sink, typename T>
-inline void to_string(StringAdapter<Sink> out, const T& value)
+inline void to_string(FormatSinkAdapter<Sink> out, const T& value)
 {
 	details::StringBuffer<Sink> buf(out);
 	std::ostream ostream(&buf);
@@ -790,13 +795,13 @@ inline void to_string(StringAdapter<Sink> out, const T& value)
 }
 
 template <typename Sink>
-inline void to_string(StringAdapter<Sink> out, bool is)
+inline void to_string(FormatSinkAdapter<Sink> out, bool is)
 {
 	out.append(is ? "true" : "false");
 }
 
 template <typename Sink>
-inline void to_string(StringAdapter<Sink> out, char ch)
+inline void to_string(FormatSinkAdapter<Sink> out, char ch)
 {
 	out.append(ch);
 }
@@ -804,7 +809,7 @@ inline void to_string(StringAdapter<Sink> out, char ch)
 
 #define LIGHTS_INTEGER_TO_STRING(Type)            \
 template <typename Sink>                          \
-inline void to_string(StringAdapter<Sink> out, Type n) \
+inline void to_string(FormatSinkAdapter<Sink> out, Type n) \
 {                                                 \
 	details::IntegerFormater formater;            \
 	out.append(formater.format(n));               \
@@ -816,7 +821,7 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_INTEGER_TO_STRING)
 
 
 template <typename Sink>
-inline void to_string(StringAdapter<Sink> out, float n)
+inline void to_string(FormatSinkAdapter<Sink> out, float n)
 {
 	char buf[std::numeric_limits<float>::max_exponent10 + 1 +
 		std::numeric_limits<float>::digits10 + 1];
@@ -825,7 +830,7 @@ inline void to_string(StringAdapter<Sink> out, float n)
 }
 
 template <typename Sink>
-inline void to_string(StringAdapter<Sink> out, double n)
+inline void to_string(FormatSinkAdapter<Sink> out, double n)
 {
 	// 100 is the max exponent10 of double that can format in
 	// sprintf on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2).
@@ -835,7 +840,7 @@ inline void to_string(StringAdapter<Sink> out, double n)
 }
 
 template <typename Sink>
-inline void to_string(StringAdapter<Sink> out, long double n)
+inline void to_string(FormatSinkAdapter<Sink> out, long double n)
 {
 	// 100 is the max exponent10 of long double that can format in
 	// sprintf on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2).
@@ -845,14 +850,14 @@ inline void to_string(StringAdapter<Sink> out, long double n)
 }
 
 template <typename Sink>
-inline void to_string(StringAdapter<Sink> out, ErrorNumber error_no)
+inline void to_string(FormatSinkAdapter<Sink> out, ErrorNumber error_no)
 {
 	details::ErrorFormater formater;
 	out.append(formater.format(error_no));
 }
 
 template <typename Sink>
-inline void to_string(StringAdapter<Sink> out, Timestamp timestamp)
+inline void to_string(FormatSinkAdapter<Sink> out, Timestamp timestamp)
 {
 	std::tm tm;
 	localtime_r(&timestamp.value, &tm);
@@ -910,7 +915,7 @@ inline IntegerFormatSpec<Integer, details::BinarySpecTag> binary(Integer n)
  * @param spec  A spec of format integer.
  */
 template <typename Sink, typename Integer>
-inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::BinarySpecTag> spec)
+inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, details::BinarySpecTag> spec)
 {
 	details::BinaryFormater<Integer>::format(out, spec);
 }
@@ -933,7 +938,7 @@ inline IntegerFormatSpec<Integer, details::OctalSpecTag> octal(Integer n)
  * @param spec  A spec of format integer.
  */
 template <typename Sink, typename Integer>
-void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::OctalSpecTag> spec)
+void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, details::OctalSpecTag> spec)
 {
 	details::OctalFormater<Integer>::format(out, spec);
 }
@@ -956,7 +961,7 @@ inline IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> hex_lower_case(I
  * @param spec  A spec of format integer.
  */
 template <typename Sink, typename Integer>
-inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> spec)
+inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> spec)
 {
 	details::HexFormater<Integer>::format(out, spec);
 }
@@ -978,7 +983,7 @@ inline IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> hex_upper_case(I
  * @param spec  A spec of format integer.
  */
 template <typename Sink, typename Integer>
-inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> spec)
+inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> spec)
 {
 	details::HexFormater<Integer>::format(out, spec);
 }
@@ -989,7 +994,7 @@ inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, detail
  * @param spec  A spec of format integer.
  */
 template <typename Sink, typename Integer>
-inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, details::DecimalSpecTag> spec)
+inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, details::DecimalSpecTag> spec)
 {
 	details::IntegerFormater formater;
 	StringView view = formater.format(spec.value);
@@ -1010,31 +1015,31 @@ inline void to_string(StringAdapter<Sink> out, IntegerFormatSpec<Integer, detail
  * @param value  Any type.
  */
 template <typename Sink, typename T>
-inline void append(StringAdapter<Sink> out, const T& value)
+inline void append(FormatSinkAdapter<Sink> out, const T& value)
 {
 	to_string(out, value);
 }
 
 template <typename Sink>
-inline void append(StringAdapter<Sink> out, char* str)
+inline void append(FormatSinkAdapter<Sink> out, char* str)
 {
 	out.append(str);
 }
 
 template <typename Sink>
-inline void append(StringAdapter<Sink> out, const char* str)
+inline void append(FormatSinkAdapter<Sink> out, const char* str)
 {
 	out.append(str);
 }
 
 template <typename Sink>
-inline void append(StringAdapter<Sink> out, const std::string& str)
+inline void append(FormatSinkAdapter<Sink> out, const std::string& str)
 {
 	out.append(str);
 }
 
 template <typename Sink>
-inline void append(StringAdapter<Sink> out, StringView str)
+inline void append(FormatSinkAdapter<Sink> out, StringView str)
 {
 	out.append(str);
 }
@@ -1050,7 +1055,7 @@ inline void append(StringAdapter<Sink> out, StringView str)
  * @return StringAdapter.
  */
 template <typename Sink, typename T>
-inline StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value)
+inline FormatSinkAdapter<Sink> operator<< (FormatSinkAdapter<Sink> out, const T& value)
 {
 	append(out, value);
 	return out;
@@ -1058,7 +1063,7 @@ inline StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value)
 
 
 template <typename Sink>
-inline void write(StringAdapter<Sink> out, StringView fmt)
+inline void write(FormatSinkAdapter<Sink> out, StringView fmt)
 {
 	out.append(fmt);
 }
@@ -1084,7 +1089,7 @@ inline void write(StringAdapter<Sink> out, StringView fmt)
  *       If all user function are implemented, the priority is 2), 3), 4) and 1).
  */
 template <typename Sink, typename Arg, typename ... Args>
-void write(StringAdapter<Sink> out, StringView fmt, const Arg& value, const Args& ... args)
+void write(FormatSinkAdapter<Sink> out, StringView fmt, const Arg& value, const Args& ... args)
 {
 	std::size_t i = 0;
 	for (; i < fmt.length; ++i)
@@ -1111,14 +1116,14 @@ template <std::size_t buffer_size>
 class BinaryStoreWriter;
 
 template <std::size_t buffer_size>
-inline void write(StringAdapter<BinaryStoreWriter<buffer_size>> out, StringView fmt)
+inline void write(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out, StringView fmt)
 {
 }
 
 // This explicit template specialization must declare before use it or cannot
 // into this function.
 template <std::size_t buffer_size, typename Arg, typename ... Args>
-void write(StringAdapter<BinaryStoreWriter<buffer_size>> out,
+void write(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out,
 		   StringView fmt, const Arg& value, const Args& ... args)
 {
 	std::size_t i = 0;
@@ -1213,7 +1218,7 @@ public:
 	void write(StringView fmt, const Arg& value, const Args& ... args)
 	{
 		// Must add namespace scope limit or cannot find suitable function.
-		lights::write(make_string_adapter(*this), fmt, value, args ...);
+		lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
 	}
 
 #define LIGHTS_TEXT_WRITER_APPEND_INTEGER(Type)           \
@@ -1235,7 +1240,7 @@ public:
 	template <typename T>
 	TextWriter& operator<< (const T& value)
 	{
-		make_string_adapter(*this) << value;
+		make_format_sink_adapter(*this) << value;
 		return *this;
 	}
 
@@ -1340,10 +1345,10 @@ void TextWriter<buffer_size>::hand_for_full(StringView view)
 
 template <>
 template <std::size_t buffer_size>
-class StringAdapter<TextWriter<buffer_size>>
+class FormatSinkAdapter<TextWriter<buffer_size>>
 {
 public:
-	StringAdapter(TextWriter<buffer_size>& sink) : m_sink(sink) {}
+	FormatSinkAdapter(TextWriter<buffer_size>& sink) : m_sink(sink) {}
 
 	void append(char ch)
 	{
@@ -1374,7 +1379,7 @@ private:
 
 #define LIGHTS_TEXT_WRITER_TO_STRING(Type) \
 template <std::size_t buffer_size> \
-inline void to_string(StringAdapter<TextWriter<buffer_size>> out, Type n) \
+inline void to_string(FormatSinkAdapter<TextWriter<buffer_size>> out, Type n) \
 { \
 	out.get_internal_sink() << n; \
 }
@@ -1539,7 +1544,7 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER)
 	{
 		if (m_state == FormatComposedTypeState::STARTED) // Reduce recursion.
 		{
-			make_string_adapter(*this) << value;
+			make_format_sink_adapter(*this) << value;
 		}
 		else
 		{
@@ -1549,7 +1554,7 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER)
 			const auto composed_header_len = sizeof(BinaryTypeCode) + sizeof(std::uint16_t) / sizeof(std::uint8_t);
 			m_length += composed_header_len;
 			m_state = FormatComposedTypeState::STARTED;
-			make_string_adapter(*this) << value;
+			make_format_sink_adapter(*this) << value;
 			m_state = FormatComposedTypeState::ENDED;
 
 			if (m_composed_member_num > 1)
@@ -1569,7 +1574,22 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER)
 	template <typename Arg, typename ... Args>
 	void write(StringView fmt, const Arg& value, const Args& ... args)
 	{
-		lights::write(make_string_adapter(*this), fmt, value, args ...);
+		lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
+	}
+
+	std::uint8_t* data() const
+	{
+		return m_buffer;
+	}
+
+	const char* c_str() const
+	{
+		return str_view().data;
+	}
+
+	std::string str() const
+	{
+		return str_view().to_string();
 	}
 
 	StringView str_view() const
@@ -1619,10 +1639,10 @@ private:
 
 template <>
 template <std::size_t buffer_size>
-class StringAdapter<BinaryStoreWriter<buffer_size>>
+class FormatSinkAdapter<BinaryStoreWriter<buffer_size>>
 {
 public:
-	StringAdapter(BinaryStoreWriter<buffer_size>& sink) : m_sink(sink) {}
+	FormatSinkAdapter(BinaryStoreWriter<buffer_size>& sink) : m_sink(sink) {}
 
 	void append(char ch)
 	{
@@ -1654,7 +1674,7 @@ private:
 
 #define LIGHTS_BINARY_STORE_WRITER_TO_STRING(Type) \
 template <std::size_t buffer_size> \
-inline void to_string(StringAdapter<BinaryStoreWriter<buffer_size>> out, Type n) \
+inline void to_string(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out, Type n) \
 { \
 	out.get_internal_sink() << n; \
 }
@@ -1682,7 +1702,7 @@ public:
 	void write_text(StringView fmt, const Arg& value, const Args& ... args)
 	{
 		// Must add namespace scope limit or cannot find suitable function.
-		lights::write(make_string_adapter(m_writer), fmt, value, args ...);
+		lights::write(make_format_sink_adapter(m_writer), fmt, value, args ...);
 	}
 
 	void write_binary(StringView fmt, const std::uint8_t* binary_store_args, std::size_t args_length);
@@ -1690,7 +1710,7 @@ public:
 	template <typename T>
 	BinaryRestoreWriter& operator<< (const T& value)
 	{
-		make_string_adapter(m_writer) << value;
+		make_format_sink_adapter(m_writer) << value;
 		return *this;
 	}
 
@@ -1886,7 +1906,7 @@ template <typename... Args>
 inline std::string format(StringView fmt, const Args& ... args)
 {
 	std::string out;
-	write(make_string_adapter(out), fmt, args ...);
+	write(make_format_sink_adapter(out), fmt, args ...);
 	return out;
 }
 

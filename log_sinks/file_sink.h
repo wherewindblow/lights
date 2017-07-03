@@ -19,7 +19,7 @@
 
 
 namespace lights {
-namespace sinks {
+namespace log_sinks {
 
 class SimpleFileSink
 {
@@ -243,5 +243,5 @@ private:
 	FileStream m_file;
 };
 
-} // namespace sinks
+} // namespace log_sinks
 } // namespace lights
