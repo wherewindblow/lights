@@ -90,6 +90,9 @@ inline Timestamp current_timestamp()
 
 /**
  * View of string, can reduce data copy.
+ * @note Cannot store this at some place, because you cannot know where the
+ *       resource that internal point to will not available. The best way to
+ *       use it is use as parameter.
  */
 class StringView
 {
@@ -105,7 +108,7 @@ public:
 	StringView(const std::string& str) :
 		data(str.data()), length(str.length()) {}
 
-	std::string to_string()
+	std::string to_string() const
 	{
 		return std::string(data, length);
 	}
@@ -1252,7 +1255,7 @@ public:
 
 	std::string str() const
 	{
-		return std::string(m_buffer, m_length);
+		return str_view().to_string();
 	}
 
 	StringView str_view() const
@@ -1562,10 +1565,14 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER)
 				*type = static_cast<std::uint8_t>(BinaryTypeCode::COMPOSED_TYPE);
 				*composed_member_num = m_composed_member_num;
 			}
-			else
+			else if (m_composed_member_num == 1)
 			{
 				std::size_t len = (m_buffer + m_length) - reinterpret_cast<std::uint8_t*>(composed_member_num + 1);
 				std::memmove(type, composed_member_num + 1, len);
+				m_length -= composed_header_len;
+			}
+			else // m_composed_member_num == 0, insert failure.
+			{
 				m_length -= composed_header_len;
 			}
 		}
@@ -1577,7 +1584,7 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER)
 		lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
 	}
 
-	std::uint8_t* data() const
+	const std::uint8_t* data() const
 	{
 		return m_buffer;
 	}
