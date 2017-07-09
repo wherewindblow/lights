@@ -8,9 +8,8 @@
 
 #include <cstdio>
 #include <cassert>
-#include <stdexcept>
 
-#include "format.h"
+#include "exception.h"
 
 
 namespace lights {
@@ -45,7 +44,7 @@ public:
 	}
 
 	/**
-	 * @throw Thrown std::runtime_error when have error.
+	 * @throw Thrown RuntimeError when have error.
 	 */
 	void open(StringView filename, StringView modes)
 	{
@@ -53,19 +52,19 @@ public:
 		m_file = std::fopen(filename.data, modes.data);
 		if (m_file == nullptr)
 		{
-			FileStream::open_file_failure(filename);
+			LIGHTS_THROW_EXCEPTION(OpenFileError, "FileStream: Open file \"{}\" failure: {}", filename, current_error());
 		}
 	}
 
 	/**
-	 * @throw Thrown std::runtime_error when have error.
+	 * @throw Thrown RuntimeError when have error.
 	 */
 	void reopen(StringView filename, StringView modes)
 	{
 		if (std::freopen(filename.data, modes.data, m_file) == nullptr)
 		{
 			m_file = nullptr;
-			FileStream::open_file_failure(filename);
+			LIGHTS_THROW_EXCEPTION(OpenFileError, "FileStream: Open file \"{}\" failure: {}", filename, current_error());
 		}
 	}
 
@@ -169,13 +168,6 @@ public:
 	}
 
 private:
-	static void open_file_failure(StringView filename)
-	{
-		TextWriter<> writer;
-		writer.write("FileStream: Open \"{}\" failure: {}", filename, current_error());
-		throw std::runtime_error(writer.c_str());
-	}
-
 	std::FILE* m_file = nullptr;
 };
 

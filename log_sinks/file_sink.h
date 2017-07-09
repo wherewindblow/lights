@@ -16,7 +16,7 @@
 
 #include "../file.h"
 #include "../logger.h"
-
+#include "../exception.h"
 
 namespace lights {
 namespace log_sinks {
@@ -27,7 +27,6 @@ public:
 	/**
 	 * Open the file with @c filename.
 	 * @param filename  The file to be write.
-	 * @throw Thrown std::runtime_error when open failure.
 	 */
 	SimpleFileSink(StringView filename) :
 		m_file(filename.data, "ab+")
@@ -57,7 +56,7 @@ public:
 	}             \
 	else          \
 	{             \
-		throw std::logic_error("Cannot initialize when have been end initialization"); \
+		LIGHTS_THROW_EXCEPTION(LogicError, "SizeRotatingFileSink: Cannot initialize when have been end initialization"); \
 	}
 
 	/**
@@ -190,7 +189,7 @@ public:
 	{
 		if (day_point > ONE_DAY_SECONDS)
 		{
-			throw std::invalid_argument("TimeRotatingFileSink: day_point is over 24 hours.");
+			LIGHTS_THROW_EXCEPTION(InvalidArgument, "TimeRotatingFileSink: day_point is over 24 hours.");
 		}
 		std::time_t now = std::time(nullptr);
 		m_next_rotating_time = now;

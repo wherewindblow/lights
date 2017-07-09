@@ -18,6 +18,7 @@
 
 #include "format.h"
 #include "file.h"
+#include "exception.h"
 
 
 namespace lights {
@@ -378,7 +379,7 @@ StringTableImpl<T>::StringTableImpl(StringView filename)
 		m_file.open(filename.data, std::ios_base::out); // Create file.
 		if (!m_file.is_open())
 		{
-			throw std::runtime_error(format("StringTableImpl: cannot open file: \"{}\"", filename));
+			LIGHTS_THROW_EXCEPTION(OpenFileError, "StringTableImpl: Open file \"{}\" failure: {}", filename, current_error());
 		}
 	}
 }

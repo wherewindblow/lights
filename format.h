@@ -1224,6 +1224,11 @@ public:
 		lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
 	}
 
+	void write(StringView fmt)
+	{
+		lights::write(make_format_sink_adapter(*this), fmt);
+	}
+
 #define LIGHTS_TEXT_WRITER_APPEND_INTEGER(Type)           \
 	TextWriter& operator<< (Type n)                       \
 	{                                                       \
@@ -1247,9 +1252,9 @@ public:
 		return *this;
 	}
 
-	const char* c_str()
+	const char* c_str() const
 	{
-		m_buffer[m_length] = '\0';
+		const_cast<TextWriter*>(this)->m_buffer[m_length] = '\0';
 		return m_buffer;
 	}
 
@@ -1584,6 +1589,11 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER)
 		lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
 	}
 
+	void write(StringView fmt)
+	{
+		lights::write(make_format_sink_adapter(*this), fmt);
+	}
+
 	const std::uint8_t* data() const
 	{
 		return m_buffer;
@@ -1711,6 +1721,10 @@ public:
 		// Must add namespace scope limit or cannot find suitable function.
 		lights::write(make_format_sink_adapter(m_writer), fmt, value, args ...);
 	}
+	void write_text(StringView fmt)
+	{
+		lights::write(make_format_sink_adapter(m_writer), fmt);
+	}
 
 	void write_binary(StringView fmt, const std::uint8_t* binary_store_args, std::size_t args_length);
 
@@ -1721,7 +1735,7 @@ public:
 		return *this;
 	}
 
-	const char* c_str()
+	const char* c_str() const
 	{
 		return m_writer.c_str();
 	}
