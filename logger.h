@@ -379,7 +379,7 @@ StringTableImpl<T>::StringTableImpl(StringView filename)
 		m_file.open(filename.data, std::ios_base::out); // Create file.
 		if (!m_file.is_open())
 		{
-			LIGHTS_THROW_EXCEPTION(OpenFileError, "StringTableImpl: Open file \"{}\" failure: {}", filename, current_error());
+			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
 		}
 	}
 }

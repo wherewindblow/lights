@@ -15,7 +15,6 @@
 #include <string.h>
 
 #include "../file.h"
-#include "../logger.h"
 #include "../exception.h"
 
 namespace lights {
@@ -56,7 +55,7 @@ public:
 	}             \
 	else          \
 	{             \
-		LIGHTS_THROW_EXCEPTION(LogicError, "SizeRotatingFileSink: Cannot initialize when have been end initialization"); \
+		assert(false && "SizeRotatingFileSink: Cannot initialize when have been end initialization"); \
 	}
 
 	/**
@@ -178,7 +177,7 @@ private:
 class TimeRotatingFileSink
 {
 public:
-	static constexpr std::time_t ONE_DAY_SECONDS = (std::chrono::hours(1) * 24).count();
+	static constexpr std::time_t ONE_DAY_SECONDS = 3600 * 24;
 
 	TimeRotatingFileSink(std::string name_format,
 						 std::time_t duration = ONE_DAY_SECONDS,
@@ -189,7 +188,7 @@ public:
 	{
 		if (day_point > ONE_DAY_SECONDS)
 		{
-			LIGHTS_THROW_EXCEPTION(InvalidArgument, "TimeRotatingFileSink: day_point is over 24 hours.");
+			LIGHTS_THROW_EXCEPTION(InvalidArgument, format("day_point {} is bigger than ONE_DAY_SECONDS", day_point));
 		}
 		std::time_t now = std::time(nullptr);
 		m_next_rotating_time = now;

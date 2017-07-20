@@ -18,6 +18,7 @@
 #include <errno.h>
 
 #include "config.h"
+#include "sink.h"
 
 
 namespace lights {
@@ -198,6 +199,35 @@ public:
 
 private:
 	std::string& m_sink;
+};
+
+
+template <>
+class FormatSinkAdapter<SinkAdapter>
+{
+public:
+	FormatSinkAdapter(SinkAdapter& sink) : m_sink(sink) {}
+
+	void append(char ch)
+	{
+		m_sink.write(&ch, sizeof(ch));
+	}
+
+	void append(std::size_t num, char ch)
+	{
+		for (std::size_t i = 0; i < num; ++i)
+		{
+			this->append(ch);
+		}
+	}
+
+	void append(StringView view)
+	{
+		m_sink.write(view.data, view.length);
+	}
+
+private:
+	SinkAdapter& m_sink;
 };
 
 

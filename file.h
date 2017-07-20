@@ -9,10 +9,14 @@
 #include <cstdio>
 #include <cassert>
 
+#include "sink.h"
+#include "format.h"
 #include "exception.h"
 
 
 namespace lights {
+
+#define LIGHTS_LINE_ENDER "\n"
 
 enum class FileSeekWhence
 {
@@ -52,7 +56,7 @@ public:
 		m_file = std::fopen(filename.data, modes.data);
 		if (m_file == nullptr)
 		{
-			LIGHTS_THROW_EXCEPTION(OpenFileError, "FileStream: Open file \"{}\" failure: {}", filename, current_error());
+			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
 		}
 	}
 
@@ -64,7 +68,7 @@ public:
 		if (std::freopen(filename.data, modes.data, m_file) == nullptr)
 		{
 			m_file = nullptr;
-			LIGHTS_THROW_EXCEPTION(OpenFileError, "FileStream: Open file \"{}\" failure: {}", filename, current_error());
+			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
 		}
 	}
 
@@ -167,8 +171,64 @@ public:
 		std::setvbuf(m_file, buffer, static_cast<int>(mode), size);
 	}
 
+	void write(StringView view)
+	{
+		write(view.data, view.length);
+	}
+
+	void write_line(StringView view)
+	{
+		write(view);
+		write(LIGHTS_LINE_ENDER);
+	}
+
+	friend FileStream& stdin_stream();
+
+	friend FileStream& stdout_stream();
+
+	friend FileStream& stderr_stream();
+
 private:
 	std::FILE* m_file = nullptr;
+};
+
+
+inline FileStream& stdin_stream()
+{
+	static FileStream stream;
+	stream.m_file = stdin;
+	return stream;
+}
+
+inline FileStream& stdout_stream()
+{
+	static FileStream stream;
+	stream.m_file = stdout;
+	return stream;
+}
+
+inline FileStream& stderr_stream()
+{
+	static FileStream stream;
+	stream.m_file = stderr;
+	return stream;
+}
+
+
+class FileSinkAdapter: public SinkAdapter
+{
+public:
+	explicit FileSinkAdapter(FileStream& stream):
+		m_stream(stream)
+	{}
+
+	std::size_t write(const void* buf, std::size_t len) override
+	{
+		return m_stream.write(buf, len);
+	};
+
+private:
+	FileStream& m_stream;
 };
 
 } // namespace lights
