@@ -231,4 +231,17 @@ private:
 	FileStream& m_stream;
 };
 
+
+inline void dump(const Exception& ex, FileStream& out)
+{
+	FileSinkAdapter sink(out);
+	dump(ex, sink);
+}
+
+inline FileStream& operator<< (FileStream& out, const Exception& ex)
+{
+	dump(ex, out);
+	return out;
+}
+
 } // namespace lights

@@ -208,6 +208,7 @@ private:
 #define LIGHTS_THROW_EXCEPTION(ExceptionType, ...) \
         throw ExceptionType(LIGHTS_CURRENT_SOURCE_LOCATION, ##__VA_ARGS__);
 
+
 inline void dump(const Exception& ex, SinkAdapter& out)
 {
 	ex.dump_message(out);
@@ -216,6 +217,38 @@ inline void dump(const Exception& ex, SinkAdapter& out)
 	out << loc.file() << ":";
 	to_string(make_format_sink_adapter(out), loc.line());
 	out << "#" << loc.function();
+}
+
+inline SinkAdapter& operator<< (SinkAdapter& out, const Exception& ex)
+{
+	dump(ex, out);
+	return out;
+}
+
+
+template <typename Sink>
+class FormatSelfSinkAdapter: public SinkAdapter
+{
+public:
+	FormatSelfSinkAdapter(FormatSinkAdapter<Sink> out):
+		m_out(out)
+	{}
+
+	std::size_t write(const void* buf, std::size_t len) override
+	{
+		m_out.append(StringView{static_cast<const char*>(buf), len});
+		return len;
+	};
+private:
+	FormatSinkAdapter<Sink> m_out;
+};
+
+
+template <typename Sink>
+inline void to_string(FormatSinkAdapter<Sink> out, const Exception& ex)
+{
+	FormatSelfSinkAdapter<Sink> adapter(out);
+	adapter << ex;
 }
 
 } // namespace lights
