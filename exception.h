@@ -74,30 +74,56 @@ struct ErrorCodeDescriptions
 };
 
 
-inline const ErrorCodeDescriptions& to_descriptions(int code)
+class ErrorCodeCategory
 {
-	static ErrorCodeDescriptions map[] = {
-		{"Success"},
-		{"Invalid argument", "Invalid argument: {}"},
-		{"Open file failure", "Open file \"{}\" failure: {}"}
-	};
+public:
+	ErrorCodeCategory() = default;
+	~ErrorCodeCategory() = default;
 
-	if (is_safe_index(code, map))
+	virtual StringView name() const = 0;
+	virtual ErrorCodeDescriptions descriptions(int code) const = 0;
+};
+
+
+class LightsErrorCodeCategory: public ErrorCodeCategory
+{
+public:
+	virtual StringView name() const
 	{
-		return map[static_cast<std::size_t>(code)];
+		return "LightsErrorCodeCategory";
 	}
-	else
+
+	virtual ErrorCodeDescriptions descriptions(int code) const
 	{
-		static ErrorCodeDescriptions unknow = {"Unknow error"};
-		return unknow;
+		static ErrorCodeDescriptions map[] = {
+			{"Success"},
+			{"Invalid argument", "Invalid argument: {}"},
+			{"Open file failure", "Open file \"{}\" failure: {}"}
+		};
+
+		if (is_safe_index(code, map))
+		{
+			return map[static_cast<std::size_t>(code)];
+		}
+		else
+		{
+			static ErrorCodeDescriptions unknow = {"Unknow error"};
+			return unknow;
+		}
 	}
-}
+
+	static LightsErrorCodeCategory& instance()
+	{
+		static LightsErrorCodeCategory category;
+		return category;
+	}
+};
 
 class Exception: public std::exception
 {
 public:
-	Exception(const SourceLocation& occur_location, int code):
-		m_occur_location(occur_location), m_code(code)
+	Exception(const SourceLocation& occur_location, int code, const ErrorCodeCategory& code_category = LightsErrorCodeCategory::instance()):
+		m_occur_location(occur_location), m_code(code), m_code_category(code_category)
 	{
 	}
 
@@ -108,7 +134,7 @@ public:
 
 	const char* what() const noexcept override
 	{
-		return to_descriptions(m_code).without_args.data;
+		return m_code_category.descriptions(m_code).without_args.data;
 	}
 
 	int code() const
@@ -116,15 +142,21 @@ public:
 		return m_code;
 	}
 
+	const ErrorCodeCategory& code_category() const
+	{
+		return m_code_category;
+	}
+
 	virtual void dump_message(SinkAdapter& out) const
 	{
-		StringView view = to_descriptions(m_code).without_args;
+		StringView view = code_category().descriptions(m_code).without_args;
 		out.write(view.data, view.length);
 	}
 
 private:
 	SourceLocation m_occur_location;
 	int m_code;
+	const ErrorCodeCategory& m_code_category;
 };
 
 
@@ -138,7 +170,10 @@ public:
 
 	void dump_message(SinkAdapter& out) const override
 	{
-		write(make_format_sink_adapter(out), to_descriptions(code()).with_args, m_filename, current_error());
+		write(make_format_sink_adapter(out),
+			  code_category().descriptions(code()).with_args,
+			  m_filename,
+			  current_error());
 	}
 
 private:
@@ -156,7 +191,9 @@ public:
 
 	void dump_message(SinkAdapter& out) const override
 	{
-		write(make_format_sink_adapter(out), to_descriptions(code()).with_args, m_description);
+		write(make_format_sink_adapter(out),
+			  code_category().descriptions(code()).with_args,
+			  m_description);
 	}
 
 private:
@@ -170,5 +207,15 @@ private:
  */
 #define LIGHTS_THROW_EXCEPTION(ExceptionType, ...) \
         throw ExceptionType(LIGHTS_CURRENT_SOURCE_LOCATION, ##__VA_ARGS__);
+
+inline void dump(const Exception& ex, SinkAdapter& out)
+{
+	ex.dump_message(out);
+	out << " <-- ";
+	auto& loc = ex.occur_location();
+	out << loc.file() << ":";
+	to_string(make_format_sink_adapter(out), loc.line());
+	out << "#" << loc.function();
+}
 
 } // namespace lights
