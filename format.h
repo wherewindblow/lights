@@ -120,7 +120,7 @@ public:
 
 
 template <typename Ostream>
-Ostream& operator<< (Ostream& out, StringView view)
+inline Ostream& operator<< (Ostream& out, StringView view)
 {
 	out.write(view.data, view.length);
 	return out;
@@ -137,7 +137,7 @@ template <typename Sink>
 class FormatSinkAdapter
 {
 public:
-	FormatSinkAdapter(Sink& sink) = delete;
+	explicit FormatSinkAdapter(Sink& sink) = delete;
 
 	void append(char ch)
 	{
@@ -180,7 +180,7 @@ template <>
 class FormatSinkAdapter<std::string>
 {
 public:
-	FormatSinkAdapter(std::string& sink) : m_sink(sink) {}
+	explicit FormatSinkAdapter(std::string& sink) : m_sink(sink) {}
 
 	void append(char ch)
 	{
@@ -206,7 +206,7 @@ template <>
 class FormatSinkAdapter<SinkAdapter>
 {
 public:
-	FormatSinkAdapter(SinkAdapter& sink) : m_sink(sink) {}
+	explicit FormatSinkAdapter(SinkAdapter& sink) : m_sink(sink) {}
 
 	void append(char ch)
 	{
@@ -241,7 +241,7 @@ template <typename Sink>
 class StringBuffer: public std::streambuf
 {
 public:
-	StringBuffer(Sink& sink) :
+	explicit StringBuffer(Sink& sink) :
 		m_string(sink) {}
 
 	virtual int_type overflow(int_type ch) override
@@ -532,7 +532,7 @@ private:
 };
 
 template <typename Sink>
-FormatSinkAdapter<Sink> write_2_digit(FormatSinkAdapter<Sink> out, unsigned num)
+inline FormatSinkAdapter<Sink> write_2_digit(FormatSinkAdapter<Sink> out, unsigned num)
 {
 	if (num >= 10)
 	{
@@ -890,7 +890,7 @@ inline void to_string(FormatSinkAdapter<Sink> out, ErrorNumber error_no)
 }
 
 template <typename Sink>
-inline void to_string(FormatSinkAdapter<Sink> out, Timestamp timestamp)
+void to_string(FormatSinkAdapter<Sink> out, Timestamp timestamp)
 {
 	std::tm tm;
 	localtime_r(&timestamp.value, &tm);
@@ -971,7 +971,7 @@ inline IntegerFormatSpec<Integer, details::OctalSpecTag> octal(Integer n)
  * @param spec  A spec of format integer.
  */
 template <typename Sink, typename Integer>
-void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, details::OctalSpecTag> spec)
+inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, details::OctalSpecTag> spec)
 {
 	details::OctalFormater<Integer>::format(out, spec);
 }
@@ -1386,7 +1386,7 @@ template <std::size_t buffer_size>
 class FormatSinkAdapter<TextWriter<buffer_size>>
 {
 public:
-	FormatSinkAdapter(TextWriter<buffer_size>& sink) : m_sink(sink) {}
+	explicit FormatSinkAdapter(TextWriter<buffer_size>& sink) : m_sink(sink) {}
 
 	void append(char ch)
 	{
@@ -1539,21 +1539,31 @@ public:
 
 	void append(StringView view)
 	{
-		if (can_append(view.length + sizeof(BinaryTypeCode) + sizeof(std::uint8_t)))
+		if (view.length == 0)
 		{
-			if (m_state == FormatComposedTypeState::STARTED)
+			return;
+		}
+		else if (view.length == 1)
+		{
+			append(view.data[0]);
+		}
+		else
+		{
+			if (can_append(view.length + sizeof(BinaryTypeCode) + sizeof(std::uint8_t)))
 			{
-				++m_composed_member_num;
+				if (m_state == FormatComposedTypeState::STARTED)
+				{
+					++m_composed_member_num;
+				}
+				m_buffer[m_length++] = static_cast<std::uint8_t>(BinaryTypeCode::STRING);
+				m_buffer[m_length++] = static_cast<std::uint8_t>(view.length);
+				std::memcpy(m_buffer + m_length, view.data, view.length);
+				m_length += view.length;
 			}
-			m_buffer[m_length++] = static_cast<std::uint8_t>(BinaryTypeCode::STRING);
-			m_buffer[m_length++] = static_cast<std::uint8_t>(view.length);
-			std::memcpy(m_buffer + m_length, view.data, view.length);
-			m_length += view.length;
 		}
 	}
 
-#define LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER(Type) \
-	BinaryStoreWriter& operator<< (Type n) \
+#define LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type) \
 	{ \
 		BinaryTypeCode type_code = get_type_code(n); \
 		if (can_append(sizeof(BinaryTypeCode) + get_type_width(type_code))) \
@@ -1570,9 +1580,54 @@ public:
 		return *this; \
 	}
 
-LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER)
+	BinaryStoreWriter& operator<< (std::int8_t n) \
+	{
+		LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(std::int8_t);
+	}
 
-#undef LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER
+	BinaryStoreWriter& operator<< (std::uint8_t n) \
+	{
+		LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(std::uint8_t);
+	}
+
+#define LIGHTS_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(Type, FitSmallType) \
+	BinaryStoreWriter& operator<< (Type n) \
+	{ \
+		if (n > std::numeric_limits<FitSmallType>::max() || n < std::numeric_limits<FitSmallType>::min()) \
+		{ \
+			LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type); \
+		} \
+		else \
+		{ \
+			return *this << static_cast<FitSmallType>(n); \
+		} \
+	}
+
+	LIGHTS_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(std::int16_t, std::int8_t);
+	LIGHTS_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(std::int32_t, std::int16_t);
+	LIGHTS_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(std::int64_t, std::int32_t);
+
+#undef LIGHTS_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER
+
+#define LIGHTS_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(Type, FitSmallType) \
+	BinaryStoreWriter& operator<< (Type n) \
+	{ \
+		if (n > std::numeric_limits<FitSmallType>::max()) \
+		{ \
+			LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type); \
+		} \
+		else \
+		{ \
+			return *this << static_cast<FitSmallType>(n); \
+		} \
+	}
+	LIGHTS_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(std::uint16_t, std::uint8_t);
+	LIGHTS_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(std::uint32_t, std::uint16_t);
+	LIGHTS_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(std::uint64_t, std::uint32_t);
+
+#undef LIGHTS_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER
+
+#undef LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY
 
 	/**
 	 * It's only for write format to call and easy to restore.
@@ -1689,7 +1744,7 @@ template <std::size_t buffer_size>
 class FormatSinkAdapter<BinaryStoreWriter<buffer_size>>
 {
 public:
-	FormatSinkAdapter(BinaryStoreWriter<buffer_size>& sink) : m_sink(sink) {}
+	explicit FormatSinkAdapter(BinaryStoreWriter<buffer_size>& sink) : m_sink(sink) {}
 
 	void append(char ch)
 	{
