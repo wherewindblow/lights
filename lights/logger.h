@@ -373,52 +373,52 @@ public:
 
 	PreciseTime get_time() const
 	{
-		return align_part.time;
+		return m_align_part.time;
 	}
 
 	void set_time(const PreciseTime& time)
 	{
-		align_part.time = time;
+		m_align_part.time = time;
 	}
 
 	std::uint32_t get_file_id() const
 	{
-		return align_part.file_id;
+		return m_align_part.file_id;
 	}
 
 	void set_file_id(std::uint32_t file_id)
 	{
-		align_part.file_id = file_id;
+		m_align_part.file_id = file_id;
 	}
 
 	std::uint32_t get_function_id() const
 	{
-		return align_part.function_id;
+		return m_align_part.function_id;
 	}
 
 	void set_function_id(std::uint32_t function_id)
 	{
-		align_part.function_id = function_id;
+		m_align_part.function_id = function_id;
 	}
 
 	std::uint32_t get_line() const
 	{
-		return align_part.line;
+		return m_align_part.line;
 	}
 
 	void set_line(std::uint32_t line)
 	{
-		align_part.line = line;
+		m_align_part.line = line;
 	}
 
 	std::uint32_t get_description_id() const
 	{
-		return align_part.description_id;
+		return m_align_part.description_id;
 	}
 
 	void set_description_id(std::uint32_t description_id)
 	{
-		align_part.description_id = description_id;
+		m_align_part.description_id = description_id;
 	}
 
 	std::uint16_t get_log_id() const
@@ -463,22 +463,22 @@ public:
 
 	std::size_t get_memory_size() const
 	{
-		return sizeof(align_part) + sizeof(unalign_part);
+		return sizeof(m_align_part) + sizeof(m_unalign_part);
 	}
 
 private:
 	UnalignPartInterface* unalign_part_interface()
 	{
-		return reinterpret_cast<UnalignPartInterface*>(&unalign_part);
+		return reinterpret_cast<UnalignPartInterface*>(&m_unalign_part);
 	}
 
 	const UnalignPartInterface* unalign_part_interface() const
 	{
-		return reinterpret_cast<const UnalignPartInterface*>(&unalign_part);
+		return reinterpret_cast<const UnalignPartInterface*>(&m_unalign_part);
 	}
 
-	AlignPart align_part;
-	UnalignPartStorage unalign_part;
+	AlignPart m_align_part;
+	UnalignPartStorage m_unalign_part;
 };
 
 
@@ -510,25 +510,19 @@ public:
 	template <typename ... Args>
 	void log(LogLevel level,
 			 std::uint16_t module_id,
-			 const char* file,
-			 const char* function,
-			 std::uint32_t line,
+			 const SourceLocation& location,
 			 const char* fmt,
 			 const Args& ... args);
 
 	void log(LogLevel level,
 			 std::uint16_t module_id,
-			 const char* file,
-			 const char* function,
-			 std::uint32_t line,
+			 const SourceLocation& location,
 			 const char* str);
 
 	template <typename T>
 	void log(LogLevel level,
 			 std::uint16_t module_id,
-			 const char* file,
-			 const char* function,
-			 std::uint32_t line,
+			 const SourceLocation& location,
 			 const T& value);
 
 private:
@@ -539,15 +533,15 @@ private:
 
 	void generate_signature(LogLevel level,
 							std::uint16_t module_id,
-							StringView file,
-							StringView function,
-							std::uint32_t line,
+							const SourceLocation& location,
 							StringView descript)
 	{
 		m_signature.set_time(get_precise_time());
-		m_signature.set_file_id(static_cast<std::uint32_t>(m_str_table->get_str_index(file)));
-		m_signature.set_function_id(static_cast<std::uint32_t>(m_str_table->get_str_index(function)));
-		m_signature.set_line(line);
+		auto file_id = m_str_table->get_str_index(location.file());
+		m_signature.set_file_id(static_cast<std::uint32_t>(file_id));
+		auto function_id = m_str_table->get_str_index(location.function());
+		m_signature.set_function_id(static_cast<std::uint32_t>(function_id));
+		m_signature.set_line(location.line());
 		m_signature.set_description_id(static_cast<std::uint32_t>(m_str_table->get_str_index(descript)));
 		m_signature.set_module_id(module_id);
 		m_signature.set_level(level);
@@ -573,15 +567,13 @@ template <typename Sink>
 template <typename ... Args>
 void BinaryLogger<Sink>::log(LogLevel level,
 							 std::uint16_t module_id,
-							 const char* file,
-							 const char* function,
-							 std::uint32_t line,
+							 const SourceLocation& location,
 							 const char* fmt,
 							 const Args& ... args)
 {
 	if (this->should_log(level))
 	{
-		generate_signature(level, module_id, file, function, line, fmt);
+		generate_signature(level, module_id, location, fmt);
 
 		m_writer.clear();
 		m_writer.write(fmt, args ...);
@@ -597,14 +589,12 @@ void BinaryLogger<Sink>::log(LogLevel level,
 template <typename Sink>
 void BinaryLogger<Sink>::log(LogLevel level,
 							 std::uint16_t module_id,
-							 const char* file,
-							 const char* function,
-							 std::uint32_t line,
+							 const SourceLocation& location,
 							 const char* str)
 {
 	if (this->should_log(level))
 	{
-		generate_signature(level, module_id, file, function, line, str);
+		generate_signature(level, module_id, location, str);
 		m_signature.set_argument_length(0);
 		m_sink->write(&m_signature, m_signature.get_memory_size());
 	}
@@ -615,14 +605,12 @@ template <typename Sink>
 template <typename T>
 void BinaryLogger<Sink>::log(LogLevel level,
 							 std::uint16_t module_id,
-							 const char* file,
-							 const char* function,
-							 std::uint32_t line,
+							 const SourceLocation& location,
 							 const T& value)
 {
 	if (this->should_log(level))
 	{
-		generate_signature(level, module_id, file, function, line, "{}");
+		generate_signature(level, module_id, location, "{}");
 
 		m_writer.clear();
 		m_writer.write("{}", value);
@@ -662,5 +650,23 @@ private:
 	BinaryMessageSignature m_signature;
 	BinaryRestoreWriter<WRITER_BUFFER_SIZE_LARGE> m_writer;
 };
+
+
+#ifdef LIGHTS_OPEN_LOG
+#	define LIGHTS_LOG(logger, level, module, ...) \
+		logger.log(level, module, LIGHTS_CURRENT_SOURCE_LOCATION, __VA_ARGS__);
+#else
+#	define LIGHTS_LOG(logger, level, module, ...)
+#endif
+
+#define LIGHTS_DEBUG(logger, module, ...) \
+	LIGHTS_LOG(logger, lights::LogLevel::DEBUG, module, __VA_ARGS__);
+#define LIGHTS_INFO(logger, module, ...) \
+	LIGHTS_LOG(logger, lights::LogLevel::INFO, module, __VA_ARGS__);
+#define LIGHTS_WARN(logger, module, ...) \
+	LIGHTS_LOG(logger, lights::LogLevel::WARN, module, __VA_ARGS__);
+#define LIGHTS_ERROR(logger, module, ...) \
+	LIGHTS_LOG(logger, lights::LogLevel::ERROR, module, __VA_ARGS__);
+
 
 } // namespace lights
