@@ -9,7 +9,6 @@
 #include <cstring>
 #include <ctime>
 #include <memory>
-#include <chrono>
 #include <vector>
 #include <unordered_map>
 #include <fstream>
@@ -42,6 +41,20 @@ inline const StringView to_string(LogLevel level)
 {
 	return details::log_level_names[static_cast<std::uint8_t>(level)];
 }
+
+struct PreciseTime
+{
+	PreciseTime() = default;
+
+	PreciseTime(std::int64_t seconds, std::int64_t nanoseconds):
+		seconds(seconds), nanoseconds(nanoseconds)
+	{}
+
+	std::int64_t seconds;
+	std::int64_t nanoseconds;
+};
+
+PreciseTime get_precise_time();
 
 
 /**
@@ -233,28 +246,20 @@ void TextLogger<Sink>::log(LogLevel level, const T& value)
 template <typename Sink>
 void TextLogger<Sink>::generate_signature()
 {
-	namespace chrono = std::chrono;
-	auto chrono_time = chrono::system_clock::now();
-	std::time_t time = chrono::system_clock::to_time_t(chrono_time);
+	PreciseTime precise_time = get_precise_time();
+	m_writer << '[' << Timestamp(precise_time.seconds) << '.';
 
-	m_writer << '[' << Timestamp(time) << '.';
-
-	auto duration = chrono_time.time_since_epoch();
-	auto millis = chrono::duration_cast<chrono::milliseconds>(duration).count() % 1000;
+	auto millis = precise_time.nanoseconds / 1000 / 1000;
 	m_writer << pad(static_cast<unsigned>(millis), '0', 3);
-
 	m_writer << "] [" << m_name << "] [" << to_string(m_level) << "] ";
 }
 
 
-namespace details {
-
-template <typename T = void>
-class StringTableImpl
+class StringTable
 {
 public:
 	using StringViewPtr = std::shared_ptr<const StringView>;
-	using StringTablePtr = std::shared_ptr<StringTableImpl>;
+	using StringTablePtr = std::shared_ptr<StringTable>;
 
 	static StringTablePtr& instance()
 	{
@@ -263,39 +268,16 @@ public:
 
 	static void init_instance(StringView filename)
 	{
-		instance_ptr = std::make_shared<StringTableImpl>(filename);
+		instance_ptr = std::make_shared<StringTable>(filename);
 	}
 
-	StringTableImpl(StringView filename);
+	StringTable(StringView filename);
 
-	~StringTableImpl();
+	~StringTable();
 
-	std::size_t get_str_index(StringView view)
-	{
-		StringViewPtr str_ptr(&view, EmptyDeleter());
-		auto itr = m_str_hash.find(str_ptr);
-		if (itr == m_str_hash.end())
-		{
-			return add_str(view);
-		}
-		else
-		{
-			return itr->second;
-		}
-	}
+	std::size_t get_str_index(StringView view);
 
-	std::size_t add_str(StringView view)
-	{
-		char* storage = new char[view.length];
-		std::memcpy(storage, view.data, view.length);
-		StringView* new_view = new StringView(storage, view.length);
-		StringViewPtr str_ptr(new_view, StringDeleter());
-
-		m_str_array.push_back(str_ptr);
-		auto pair = std::make_pair(str_ptr, m_str_array.size() - 1);
-		m_str_hash.insert(pair);
-		return pair.second;
-	}
+	std::size_t add_str(StringView view);
 
 	StringView operator[] (std::size_t index) const
 	{
@@ -356,72 +338,7 @@ private:
 					   StringEqualTo> m_str_hash; // To find faster.
 };
 
-
-template <typename T>
-typename StringTableImpl<T>::StringTablePtr StringTableImpl<T>::instance_ptr = nullptr;
-
-
-template <typename T>
-StringTableImpl<T>::StringTableImpl(StringView filename)
-{
-	m_file.open(filename.data);
-	if (m_file.is_open())
-	{
-		std::string line;
-		while (std::getline(m_file, line))
-		{
-			add_str(StringView(line.c_str(), line.length()));
-		}
-		m_last_index = m_str_array.size() - 1;
-	}
-	else
-	{
-		m_file.open(filename.data, std::ios_base::out); // Create file.
-		if (!m_file.is_open())
-		{
-			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
-		}
-	}
-}
-
-
-template <typename T>
-StringTableImpl<T>::~StringTableImpl()
-{
-	if (m_file.is_open())
-	{
-		m_file.seekp(0, std::ios_base::end);
-		m_file.clear();
-		for (std::size_t i = m_last_index + 1; m_file && i < m_str_array.size(); ++i)
-		{
-			m_file.write(m_str_array[i]->data, m_str_array[i]->length) << '\n';
-		}
-		m_file.close();
-	}
-}
-
-} // namespace details
-
-using StringTable = details::StringTableImpl<>;
-using StringTablePtr = details::StringTableImpl<>::StringTablePtr;
-
-
-struct PreciseTime
-{
-	std::int64_t seconds;
-	std::int64_t nanoseconds;
-};
-
-inline PreciseTime get_precise_time()
-{
-	namespace chrono = std::chrono;
-	auto chrono_time = chrono::system_clock::now();
-	std::time_t seconds = chrono::system_clock::to_time_t(chrono_time);
-	auto duration = chrono_time.time_since_epoch();
-	using target_time_type = chrono::nanoseconds;
-	auto nano = chrono::duration_cast<target_time_type>(duration).count() % target_time_type::period::den;
-	return PreciseTime { seconds, nano };
-}
+using StringTablePtr = StringTable::StringTablePtr;
 
 
 struct BinaryMessageSignature
@@ -726,49 +643,12 @@ public:
 	{
 	}
 
-	StringView read()
-	{
-		m_writer.clear();
-		auto len = m_file.read(&m_signature, m_signature.get_memory_size());
-		if (len != m_signature.get_memory_size())
-		{
-			return nullptr;
-		}
-
-		std::unique_ptr<std::uint8_t[]> arguments(new std::uint8_t[m_signature.get_argument_length()]);
-		m_file.read(arguments.get(), m_signature.get_argument_length());
-
-		m_writer.write_text("[{}.{}] [{}] [{}.{}] ",
-					   Timestamp(m_signature.get_time().seconds),
-					   pad(m_signature.get_time().nanoseconds, '0', 10),
-					   to_string(m_signature.get_level()),
-					   m_signature.get_log_id(),
-					   m_signature.get_module_id());
-
-		m_writer.write_binary(m_str_table->get_str(m_signature.get_description_id()).data,
-					   arguments.get(),
-					   m_signature.get_argument_length());
-
-		m_writer.write_text("  [{}:{}] [{}]",
-							m_str_table->get_str(m_signature.get_file_id()),
-					   m_signature.get_line(),
-							m_str_table->get_str(m_signature.get_function_id()));
-
-		return m_writer.str_view();
-	}
+	StringView read();
 
 	/**
 	 * @note Line is start at 0.
 	 */
-	void jump_to(std::size_t line)
-	{
-		for (std::size_t i = 0; i < line; ++i)
-		{
-			m_file.read(&m_signature, m_signature.get_memory_size());
-			auto pos = m_file.tell();
-			m_file.seek(pos + m_signature.get_argument_length() + 1, FileSeekWhence::BEGIN);
-		}
-	}
+	void jump_to(std::size_t line);
 
 	bool eof()
 	{

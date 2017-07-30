@@ -1,5 +1,5 @@
 /**
- * sink.h
+ * sink_adapter.h
  * @author wherewindblow
  * @date   Jul 20, 2017
  */

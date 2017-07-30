@@ -8,10 +8,10 @@
 
 #include <exception>
 
-#include "sink.h"
+#include "sink_adapter.h"
 #include "format.h"
 #include "current_function.hpp"
-#include "common_function.h"
+#include "common.h"
 
 
 namespace lights {
@@ -78,7 +78,7 @@ class ErrorCodeCategory
 {
 public:
 	ErrorCodeCategory() = default;
-	~ErrorCodeCategory() = default;
+	virtual ~ErrorCodeCategory() = default;
 
 	virtual StringView name() const = 0;
 	virtual ErrorCodeDescriptions descriptions(int code) const = 0;
@@ -88,29 +88,9 @@ public:
 class LightsErrorCodeCategory: public ErrorCodeCategory
 {
 public:
-	virtual StringView name() const
-	{
-		return "LightsErrorCodeCategory";
-	}
+	virtual StringView name() const;
 
-	virtual ErrorCodeDescriptions descriptions(int code) const
-	{
-		static ErrorCodeDescriptions map[] = {
-			{"Success"},
-			{"Invalid argument", "Invalid argument: {}"},
-			{"Open file failure", "Open file \"{}\" failure: {}"}
-		};
-
-		if (is_safe_index(code, map))
-		{
-			return map[static_cast<std::size_t>(code)];
-		}
-		else
-		{
-			static ErrorCodeDescriptions unknow = {"Unknow error"};
-			return unknow;
-		}
-	}
+	virtual ErrorCodeDescriptions descriptions(int code) const;
 
 	static LightsErrorCodeCategory& instance()
 	{
@@ -132,10 +112,7 @@ public:
 		return m_occur_location;
 	}
 
-	const char* what() const noexcept override
-	{
-		return m_code_category.descriptions(m_code).without_args.data;
-	}
+	const char* what() const noexcept override;
 
 	int code() const
 	{
@@ -147,11 +124,7 @@ public:
 		return m_code_category;
 	}
 
-	virtual void dump_message(SinkAdapter& out) const
-	{
-		StringView view = code_category().descriptions(m_code).without_args;
-		out.write(view.data, view.length);
-	}
+	virtual void dump_message(SinkAdapter& out) const;
 
 private:
 	SourceLocation m_occur_location;
@@ -168,13 +141,7 @@ public:
 	{
 	}
 
-	void dump_message(SinkAdapter& out) const override
-	{
-		write(make_format_sink_adapter(out),
-			  code_category().descriptions(code()).with_args,
-			  m_filename,
-			  current_error());
-	}
+	void dump_message(SinkAdapter& out) const override;
 
 private:
 	std::string m_filename;
@@ -189,12 +156,7 @@ public:
 	{
 	}
 
-	void dump_message(SinkAdapter& out) const override
-	{
-		write(make_format_sink_adapter(out),
-			  code_category().descriptions(code()).with_args,
-			  m_description);
-	}
+	void dump_message(SinkAdapter& out) const override;
 
 private:
 	std::string m_description;
@@ -209,15 +171,7 @@ private:
         throw ExceptionType(LIGHTS_CURRENT_SOURCE_LOCATION, ##__VA_ARGS__);
 
 
-inline void dump(const Exception& ex, SinkAdapter& out)
-{
-	ex.dump_message(out);
-	out << " <-- ";
-	auto& loc = ex.occur_location();
-	out << loc.file() << ":";
-	to_string(make_format_sink_adapter(out), loc.line());
-	out << "#" << loc.function();
-}
+void dump(const Exception& ex, SinkAdapter& out);
 
 inline SinkAdapter& operator<< (SinkAdapter& out, const Exception& ex)
 {
@@ -225,6 +179,8 @@ inline SinkAdapter& operator<< (SinkAdapter& out, const Exception& ex)
 	return out;
 }
 
+
+namespace details {
 
 template <typename Sink>
 class FormatSelfSinkAdapter: public SinkAdapter
@@ -243,11 +199,13 @@ private:
 	FormatSinkAdapter<Sink> m_out;
 };
 
+} // namespace details
+
 
 template <typename Sink>
 inline void to_string(FormatSinkAdapter<Sink> out, const Exception& ex)
 {
-	FormatSelfSinkAdapter<Sink> adapter(out);
+	details::FormatSelfSinkAdapter<Sink> adapter(out);
 	adapter << ex;
 }
 

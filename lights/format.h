@@ -18,7 +18,7 @@
 #include <errno.h>
 
 #include "config.h"
-#include "sink.h"
+#include "sink_adapter.h"
 
 
 namespace lights {

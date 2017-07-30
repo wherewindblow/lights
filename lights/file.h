@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <cassert>
 
-#include "sink.h"
+#include "sink_adapter.h"
 #include "format.h"
 #include "exception.h"
 
