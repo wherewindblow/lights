@@ -27,7 +27,7 @@ StringTable::StringTablePtr StringTable::instance_ptr = nullptr;
 
 StringTable::StringTable(StringView filename)
 {
-	m_file.open(filename.data);
+	m_file.open(filename.data());
 	if (m_file.is_open())
 	{
 		std::string line;
@@ -39,7 +39,7 @@ StringTable::StringTable(StringView filename)
 	}
 	else
 	{
-		m_file.open(filename.data, std::ios_base::out); // Create file.
+		m_file.open(filename.data(), std::ios_base::out); // Create file.
 		if (!m_file.is_open())
 		{
 			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
@@ -56,7 +56,7 @@ StringTable::~StringTable()
 		m_file.clear();
 		for (std::size_t i = m_last_index + 1; m_file && i < m_str_array.size(); ++i)
 		{
-			m_file.write(m_str_array[i]->data, m_str_array[i]->length) << '\n';
+			m_file.write(m_str_array[i]->data(), m_str_array[i]->length()) << '\n';
 		}
 		m_file.close();
 	}
@@ -80,9 +80,9 @@ std::size_t StringTable::get_str_index(StringView view)
 
 std::size_t StringTable::add_str(StringView view)
 {
-	char* storage = new char[view.length];
-	std::memcpy(storage, view.data, view.length);
-	StringView* new_view = new StringView(storage, view.length);
+	char* storage = new char[view.length()];
+	std::memcpy(storage, view.data(), view.length());
+	StringView* new_view = new StringView(storage, view.length());
 	StringViewPtr str_ptr(new_view, StringDeleter());
 
 	m_str_array.push_back(str_ptr);
@@ -95,14 +95,14 @@ std::size_t StringTable::add_str(StringView view)
 StringView BinaryLogReader::read()
 {
 	m_writer.clear();
-	auto len = m_file.read(&m_signature, m_signature.get_memory_size());
+	auto len = m_file.read(Buffer(&m_signature, m_signature.get_memory_size()));
 	if (len != m_signature.get_memory_size())
 	{
-		return nullptr;
+		return StringView(nullptr, 0);
 	}
 
 	std::unique_ptr<std::uint8_t[]> arguments(new std::uint8_t[m_signature.get_argument_length()]);
-	m_file.read(arguments.get(), m_signature.get_argument_length());
+	m_file.read(Buffer(arguments.get(), m_signature.get_argument_length()));
 
 	m_writer.write_text("[{}.{}] [{}] [{}.{}] ",
 						Timestamp(m_signature.get_time().seconds),
@@ -111,7 +111,7 @@ StringView BinaryLogReader::read()
 						m_signature.get_log_id(),
 						m_signature.get_module_id());
 
-	m_writer.write_binary(m_str_table->get_str(m_signature.get_description_id()).data,
+	m_writer.write_binary(m_str_table->get_str(m_signature.get_description_id()).data(),
 						  arguments.get(),
 						  m_signature.get_argument_length());
 
@@ -128,7 +128,7 @@ void BinaryLogReader::jump_to(std::size_t line)
 {
 	for (std::size_t i = 0; i < line; ++i)
 	{
-		m_file.read(&m_signature, m_signature.get_memory_size());
+		m_file.read(Buffer(&m_signature, m_signature.get_memory_size()));
 		auto pos = m_file.tell();
 		m_file.seek(pos + m_signature.get_argument_length() + 1, FileSeekWhence::BEGIN);
 	}

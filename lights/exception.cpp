@@ -37,14 +37,14 @@ ErrorCodeDescriptions LightsErrorCodeCategory::descriptions(int code) const
 
 const char* Exception::what() const noexcept
 {
-	return m_code_category.descriptions(m_code).without_args.data;
+	return m_code_category.descriptions(m_code).without_args.data();
 }
 
 
 void Exception::dump_message(SinkAdapter& out) const
 {
 	StringView view = code_category().descriptions(m_code).without_args;
-	out.write(view.data, view.length);
+	out.write(view);
 }
 
 

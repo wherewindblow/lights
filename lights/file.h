@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <cassert>
 
-#include "sink_adapter.h"
+#include "block_description.h"
 #include "format.h"
 #include "exception.h"
 
@@ -53,7 +53,7 @@ public:
 	void open(StringView filename, StringView modes)
 	{
 		assert(!is_open() && "Cannot open file, becase there is handler that is not close.");
-		m_file = std::fopen(filename.data, modes.data);
+		m_file = std::fopen(filename.data(), modes.data());
 		if (m_file == nullptr)
 		{
 			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
@@ -65,7 +65,7 @@ public:
 	 */
 	void reopen(StringView filename, StringView modes)
 	{
-		if (std::freopen(filename.data, modes.data, m_file) == nullptr)
+		if (std::freopen(filename.data(), modes.data(), m_file) == nullptr)
 		{
 			m_file = nullptr;
 			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
@@ -77,14 +77,14 @@ public:
 		return m_file != nullptr;
 	}
 
-	std::size_t read(void* buf, std::size_t len)
+	std::size_t read(Buffer buffer)
 	{
-		return std::fread(buf, sizeof(char), len, m_file);
+		return std::fread(buffer.data(), sizeof(char), buffer.length(), m_file);
 	}
 
-	std::size_t write(const void* buf, std::size_t len)
+	std::size_t write(BufferView buffer)
 	{
-		return std::fwrite(buf, sizeof(char), len, m_file);
+		return std::fwrite(buffer.data(), sizeof(char), buffer.length(), m_file);
 	}
 
 	void flush()
@@ -171,15 +171,10 @@ public:
 		std::setvbuf(m_file, buffer, static_cast<int>(mode), size);
 	}
 
-	void write(StringView view)
-	{
-		write(view.data, view.length);
-	}
-
 	void write_line(StringView view)
 	{
 		write(view);
-		write(LIGHTS_LINE_ENDER);
+		write(StringView(LIGHTS_LINE_ENDER));
 	}
 
 	friend FileStream& stdin_stream();
@@ -222,9 +217,9 @@ public:
 		m_stream(stream)
 	{}
 
-	std::size_t write(const void* buf, std::size_t len) override
+	std::size_t write(BufferView buffer) override
 	{
-		return m_stream.write(buf, len);
+		return m_stream.write(buffer);
 	};
 
 private:
@@ -241,6 +236,12 @@ inline void dump(const Exception& ex, FileStream& out)
 inline FileStream& operator<< (FileStream& out, const Exception& ex)
 {
 	dump(ex, out);
+	return out;
+}
+
+inline FileStream& operator<< (FileStream& out, StringView str)
+{
+	out.write(str);
 	return out;
 }
 

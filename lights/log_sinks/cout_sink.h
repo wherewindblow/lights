@@ -10,6 +10,8 @@
 #include <iostream>
 #include <memory>
 
+#include "lights/block_description.h"
+
 
 namespace lights {
 namespace log_sinks {
@@ -17,9 +19,9 @@ namespace log_sinks {
 class CoutSink
 {
 public:
-	void write(const void* buf, std::size_t len)
+	void write(BufferView buffer)
 	{
-		std::cout.write(reinterpret_cast<const char*>(buf), len);
+		std::cout << buffer;
 	}
 
 	static std::shared_ptr<CoutSink> instance()
@@ -33,9 +35,9 @@ public:
 class CerrSink
 {
 public:
-	void write(const void* buf, std::size_t len)
+	void write(BufferView buffer)
 	{
-		std::cerr.write(reinterpret_cast<const char*>(buf), len);
+		std::cerr << buffer;
 	}
 
 	static std::shared_ptr<CerrSink> instance()
@@ -49,9 +51,9 @@ public:
 class ClogSink
 {
 public:
-	void write(const char* str, std::size_t len)
+	void write(BufferView buffer)
 	{
-		std::clog.write(str, len);
+		std::clog << buffer;
 	}
 
 	static std::shared_ptr<ClogSink> instance()

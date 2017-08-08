@@ -21,9 +21,9 @@ void SizeRotatingFileSink::fill_remain()
 
 		for (std::size_t i = 0; i < times; ++i)
 		{
-			m_file.write(zeros, sizeof(zeros));
+			m_file.write({zeros, sizeof(zeros)});
 		}
-		m_file.write(zeros, remainder);
+		m_file.write({zeros, remainder});
 	}
 }
 

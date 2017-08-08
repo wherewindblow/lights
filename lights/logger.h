@@ -181,7 +181,7 @@ private:
 
 template <typename Sink>
 TextLogger<Sink>::TextLogger(StringView name, std::shared_ptr<Sink> sink) :
-	m_name(name.data), m_sink(sink) {}
+	m_name(name.data()), m_sink(sink) {}
 
 
 template <typename Sink>
@@ -194,8 +194,7 @@ void TextLogger<Sink>::log(LogLevel level, StringView fmt, const Args& ... args)
 		this->generate_signature();
 		m_writer.write(fmt, args ...);
 		m_writer.append('\n');
-		StringView view = m_writer.str_view();
-		m_sink->write(view.data, view.length);
+		m_sink->write(m_writer.str_view());
 	}
 }
 
@@ -208,8 +207,7 @@ void TextLogger<Sink>::log(LogLevel level, StringView str)
 		m_writer.clear();
 		this->generate_signature();
 		m_writer << str << '\n';
-		StringView view = m_writer.str_view();
-		m_sink->write(view.data, view.length);
+		m_sink->write(m_writer.str_view());
 	}
 }
 
@@ -223,8 +221,7 @@ void TextLogger<Sink>::log(LogLevel level, const T& value)
 		m_writer.clear();
 		this->generate_signature();
 		m_writer << value << '\n';
-		StringView view = m_writer.str_view();
-		m_sink->write(view.data, view.length);
+		m_sink->write(m_writer.str_view());
 	}
 }
 
@@ -296,7 +293,7 @@ private:
 	{
 		size_t operator()(const StringViewPtr& str) const noexcept
 		{
-			return std::_Hash_impl::hash(str->data, str->length);
+			return std::_Hash_impl::hash(str->data(), str->length());
 		}
 	};
 
@@ -304,13 +301,13 @@ private:
 	{
 		bool operator()(const StringViewPtr& lhs, const StringViewPtr& rhs) const noexcept
 		{
-			if (lhs->length != rhs->length)
+			if (lhs->length() != rhs->length())
 			{
 				return false;
 			}
 			else
 			{
-				return std::memcmp(lhs->data, rhs->data, rhs->length) == 0;
+				return std::memcmp(lhs->data(), rhs->data(), rhs->length()) == 0;
 			}
 		}
 	};
@@ -324,7 +321,7 @@ private:
 	{
 		void operator()(const StringView* view) const noexcept
 		{
-			delete[] view->data;
+			delete[] view->data();
 			delete view;
 		}
 	};
@@ -580,8 +577,7 @@ void BinaryLogger<Sink>::log(LogLevel level,
 		m_signature.set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
 
 		m_sink->write(&m_signature, m_signature.get_memory_size());
-		auto view = m_writer.str_view();
-		m_sink->write(view.data, view.length);
+		m_sink->write(m_writer.str_view());
 	}
 }
 
@@ -596,7 +592,7 @@ void BinaryLogger<Sink>::log(LogLevel level,
 	{
 		generate_signature(level, module_id, location, str);
 		m_signature.set_argument_length(0);
-		m_sink->write(&m_signature, m_signature.get_memory_size());
+		m_sink->write({&m_signature, m_signature.get_memory_size()});
 	}
 }
 
@@ -616,9 +612,8 @@ void BinaryLogger<Sink>::log(LogLevel level,
 		m_writer.write("{}", value);
 		m_signature.set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
 
-		m_sink->write(&m_signature, m_signature.get_memory_size());
-		auto view = m_writer.str_view();
-		m_sink->write(view.data, view.length);
+		m_sink->write({&m_signature, m_signature.get_memory_size()});
+		m_sink->write(m_writer.str_view());
 	}
 }
 

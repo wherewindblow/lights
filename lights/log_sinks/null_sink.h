@@ -9,6 +9,8 @@
 #include <cstddef>
 #include <memory>
 
+#include "lights/block_description.h"
+
 
 namespace lights {
 namespace log_sinks {
@@ -16,7 +18,7 @@ namespace log_sinks {
 class NullSink
 {
 public:
-	void write(const void* buf, std::size_t len)
+	void write(BufferView buffer)
 	{}
 
 	static std::shared_ptr<NullSink> instance()

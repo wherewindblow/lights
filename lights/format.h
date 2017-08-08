@@ -18,7 +18,9 @@
 #include <errno.h>
 
 #include "config.h"
+#include "block_description.h"
 #include "sink_adapter.h"
+#include "common.h"
 
 
 namespace lights {
@@ -90,43 +92,6 @@ inline Timestamp current_timestamp()
 
 
 /**
- * View of string, can reduce data copy.
- * @note Cannot store this at some place, because you cannot know where the
- *       resource that internal point to will not available. The best way to
- *       use it is use as parameter.
- */
-class StringView
-{
-public:
-	StringView() = default;
-
-	StringView(const char* str, std::size_t len) :
-		data(str), length(len) {}
-
-	StringView(const char* str) :
-		data(str), length(std::strlen(str)) {}
-
-	StringView(const std::string& str) :
-		data(str.data()), length(str.length()) {}
-
-	std::string to_string() const
-	{
-		return std::string(data, length);
-	}
-
-	const char* data;
-	std::size_t length;
-};
-
-
-template <typename Ostream>
-inline Ostream& operator<< (Ostream& out, StringView view)
-{
-	out.write(view.data, view.length);
-	return out;
-}
-
-/**
  * Adapter Sink to provide same interface.
  * It's light weight and can be use as pass by value.
  * @tparam Sink  To be write backend.
@@ -154,11 +119,10 @@ public:
 
 	void append(StringView view)
 	{
-		while (view.length != 0)
+		while (view.length() != 0)
 		{
-			this->append(*view.data);
-			++view.data;
-			--view.length;
+			this->append(*view.data());
+			view.move_forward(1);
 		}
 	}
 
@@ -194,7 +158,7 @@ public:
 
 	void append(StringView view)
 	{
-		m_sink.append(view.data, view.length);
+		m_sink.append(view.data(), view.length());
 	}
 
 private:
@@ -210,7 +174,7 @@ public:
 
 	void append(char ch)
 	{
-		m_sink.write(&ch, sizeof(ch));
+		m_sink.write(BufferView(&ch, sizeof(ch)));
 	}
 
 	void append(std::size_t num, char ch)
@@ -223,7 +187,7 @@ public:
 
 	void append(StringView view)
 	{
-		m_sink.write(view.data, view.length);
+		m_sink.write(view);
 	}
 
 private:
@@ -1032,9 +996,9 @@ inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, de
 	details::IntegerFormater formater;
 	StringView view = formater.format(spec.value);
 
-	if (spec.width != INVALID_INDEX && view.length < static_cast<std::size_t>(spec.width))
+	if (spec.width != INVALID_INDEX && view.length() < static_cast<std::size_t>(spec.width))
 	{
-		out.append(static_cast<std::size_t>(spec.width) - view.length, spec.fill);
+		out.append(static_cast<std::size_t>(spec.width) - view.length(), spec.fill);
 	}
 	out.append(view);
 }
@@ -1125,21 +1089,21 @@ template <typename Sink, typename Arg, typename ... Args>
 void write(FormatSinkAdapter<Sink> out, StringView fmt, const Arg& value, const Args& ... args)
 {
 	std::size_t i = 0;
-	for (; i < fmt.length; ++i)
+	for (; i < fmt.length(); ++i)
 	{
-		if (fmt.data[i] == '{' &&
-			i + 1 < fmt.length &&
-			fmt.data[i+1] == '}')
+		if (fmt.data()[i] == '{' &&
+			i + 1 < fmt.length() &&
+			fmt.data()[i+1] == '}')
 		{
 			break;
 		}
 	}
 
-	out.append({fmt.data, i});
-	if (i < fmt.length)
+	out.append({fmt.data(), i});
+	if (i < fmt.length())
 	{
 		append(out, value);
-		StringView view(fmt.data + i + 2, fmt.length - i - 2);
+		StringView view(fmt.data() + i + 2, fmt.length() - i - 2);
 		write(out, view, args ...);
 	}
 }
@@ -1160,20 +1124,20 @@ void write(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out,
 		   StringView fmt, const Arg& value, const Args& ... args)
 {
 	std::size_t i = 0;
-	for (; i < fmt.length; ++i)
+	for (; i < fmt.length(); ++i)
 	{
-		if (fmt.data[i] == '{' &&
-			i + 1 < fmt.length &&
-			fmt.data[i+1] == '}')
+		if (fmt.data()[i] == '{' &&
+			i + 1 < fmt.length() &&
+			fmt.data()[i+1] == '}')
 		{
 			break;
 		}
 	}
 
-	if (i < fmt.length)
+	if (i < fmt.length())
 	{
 		out.get_internal_sink().add_composed_type(value);
-		StringView view(fmt.data + i + 2, fmt.length - i - 2);
+		StringView view(fmt.data() + i + 2, fmt.length() - i - 2);
 		write(out, view, args ...);
 	}
 }
@@ -1231,18 +1195,17 @@ public:
 	 */
 	void append(StringView view)
 	{
-		if (can_append(view.length))
+		if (can_append(view.length()))
 		{
-			std::memcpy(m_buffer + m_length, view.data, view.length);
-			m_length += view.length;
+			copy_array(m_buffer + m_length, view.data(), view.length());
+			m_length += view.length();
 		}
 		else // Have not enought space to hold all.
 		{
 			// Append to the remaining place.
-			StringView part(view.data, max_size() - m_length);
+			StringView part(view.data(), max_size() - m_length);
 			append(part);
-			view.length -= (max_size() - m_length);
-
+			view.move_forward(part.length());
 			hand_for_full(view);
 		}
 	}
@@ -1357,24 +1320,23 @@ void TextWriter<buffer_size>::hand_for_full(StringView view)
 	{
 		m_full_handler(str_view());
 		clear();
-		if (view.length <= max_size())
+		if (view.length() <= max_size())
 		{
 			append(view);
 		}
 		else // Have not enought space to hold all.
 		{
-			while (view.length)
+			while (view.length())
 			{
-				std::size_t append_len = (view.length <= max_size()) ? view.length : max_size();
-				StringView part(view.data, append_len);
+				std::size_t append_len = (view.length() <= max_size()) ? view.length() : max_size();
+				StringView part(view.data(), append_len);
 				append(part);
 				if (append_len == max_size())
 				{
 					m_full_handler(str_view());
 					clear();
 				}
-				view.data += append_len;
-				view.length -= append_len;
+				view.move_forward(append_len);
 			}
 		}
 	}
@@ -1539,26 +1501,26 @@ public:
 
 	void append(StringView view)
 	{
-		if (view.length == 0)
+		if (view.length() == 0)
 		{
 			return;
 		}
-		else if (view.length == 1)
+		else if (view.length() == 1)
 		{
-			append(view.data[0]);
+			append(view.data()[0]);
 		}
 		else
 		{
-			if (can_append(view.length + sizeof(BinaryTypeCode) + sizeof(std::uint8_t)))
+			if (can_append(view.length() + sizeof(BinaryTypeCode) + sizeof(std::uint8_t)))
 			{
 				if (m_state == FormatComposedTypeState::STARTED)
 				{
 					++m_composed_member_num;
 				}
 				m_buffer[m_length++] = static_cast<std::uint8_t>(BinaryTypeCode::STRING);
-				m_buffer[m_length++] = static_cast<std::uint8_t>(view.length);
-				std::memcpy(m_buffer + m_length, view.data, view.length);
-				m_length += view.length;
+				m_buffer[m_length++] = static_cast<std::uint8_t>(view.length());
+				std::memcpy(m_buffer + m_length, view.data(), view.length());
+				m_length += view.length();
 			}
 		}
 	}
@@ -1686,7 +1648,7 @@ public:
 
 	const char* c_str() const
 	{
-		return str_view().data;
+		return str_view().data();
 	}
 
 	std::string str() const
@@ -1879,21 +1841,21 @@ void BinaryRestoreWriter<buffer_size>::write_binary(StringView fmt, const std::u
 	}
 
 	std::size_t i = 0;
-	for (; i < fmt.length; ++i)
+	for (; i < fmt.length(); ++i)
 	{
-		if (fmt.data[i] == '{' &&
-			i + 1 < fmt.length &&
-			fmt.data[i+1] == '}')
+		if (fmt.data()[i] == '{' &&
+			i + 1 < fmt.length() &&
+			fmt.data()[i+1] == '}')
 		{
 			break;
 		}
 	}
 
-	m_writer.append({fmt.data, i});
-	if (i < fmt.length)
+	m_writer.append({fmt.data(), i});
+	if (i < fmt.length())
 	{
 		auto width = write_argument(binary_store_args);
-		StringView view(fmt.data + i + 2, fmt.length - i - 2);
+		StringView view(fmt.data() + i + 2, fmt.length() - i - 2);
 		write_binary(view, binary_store_args + width, args_length - width);
 	}
 }

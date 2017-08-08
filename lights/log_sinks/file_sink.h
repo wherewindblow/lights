@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../block_description.h"
 #include "../file.h"
 #include "../exception.h"
 
@@ -28,14 +29,14 @@ public:
 	 * @param filename  The file to be write.
 	 */
 	SimpleFileSink(StringView filename) :
-		m_file(filename.data, "ab+")
+		m_file(filename.data(), "ab+")
 	{
 		m_file.setbuf(nullptr);
 	}
 
-	void write(const void* buf, std::size_t len)
+	void write(BufferView buffer)
 	{
-		m_file.write(buf, len);
+		m_file.write(buffer);
 	}
 
 private:
@@ -92,15 +93,15 @@ public:
 		this->rotate();
 	}
 
-	void write(const void* buf, std::size_t len)
+	void write(BufferView buffer)
 	{
-		while (m_current_size + len > m_max_size)
+		while (m_current_size + buffer.length() > m_max_size)
 		{
 			this->fill_remain();
 			this->rotate();
 		}
-		m_file.write(buf, len);
-		m_current_size += len;
+		m_file.write(buffer);
+		m_current_size += buffer.length();
 	}
 
 private:
@@ -147,14 +148,14 @@ public:
 		rotate();
 	}
 
-	void write(const void* buf, std::size_t len)
+	void write(BufferView buffer)
 	{
 		std::time_t now = std::time(nullptr);
 		if (now >= m_next_rotating_time)
 		{
 			rotate();
 		}
-		m_file.write(buf, len);
+		m_file.write(buffer);
 	}
 
 	void rotate();
