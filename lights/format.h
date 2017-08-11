@@ -1091,9 +1091,9 @@ void write(FormatSinkAdapter<Sink> out, StringView fmt, const Arg& value, const 
 	std::size_t i = 0;
 	for (; i < fmt.length(); ++i)
 	{
-		if (fmt.data()[i] == '{' &&
+		if (fmt[i] == '{' &&
 			i + 1 < fmt.length() &&
-			fmt.data()[i+1] == '}')
+			fmt[i+1] == '}')
 		{
 			break;
 		}
@@ -1103,8 +1103,10 @@ void write(FormatSinkAdapter<Sink> out, StringView fmt, const Arg& value, const 
 	if (i < fmt.length())
 	{
 		append(out, value);
-		StringView view(fmt.data() + i + 2, fmt.length() - i - 2);
-		write(out, view, args ...);
+		fmt.move_forward(i + 2);
+		write(out, fmt, args ...);
+//		StringView view(fmt.data() + i + 2, fmt.length() - i - 2);
+//		write(out, view, args ...);
 	}
 }
 
@@ -1126,9 +1128,9 @@ void write(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out,
 	std::size_t i = 0;
 	for (; i < fmt.length(); ++i)
 	{
-		if (fmt.data()[i] == '{' &&
+		if (fmt[i] == '{' &&
 			i + 1 < fmt.length() &&
-			fmt.data()[i+1] == '}')
+			fmt[i+1] == '}')
 		{
 			break;
 		}
@@ -1137,8 +1139,10 @@ void write(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out,
 	if (i < fmt.length())
 	{
 		out.get_internal_sink().add_composed_type(value);
-		StringView view(fmt.data() + i + 2, fmt.length() - i - 2);
-		write(out, view, args ...);
+		fmt.move_forward(i + 2);
+		write(out, fmt, args ...);
+//		StringView view(fmt.data() + i + 2, fmt.length() - i - 2);
+//		write(out, view, args ...);
 	}
 }
 
@@ -1507,7 +1511,7 @@ public:
 		}
 		else if (view.length() == 1)
 		{
-			append(view.data()[0]);
+			append(view[0]);
 		}
 		else
 		{
@@ -1843,9 +1847,9 @@ void BinaryRestoreWriter<buffer_size>::write_binary(StringView fmt, const std::u
 	std::size_t i = 0;
 	for (; i < fmt.length(); ++i)
 	{
-		if (fmt.data()[i] == '{' &&
+		if (fmt[i] == '{' &&
 			i + 1 < fmt.length() &&
-			fmt.data()[i+1] == '}')
+			fmt[i+1] == '}')
 		{
 			break;
 		}
@@ -1855,8 +1859,10 @@ void BinaryRestoreWriter<buffer_size>::write_binary(StringView fmt, const std::u
 	if (i < fmt.length())
 	{
 		auto width = write_argument(binary_store_args);
-		StringView view(fmt.data() + i + 2, fmt.length() - i - 2);
-		write_binary(view, binary_store_args + width, args_length - width);
+		fmt.move_forward(i + 2);
+		write_binary(fmt, binary_store_args + width, args_length - width);
+//		StringView view(fmt.data() + i + 2, fmt.length() - i - 2);
+//		write_binary(view, binary_store_args + width, args_length - width);
 	}
 }
 

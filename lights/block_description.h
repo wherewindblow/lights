@@ -36,6 +36,16 @@ public:
 		return m_data;
 	}
 
+	CharType& at(std::size_t index) const
+	{
+		return m_data[index];
+	}
+
+	CharType& operator[](std::size_t index)
+	{
+		return at(index);
+	}
+
 	std::size_t length() const
 	{
 		return m_length;
@@ -86,6 +96,16 @@ public:
 		return m_data;
 	}
 
+	const CharType& at(std::size_t index) const
+	{
+		return m_data[index];
+	}
+
+	const CharType& operator[](std::size_t index) const
+	{
+		return at(index);
+	}
+
 	std::size_t length() const
 	{
 		return m_length;
@@ -125,6 +145,12 @@ public:
 	const void* data() const
 	{
 		return m_data;
+	}
+
+	template <typename T>
+	T& at(std::size_t index)
+	{
+		return reinterpret_cast<T*>(m_data)[index];
 	}
 
 	std::size_t length() const
@@ -168,6 +194,12 @@ public:
 	const void* data() const
 	{
 		return m_data;
+	}
+
+	template <typename T>
+	const T& at(std::size_t index) const
+	{
+		return reinterpret_cast<const T*>(m_data)[index];
 	}
 
 	std::size_t length() const
