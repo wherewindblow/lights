@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <memory>
 
-#include "lights/block_description.h"
+#include "../sequence.h"
 
 
 namespace lights {
@@ -18,7 +18,7 @@ namespace log_sinks {
 class NullSink
 {
 public:
-	void write(BufferView buffer)
+	void write(SequenceView sequence)
 	{}
 
 	static std::shared_ptr<NullSink> instance()

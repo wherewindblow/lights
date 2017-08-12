@@ -43,8 +43,8 @@ const char* Exception::what() const noexcept
 
 void Exception::dump_message(SinkAdapter& out) const
 {
-	StringView view = code_category().descriptions(m_code).without_args;
-	out.write(view);
+	StringView str = code_category().descriptions(m_code).without_args;
+	out.write(str);
 }
 
 

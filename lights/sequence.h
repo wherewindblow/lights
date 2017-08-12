@@ -128,13 +128,13 @@ private:
 };
 
 
-class Buffer
+class Sequence
 {
 public:
-	Buffer(void* data, std::size_t len) :
+	Sequence(void* data, std::size_t len) :
 		m_data(data), m_length(len) {}
 
-	Buffer(String str) :
+	Sequence(String str) :
 		m_data(str.data()), m_length(str.length()) {}
 
 	void* data()
@@ -171,24 +171,24 @@ private:
 
 
 /**
- * View of buffer, can reduce data copy.
+ * View of sequence, can reduce data copy.
  * @note Cannot store this at some place, because you cannot know where the
  *       resource that internal point to will not available. The best way to
  *       use it is use as parameter.
  */
-class BufferView
+class SequenceView
 {
 public:
-	BufferView(const void* data, std::size_t len) :
+	SequenceView(const void* data, std::size_t len) :
 		m_data(data), m_length(len) {}
 
-	BufferView(Buffer buffer):
+	SequenceView(Sequence buffer):
 		m_data(buffer.data()), m_length(buffer.length()) {}
 
-	BufferView(String str) :
+	SequenceView(String str) :
 		m_data(str.data()), m_length(str.length()) {}
 
-	BufferView(StringView str) :
+	SequenceView(StringView str) :
 		m_data(str.data()), m_length(str.length()) {}
 
 	const void* data() const
@@ -220,28 +220,28 @@ private:
 
 
 
-inline String to_string(Buffer buffer)
+inline String to_string(Sequence sequence)
 {
-	return String(static_cast<String::CharType*>(buffer.data()), buffer.length());
+	return String(static_cast<String::CharType*>(sequence.data()), sequence.length());
 }
 
-inline StringView to_string_view(BufferView buffer)
+inline StringView to_string_view(SequenceView sequence)
 {
-	return StringView(static_cast<StringView::CharType*>(buffer.data()), buffer.length());
+	return StringView(static_cast<StringView::CharType*>(sequence.data()), sequence.length());
 }
 
 
 template <typename Ostream>
-inline Ostream& operator<< (Ostream& out, StringView view)
+inline Ostream& operator<< (Ostream& out, StringView str)
 {
-	out.write(view.data(), view.length());
+	out.write(str.data(), str.length());
 	return out;
 }
 
 template <typename Ostream>
-inline Ostream& operator<< (Ostream& out, BufferView view)
+inline Ostream& operator<< (Ostream& out, SequenceView sequence)
 {
-	out << to_string_view(view);
+	out << to_string_view(sequence);
 	return out;
 }
 

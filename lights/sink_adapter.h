@@ -8,7 +8,7 @@
 
 #include <cstddef>
 
-#include "block_description.h"
+#include "sequence.h"
 
 
 namespace lights {
@@ -19,23 +19,23 @@ public:
 	SinkAdapter() = default;
 	virtual ~SinkAdapter() = default;
 
-	virtual std::size_t write(BufferView buffer) = 0;
+	virtual std::size_t write(SequenceView buffer) = 0;
 };
 
 
 class NullSinkAdapter: public SinkAdapter
 {
 public:
-	std::size_t write(BufferView buffer) override
+	std::size_t write(SequenceView buffer) override
 	{
 		return buffer.length();
 	};
 };
 
 
-inline SinkAdapter& operator<< (SinkAdapter& sink, BufferView buffer)
+inline SinkAdapter& operator<< (SinkAdapter& sink, SequenceView sequence)
 {
-	sink.write(buffer);
+	sink.write(sequence);
 	return sink;
 }
 

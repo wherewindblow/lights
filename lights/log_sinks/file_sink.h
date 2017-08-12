@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../block_description.h"
+#include "../sequence.h"
 #include "../file.h"
 #include "../exception.h"
 
@@ -34,9 +34,9 @@ public:
 		m_file.setbuf(nullptr);
 	}
 
-	void write(BufferView buffer)
+	void write(SequenceView sequence)
 	{
-		m_file.write(buffer);
+		m_file.write(sequence);
 	}
 
 private:
@@ -93,15 +93,15 @@ public:
 		this->rotate();
 	}
 
-	void write(BufferView buffer)
+	void write(SequenceView sequence)
 	{
-		while (m_current_size + buffer.length() > m_max_size)
+		while (m_current_size + sequence.length() > m_max_size)
 		{
 			this->fill_remain();
 			this->rotate();
 		}
-		m_file.write(buffer);
-		m_current_size += buffer.length();
+		m_file.write(sequence);
+		m_current_size += sequence.length();
 	}
 
 private:
@@ -148,14 +148,14 @@ public:
 		rotate();
 	}
 
-	void write(BufferView buffer)
+	void write(SequenceView sequence)
 	{
 		std::time_t now = std::time(nullptr);
 		if (now >= m_next_rotating_time)
 		{
 			rotate();
 		}
-		m_file.write(buffer);
+		m_file.write(sequence);
 	}
 
 	void rotate();

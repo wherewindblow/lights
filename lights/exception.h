@@ -8,7 +8,7 @@
 
 #include <exception>
 
-#include "block_description.h"
+#include "sequence.h"
 #include "sink_adapter.h"
 #include "format.h"
 #include "current_function.hpp"
@@ -191,10 +191,10 @@ public:
 		m_out(out)
 	{}
 
-	std::size_t write(BufferView buffer) override
+	std::size_t write(SequenceView sequence) override
 	{
-		m_out.append(to_string_view(buffer));
-		return buffer.length();
+		m_out.append(to_string_view(sequence));
+		return sequence.length();
 	};
 private:
 	FormatSinkAdapter<Sink> m_out;

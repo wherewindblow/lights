@@ -272,9 +272,9 @@ public:
 
 	~StringTable();
 
-	std::size_t get_str_index(StringView view);
+	std::size_t get_str_index(StringView str);
 
-	std::size_t add_str(StringView view);
+	std::size_t add_str(StringView str);
 
 	StringView operator[] (std::size_t index) const
 	{
@@ -319,10 +319,10 @@ private:
 
 	struct StringDeleter
 	{
-		void operator()(const StringView* view) const noexcept
+		void operator()(const StringView* str) const noexcept
 		{
-			delete[] view->data();
-			delete view;
+			delete[] str->data();
+			delete str;
 		}
 	};
 

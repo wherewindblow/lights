@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <cassert>
 
-#include "block_description.h"
+#include "sequence.h"
 #include "format.h"
 #include "exception.h"
 
@@ -77,14 +77,14 @@ public:
 		return m_file != nullptr;
 	}
 
-	std::size_t read(Buffer buffer)
+	std::size_t read(Sequence sequence)
 	{
-		return std::fread(buffer.data(), sizeof(char), buffer.length(), m_file);
+		return std::fread(sequence.data(), sizeof(char), sequence.length(), m_file);
 	}
 
-	std::size_t write(BufferView buffer)
+	std::size_t write(SequenceView sequence)
 	{
-		return std::fwrite(buffer.data(), sizeof(char), buffer.length(), m_file);
+		return std::fwrite(sequence.data(), sizeof(char), sequence.length(), m_file);
 	}
 
 	void flush()
@@ -171,9 +171,9 @@ public:
 		std::setvbuf(m_file, buffer, static_cast<int>(mode), size);
 	}
 
-	void write_line(StringView view)
+	void write_line(StringView str)
 	{
-		write(view);
+		write(str);
 		write(StringView(LIGHTS_LINE_ENDER));
 	}
 
@@ -217,9 +217,9 @@ public:
 		m_stream(stream)
 	{}
 
-	std::size_t write(BufferView buffer) override
+	std::size_t write(SequenceView sequence) override
 	{
-		return m_stream.write(buffer);
+		return m_stream.write(sequence);
 	};
 
 private:

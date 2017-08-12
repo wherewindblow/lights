@@ -1,6 +1,6 @@
 set(LIGHTS_SOURCE_FILES
         config.h
-        block_description.h
+        sequence.h
         sink_adapter.h
         format.h
         file.h
