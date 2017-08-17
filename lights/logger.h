@@ -576,7 +576,7 @@ void BinaryLogger<Sink>::log(LogLevel level,
 		m_writer.write(fmt, args ...);
 		m_signature.set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
 
-		m_sink->write(&m_signature, m_signature.get_memory_size());
+		m_sink->write({&m_signature, m_signature.get_memory_size()});
 		m_sink->write(m_writer.str_view());
 	}
 }
