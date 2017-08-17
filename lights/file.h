@@ -48,7 +48,7 @@ public:
 	}
 
 	/**
-	 * @throw Thrown RuntimeError when have error.
+	 * @throw Thrown OpenFileError when have error.
 	 */
 	void open(StringView filename, StringView modes)
 	{
@@ -61,7 +61,7 @@ public:
 	}
 
 	/**
-	 * @throw Thrown RuntimeError when have error.
+	 * @throw Thrown OpenFileError when have error.
 	 */
 	void reopen(StringView filename, StringView modes)
 	{

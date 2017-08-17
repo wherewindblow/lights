@@ -12,7 +12,6 @@
 #include <cstring>
 #include <string>
 #include <limits>
-#include <sstream>
 #include <functional>
 
 #include <errno.h>
@@ -25,21 +24,21 @@
 
 namespace lights {
 
-#define LIGHTS_IMPLEMENT_SIGNED_FUNCTION(macro) \
+#define LIGHTS_IMPLEMENT_SIGNED_INTEGER_FUNCTION(macro) \
 	macro(std::int8_t)        \
 	macro(std::int16_t)       \
 	macro(std::int32_t)       \
 	macro(std::int64_t)
 
-#define LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(macro) \
+#define LIGHTS_IMPLEMENT_UNSIGNED_INTEGER_FUNCTION(macro) \
 	macro(std::uint8_t)       \
 	macro(std::uint16_t)      \
 	macro(std::uint32_t)      \
 	macro(std::uint64_t)
 
 #define LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(macro) \
-	LIGHTS_IMPLEMENT_SIGNED_FUNCTION(macro) \
-	LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(macro)
+	LIGHTS_IMPLEMENT_SIGNED_INTEGER_FUNCTION(macro) \
+	LIGHTS_IMPLEMENT_UNSIGNED_INTEGER_FUNCTION(macro)
 
 
 // To set this type to signed char for convenient to assign to
@@ -197,34 +196,6 @@ private:
 
 namespace details {
 
-/**
- * StringBuffer that reference on a string.
- * Instead of std::stringbuf to optimize performance.
- */
-template <typename Sink>
-class StringBuffer: public std::streambuf
-{
-public:
-	explicit StringBuffer(Sink& sink) :
-		m_string(sink) {}
-
-	virtual int_type overflow(int_type ch) override
-	{
-		m_string.append(static_cast<char>(ch));
-		return ch;
-	}
-
-	virtual std::streamsize	xsputn(const char* s, std::streamsize n) override
-	{
-		m_string.append({s, static_cast<std::size_t>(n)});
-		return n;
-	}
-
-private:
-	FormatSinkAdapter<Sink>& m_string;
-};
-
-
 #ifdef LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE
 static constexpr char digists[] =
 	"0001020304050607080910111213141516171819"
@@ -234,6 +205,14 @@ static constexpr char digists[] =
 	"8081828384858687888990919293949596979899";
 #endif
 
+
+template <typename Integer>
+std::size_t format_need_space(Integer n);
+
+template <typename Integer>
+char* format_integer(Integer n, char* output);
+
+
 class IntegerFormater
 {
 public:
@@ -242,63 +221,14 @@ public:
 		m_buf[sizeof(m_buf) - 1] = '\0';
 	}
 
-#define LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_UNSIGNED(Type) \
-	StringView format(Type n)                         \
-	{                                                 \
-		this->reset_state();                          \
-		return this->format_unsigned(n, m_begin);     \
-	}
-
-	LIGHTS_IMPLEMENT_UNSIGNED_FUNCTION(LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_UNSIGNED)
-
-#undef LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_UNSIGNED
-
-#define LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_SIGNED(Type) \
-	StringView format(Type n)                      \
-	{                                               \
-		this->reset_state();                        \
-		return format_signed(n, m_begin);           \
-	}
-
-	LIGHTS_IMPLEMENT_SIGNED_FUNCTION(LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_SIGNED);
-
-#undef LIGHTS_DETAILS_INTEGER_FORMATER_FORMAT_SIGNED
-
-	// TODO Consider to optimize like fmt.
 	template <typename Integer>
-	static unsigned need_space(Integer n);
-
-	template <typename Integer>
-	static char* format(Integer n, char* output);
+	StringView format(Integer num)
+	{
+		reset_state();
+		return format_integer(num, m_begin);
+	}
 
 private:
-	/**
-	 * @note Format character backwards to @c output and @c output this pos is not use.
-	 */
-	template <typename UnsignedInteger>
-	static char* format_unsigned(UnsignedInteger n, char* output);
-
-	/**
-	 * @note Format character backwards to @c output and @c output this pos is not use.
-	 */
-	template <typename SignedInteger>
-	static char* format_signed(SignedInteger n, char* output)
-	{
-		auto absolute = static_cast<std::make_unsigned_t<SignedInteger>>(n);
-		bool negative = n < 0;
-		if (negative)
-		{
-			absolute = 0 - absolute;
-		}
-		char* start = format_unsigned(absolute, output);
-		if (negative)
-		{
-			--start;
-			*start = '-';
-		}
-		return start;
-	}
-
 	void reset_state()
 	{
 		m_begin = m_buf + sizeof(m_buf) - 1;
@@ -307,151 +237,6 @@ private:
 	char m_buf[std::numeric_limits<std::uintmax_t>::digits10 + 1 + 1];
 	char* m_begin;
 };
-
-template <typename Integer>
-unsigned IntegerFormater::need_space(Integer n)
-{
-	static_assert(std::is_integral<Integer>::value && "n only can be integer");
-
-	auto absolute = static_cast<std::make_unsigned_t<Integer>>(n);
-	bool negative = n < 0;
-	unsigned count = 0;
-	if (negative)
-	{
-		absolute = 0 - absolute;
-		++count;
-	}
-
-	if (absolute == 0)
-	{
-		count = 1;
-	}
-	else
-	{
-		while (absolute >= 100)
-		{
-			absolute /= 100;
-			count += 2;
-		}
-
-		if (absolute < 10) // Single digit.
-		{
-			++count;
-		}
-		else // Double digits.
-		{
-			count += 2;
-		}
-	}
-	return count;
-}
-
-template <typename Integer>
-char* IntegerFormater::format(Integer n, char* output)
-{
-	static_assert(std::is_integral<Integer>::value && "n only can be integer");
-
-	auto absolute = static_cast<std::make_unsigned_t<Integer>>(n);
-	bool negative = n < 0;
-	if (negative)
-	{
-		absolute = 0 - absolute;
-	}
-
-	if (absolute == 0)
-	{
-		--output;
-		*output = '0';
-	}
-	else
-	{
-#ifndef LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE
-		while (n != 0)
-			{
-				--output;
-				*output = '0' + static_cast<char>(n % 10);
-				n /= 10;
-			}
-#else
-		while (absolute >= 100)
-		{
-			auto index = absolute % 100 * 2;
-			--output;
-			*output = digists[index + 1];
-			--output;
-			*output = digists[index];
-			absolute /= 100;
-		}
-
-		if (absolute < 10) // Single digit.
-		{
-			--output;
-			*output = '0' + static_cast<char>(absolute);
-		}
-		else // Double digits.
-		{
-			auto index = absolute * 2;
-			--output;
-			*output = digists[index + 1];
-			--output;
-			*output = digists[index];
-		}
-#endif
-	}
-
-	if (negative)
-	{
-		--output;
-		*output = '-';
-	}
-	return output;
-}
-
-template <typename UnsignedInteger>
-char* IntegerFormater::format_unsigned(UnsignedInteger n, char* output)
-{
-	if (n == 0)
-	{
-		--output;
-		*output = '0';
-	}
-	else
-	{
-#ifndef LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE
-		while (n != 0)
-			{
-				--output;
-				*output = '0' + static_cast<char>(n % 10);
-				n /= 10;
-			}
-#else
-		while (n >= 100)
-		{
-			auto index = n % 100 * 2;
-			--output;
-			*output = digists[index + 1];
-			--output;
-			*output = digists[index];
-			n /= 100;
-		}
-
-		if (n < 10) // Single digit.
-		{
-			--output;
-			*output = '0' + static_cast<char>(n);
-		}
-		else // Double digits.
-		{
-			auto index = n * 2;
-			--output;
-			*output = digists[index + 1];
-			--output;
-			*output = digists[index];
-		}
-#endif
-	}
-	return output;
-}
 
 
 class ErrorFormater
@@ -775,21 +560,6 @@ LIGHTS_DETAILS_UNSIGNED_SPEC_FORMATER(HexFormater)
 
 } // namespace details
 
-/**
- * To convert @c value to string in the end of @ sink
- * that use insertion operator with std::ostream and T.
- * Aim to support format with
- *   `std::ostream& operator<< (std::ostream& out, const T& value)`
- * @param out    Abstract string.
- * @param value  User type.
- */
-template <typename Sink, typename T>
-inline void to_string(FormatSinkAdapter<Sink> out, const T& value)
-{
-	details::StringBuffer<Sink> buf(out);
-	std::ostream ostream(&buf);
-	ostream << value;
-}
 
 template <typename Sink>
 inline void to_string(FormatSinkAdapter<Sink> out, bool is)
@@ -1105,8 +875,6 @@ void write(FormatSinkAdapter<Sink> out, StringView fmt, const Arg& value, const 
 		append(out, value);
 		fmt.move_forward(i + 2);
 		write(out, fmt, args ...);
-//		StringView str(fmt.data() + i + 2, fmt.length() - i - 2);
-//		write(out, str, args ...);
 	}
 }
 
@@ -1141,8 +909,6 @@ void write(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out,
 		out.get_internal_sink().add_composed_type(value);
 		fmt.move_forward(i + 2);
 		write(out, fmt, args ...);
-//		StringView str(fmt.data() + i + 2, fmt.length() - i - 2);
-//		write(out, str, args ...);
 	}
 }
 
@@ -1229,10 +995,10 @@ public:
 #define LIGHTS_TEXT_WRITER_APPEND_INTEGER(Type)           \
 	TextWriter& operator<< (Type n)                       \
 	{                                                       \
-		auto len = details::IntegerFormater::need_space(n); \
+		auto len = details::format_need_space(n);           \
 		if (can_append(len))                                \
 		{                                                   \
-			details::IntegerFormater::format(n, m_buffer + m_length + len); \
+			details::format_integer(n, m_buffer + m_length + len); \
 			m_length += len;                                \
 		}                                                   \
 		return *this;                                       \
@@ -1861,8 +1627,6 @@ void BinaryRestoreWriter<buffer_size>::write_binary(StringView fmt, const std::u
 		auto width = write_argument(binary_store_args);
 		fmt.move_forward(i + 2);
 		write_binary(fmt, binary_store_args + width, args_length - width);
-//		StringView str(fmt.data() + i + 2, fmt.length() - i - 2);
-//		write_binary(str, binary_store_args + width, args_length - width);
 	}
 }
 
