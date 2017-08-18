@@ -230,19 +230,4 @@ inline StringView to_string_view(SequenceView sequence)
 	return StringView(static_cast<StringView::CharType*>(sequence.data()), sequence.length());
 }
 
-
-template <typename Ostream>
-inline Ostream& operator<< (Ostream& out, StringView str)
-{
-	out.write(str.data(), str.length());
-	return out;
-}
-
-template <typename Ostream>
-inline Ostream& operator<< (Ostream& out, SequenceView sequence)
-{
-	out << to_string_view(sequence);
-	return out;
-}
-
 } // namespace lights

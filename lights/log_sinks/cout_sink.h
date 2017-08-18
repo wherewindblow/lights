@@ -11,6 +11,7 @@
 #include <memory>
 
 #include "../sequence.h"
+#include "../ostream.h"
 
 
 namespace lights {

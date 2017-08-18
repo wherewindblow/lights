@@ -3,7 +3,7 @@ set(LIGHTS_SOURCE_FILES
         sequence.h
         sink_adapter.h
         format.h format.cpp
-        format/ostream.h
+        ostream.h
         file.h
         logger.h logger.cpp
         common.h

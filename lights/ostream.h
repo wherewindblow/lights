@@ -6,10 +6,11 @@
 
 #pragma once
 
-#include "../format.h"
-
 #include <streambuf>
 #include <ostream>
+
+#include "sequence.h"
+#include "format.h"
 
 
 namespace lights {
@@ -59,6 +60,20 @@ inline void to_string(FormatSinkAdapter<Sink> out, const T& value)
 	details::StringBuffer<Sink> buf(out);
 	std::ostream ostream(&buf);
 	ostream << value;
+}
+
+
+inline std::ostream& operator<< (std::ostream& out, StringView str)
+{
+	out.write(str.data(), str.length());
+	return out;
+}
+
+
+inline std::ostream& operator<< (std::ostream& out, SequenceView sequence)
+{
+	out << to_string_view(sequence);
+	return out;
 }
 
 } // namespace lights
