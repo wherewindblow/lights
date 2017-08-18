@@ -68,6 +68,8 @@ template <typename Sink>
 class TextLogger
 {
 public:
+	using ModuleNameHandler = std::function<StringView(std::uint16_t)>;
+
 	TextLogger(StringView name, std::shared_ptr<Sink> sink);
 
 	const std::string& get_name() const
@@ -85,60 +87,91 @@ public:
 		m_level = level;
 	}
 
+	bool is_record_location() const
+	{
+		return m_record_location;
+	}
+
+	void set_record_location(bool enable_record)
+	{
+		m_record_location = enable_record;
+	}
+
+	ModuleNameHandler get_module_name_handler() const
+	{
+		return m_module_name_handler;
+	}
+
+	void set_module_name_handler(ModuleNameHandler module_name_handler)
+	{
+		m_module_name_handler = module_name_handler;
+	}
+
+	/**
+	 * @note cannot pass @c fmt as nullptr or is ambiguous with another call function.
+	 */
+	template <typename ... Args>
+	void log(LogLevel level, const char* fmt, const Args& ... args)
+	{
+		log(level, 1, LIGHTS_CURRENT_SOURCE_LOCATION, fmt, args ...);
+	}
 
 	template <typename ... Args>
-	void log(LogLevel level, StringView fmt, const Args& ... args);
-
-	template <typename ... Args>
-	void debug(StringView fmt, const Args& ... args)
+	void debug(const char* fmt, const Args& ... args)
 	{
 		this->log(LogLevel::DEBUG, fmt, args ...);
 	}
 
 	template <typename ... Args>
-	void info(StringView fmt, const Args& ... args)
+	void info(const char* fmt, const Args& ... args)
 	{
 		this->log(LogLevel::INFO, fmt, args ...);
 	}
 
 	template <typename ... Args>
-	void warn(StringView fmt, const Args& ... args)
+	void warn(const char* fmt, const Args& ... args)
 	{
 		this->log(LogLevel::WARN, fmt, args ...);
 	}
 
 	template <typename ... Args>
-	void error(StringView fmt, const Args& ... args)
+	void error(const char* fmt, const Args& ... args)
 	{
 		this->log(LogLevel::ERROR, fmt, args ...);
 	}
 
 
-	void log(LogLevel level, StringView str);
+	void log(LogLevel level, const char* str)
+	{
+		log(level, 1, LIGHTS_CURRENT_SOURCE_LOCATION, str);
+	}
 
-	void debug(StringView str)
+	void debug(const char* str)
 	{
 		this->log(LogLevel::DEBUG, str);
 	}
 
-	void info(StringView str)
+	void info(const char* str)
 	{
 		this->log(LogLevel::INFO, str);
 	}
 
-	void warn(StringView str)
+	void warn(const char* str)
 	{
 		this->log(LogLevel::WARN, str);
 	}
 
-	void error(StringView str)
+	void error(const char* str)
 	{
 		this->log(LogLevel::ERROR, str);
 	}
 
 
 	template <typename T>
-	void log(LogLevel level, const T& value);
+	void log(LogLevel level, const T& value)
+	{
+		log(level, 1, LIGHTS_CURRENT_SOURCE_LOCATION, value);
+	}
 
 	template <typename T>
 	void debug(const T& value)
@@ -164,16 +197,54 @@ public:
 		this->log(LogLevel::ERROR, value);
 	}
 
+	/**
+	 * @note cannot pass @c module_id as 0 or is ambiguous with another call function.
+	 */
+	template <typename ... Args>
+	void log(LogLevel level,
+			 std::uint16_t module_id,
+			 const SourceLocation& location,
+			 const char* fmt,
+			 const Args& ... args);
+
+	/**
+	 * @note cannot pass @c module_id as 0 or is ambiguous with another call function.
+	 */
+	void log(LogLevel level,
+			 std::uint16_t module_id,
+			 const SourceLocation& location,
+			 const char* str);
+
+	/**
+	 * @note cannot pass @c module_id as 0 or is ambiguous with another call function.
+	 */
+	template <typename T>
+	void log(LogLevel level,
+			 std::uint16_t module_id,
+			 const SourceLocation& location,
+			 const T& value);
+
 private:
 	bool should_log(LogLevel level) const
 	{
 		return m_level <= level;
 	}
 
-	void generate_signature();
+	void generate_signature(std::uint16_t module_id);
+
+	void recore_location(const SourceLocation& location)
+	{
+		if (is_record_location())
+		{
+			m_writer.write(" [{}:{}][{}]", location.file(), location.line(), location.function());
+		}
+	}
 
 	std::string m_name;
 	LogLevel m_level = LogLevel::INFO;
+	bool m_record_location = true;
+	bool m_record_module = true;
+	ModuleNameHandler m_module_name_handler = nullptr;
 	std::shared_ptr<Sink> m_sink;
 	TextWriter<> m_writer;
 };
@@ -186,41 +257,48 @@ TextLogger<Sink>::TextLogger(StringView name, std::shared_ptr<Sink> sink) :
 
 template <typename Sink>
 template <typename ... Args>
-void TextLogger<Sink>::log(LogLevel level, StringView fmt, const Args& ... args)
+void TextLogger<Sink>::log(LogLevel level,
+						   std::uint16_t module_id,
+						   const SourceLocation& location,
+						   const char* fmt,
+						   const Args& ... args)
 {
 	if (this->should_log(level))
 	{
 		m_writer.clear();
-		this->generate_signature();
+		this->generate_signature(module_id);
 		m_writer.write(fmt, args ...);
+		recore_location(location);
 		m_writer.append('\n');
 		m_sink->write(m_writer.str_view());
 	}
 }
 
-
 template <typename Sink>
-void TextLogger<Sink>::log(LogLevel level, StringView str)
+void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const SourceLocation& location, const char* str)
 {
 	if (this->should_log(level))
 	{
 		m_writer.clear();
-		this->generate_signature();
-		m_writer << str << '\n';
+		this->generate_signature(module_id);
+		m_writer << str;
+		recore_location(location);
+		m_writer << '\n';
 		m_sink->write(m_writer.str_view());
 	}
 }
 
-
 template <typename Sink>
 template <typename T>
-void TextLogger<Sink>::log(LogLevel level, const T& value)
+void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const SourceLocation& location, const T& value)
 {
 	if (this->should_log(level))
 	{
 		m_writer.clear();
-		this->generate_signature();
-		m_writer << value << '\n';
+		this->generate_signature(module_id);
+		m_writer << value;
+		recore_location(location);
+		m_writer << '\n';
 		m_sink->write(m_writer.str_view());
 	}
 }
@@ -241,14 +319,19 @@ void TextLogger<Sink>::log(LogLevel level, const T& value)
 //}
 
 template <typename Sink>
-void TextLogger<Sink>::generate_signature()
+void TextLogger<Sink>::generate_signature(std::uint16_t module_id)
 {
 	PreciseTime precise_time = get_precise_time();
 	m_writer << '[' << Timestamp(precise_time.seconds) << '.';
 
 	auto millis = precise_time.nanoseconds / 1000 / 1000;
 	m_writer << pad(static_cast<unsigned>(millis), '0', 3);
-	m_writer << "] [" << m_name << "] [" << to_string(m_level) << "] ";
+	m_writer << "] [" << m_name << "] ";
+	if (m_module_name_handler)
+	{
+		m_writer << "[" << m_module_name_handler(module_id) << "] ";
+	}
+	m_writer << "[" << to_string(m_level) << "] ";
 }
 
 
