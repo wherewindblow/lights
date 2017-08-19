@@ -7,6 +7,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <cerrno>
 #include <ctime>
 #include <cstring>
@@ -18,7 +19,6 @@
 
 #include "config.h"
 #include "sequence.h"
-#include "sink_adapter.h"
 #include "common.h"
 
 
@@ -162,35 +162,6 @@ public:
 
 private:
 	std::string& m_sink;
-};
-
-
-template <>
-class FormatSinkAdapter<SinkAdapter>
-{
-public:
-	explicit FormatSinkAdapter(SinkAdapter& sink) : m_sink(sink) {}
-
-	void append(char ch)
-	{
-		m_sink.write(SequenceView(&ch, sizeof(ch)));
-	}
-
-	void append(std::size_t num, char ch)
-	{
-		for (std::size_t i = 0; i < num; ++i)
-		{
-			this->append(ch);
-		}
-	}
-
-	void append(StringView str)
-	{
-		m_sink.write(str);
-	}
-
-private:
-	SinkAdapter& m_sink;
 };
 
 
