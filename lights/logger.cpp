@@ -56,7 +56,8 @@ StringTable::~StringTable()
 		m_file.clear();
 		for (std::size_t i = m_last_index + 1; m_file && i < m_str_array.size(); ++i)
 		{
-			m_file.write(m_str_array[i]->data(), m_str_array[i]->length()) << '\n';
+			m_file.write(m_str_array[i]->data(), m_str_array[i]->length());
+			m_file << LIGHTS_LINE_ENDER;
 		}
 		m_file.close();
 	}

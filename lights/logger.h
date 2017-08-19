@@ -269,7 +269,7 @@ void TextLogger<Sink>::log(LogLevel level,
 		this->generate_signature(module_id);
 		m_writer.write(fmt, args ...);
 		recore_location(location);
-		m_writer.append('\n');
+		m_writer.append(LIGHTS_LINE_ENDER);
 		m_sink->write(m_writer.str_view());
 	}
 }
@@ -281,9 +281,9 @@ void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const Source
 	{
 		m_writer.clear();
 		this->generate_signature(module_id);
-		m_writer << str;
+		m_writer.append(str);
 		recore_location(location);
-		m_writer << '\n';
+		m_writer.append(LIGHTS_LINE_ENDER);
 		m_sink->write(m_writer.str_view());
 	}
 }
@@ -298,7 +298,7 @@ void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const Source
 		this->generate_signature(module_id);
 		m_writer << value;
 		recore_location(location);
-		m_writer << '\n';
+		m_writer.append(LIGHTS_LINE_ENDER);
 		m_sink->write(m_writer.str_view());
 	}
 }

@@ -9,14 +9,13 @@
 #include <cstdio>
 #include <cassert>
 
+#include "config.h"
 #include "sequence.h"
 #include "format.h"
 #include "exception.h"
 
 
 namespace lights {
-
-#define LIGHTS_LINE_ENDER "\n"
 
 enum class FileSeekWhence
 {
