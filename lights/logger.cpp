@@ -125,11 +125,11 @@ StringView BinaryLogReader::read()
 }
 
 
-void BinaryLogReader::jump_to(std::size_t line)
+void BinaryLogReader::jump(std::size_t line)
 {
 	for (std::size_t i = 0; i < line; ++i)
 	{
-		m_file.read(Sequence(&m_signature, m_signature.get_memory_size()));
+		m_file.read({&m_signature, m_signature.get_memory_size()});
 		auto pos = m_file.tell();
 		m_file.seek(pos + m_signature.get_argument_length() + 1, FileSeekWhence::BEGIN);
 	}

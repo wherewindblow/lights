@@ -69,6 +69,7 @@ class TextLogger
 {
 public:
 	using ModuleNameHandler = std::function<StringView(std::uint16_t)>;
+	using ModuleShouldLogHandler = std::function<bool(LogLevel, std::uint16_t)>;
 
 	TextLogger(StringView name, std::shared_ptr<Sink> sink);
 
@@ -97,6 +98,16 @@ public:
 		m_record_location = enable_record;
 	}
 
+	bool is_record_module() const
+	{
+		return m_record_module;
+	}
+
+	void set_record_module(bool enable_record)
+	{
+		m_record_module = enable_record;
+	}
+
 	ModuleNameHandler get_module_name_handler() const
 	{
 		return m_module_name_handler;
@@ -105,6 +116,29 @@ public:
 	void set_module_name_handler(ModuleNameHandler module_name_handler)
 	{
 		m_module_name_handler = module_name_handler;
+	}
+
+	ModuleShouldLogHandler get_module_should_log_handler() const
+	{
+		return m_module_should_log;
+	}
+
+	/**
+	 * Set the module should log with level. It can swith a module log and control
+	 * the log of specify module.
+	 * @param should_log_handler  It's a handler that pass level and module_id and
+	 *                            return this message should log.
+	 * @example
+	 *     std::vector<LogLevel> module_levels(1000, LogLevel::DEBUG);
+	 *     module_levels[TEST_MODULE] = LogLevel::OFF;
+	 *     logger.set_module_should_log_handler([&module_levels](LogLevel level, std::uint16_t module_id)
+	 *     {
+	 *         return module_levels[module_id] >= level;
+	 *     });
+	 */
+	void set_module_should_log_handler(ModuleShouldLogHandler should_log_handler)
+	{
+		m_module_should_log = should_log_handler;
 	}
 
 	/**
@@ -225,9 +259,14 @@ public:
 			 const T& value);
 
 private:
-	bool should_log(LogLevel level) const
+	bool should_log(LogLevel level, std::uint16_t module_id) const
 	{
-		return m_level <= level;
+		bool should = m_level <= level;
+		if (should && m_module_should_log)
+		{
+			return m_module_should_log(level, module_id);
+		}
+		return should;
 	}
 
 	void generate_signature(std::uint16_t module_id);
@@ -244,7 +283,8 @@ private:
 	LogLevel m_level = LogLevel::INFO;
 	bool m_record_location = true;
 	bool m_record_module = true;
-	ModuleNameHandler m_module_name_handler = nullptr;
+	ModuleNameHandler m_module_name_handler;
+	ModuleShouldLogHandler m_module_should_log;
 	std::shared_ptr<Sink> m_sink;
 	TextWriter<> m_writer;
 };
@@ -263,7 +303,7 @@ void TextLogger<Sink>::log(LogLevel level,
 						   const char* fmt,
 						   const Args& ... args)
 {
-	if (this->should_log(level))
+	if (this->should_log(level, module_id))
 	{
 		m_writer.clear();
 		this->generate_signature(module_id);
@@ -277,7 +317,7 @@ void TextLogger<Sink>::log(LogLevel level,
 template <typename Sink>
 void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const SourceLocation& location, const char* str)
 {
-	if (this->should_log(level))
+	if (this->should_log(level, module_id))
 	{
 		m_writer.clear();
 		this->generate_signature(module_id);
@@ -292,7 +332,7 @@ template <typename Sink>
 template <typename T>
 void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const SourceLocation& location, const T& value)
 {
-	if (this->should_log(level))
+	if (this->should_log(level, module_id))
 	{
 		m_writer.clear();
 		this->generate_signature(module_id);
@@ -327,9 +367,16 @@ void TextLogger<Sink>::generate_signature(std::uint16_t module_id)
 	auto millis = precise_time.nanoseconds / 1000 / 1000;
 	m_writer << pad(static_cast<unsigned>(millis), '0', 3);
 	m_writer << "] [" << m_name << "] ";
-	if (m_module_name_handler)
+	if (is_record_module())
 	{
-		m_writer << "[" << m_module_name_handler(module_id) << "] ";
+		if (m_module_name_handler)
+		{
+			m_writer << "[" << m_module_name_handler(module_id) << "] ";
+		}
+		else
+		{
+			m_writer << "[" << module_id << "] ";
+		}
 	}
 	m_writer << "[" << to_string(m_level) << "] ";
 }
@@ -341,8 +388,12 @@ public:
 	using StringViewPtr = std::shared_ptr<const StringView>;
 	using StringTablePtr = std::shared_ptr<StringTable>;
 
+	/**
+	 * @note To use this function must call @c init_instance before.
+	 */
 	static StringTablePtr& instance()
 	{
+		assert(instance_ptr && "Must call init_instance before call this");
 		return instance_ptr;
 	}
 
@@ -570,6 +621,8 @@ template <typename Sink>
 class BinaryLogger
 {
 public:
+	using ModuleShouldLogHandler = std::function<bool(LogLevel, std::uint16_t)>;
+
 	BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink, StringTablePtr str_table = StringTable::instance());
 
 	std::uint16_t get_log_id() const
@@ -585,6 +638,29 @@ public:
 	void set_level(LogLevel level)
 	{
 		m_level = level;
+	}
+
+	ModuleShouldLogHandler get_module_should_log_handler() const
+	{
+		return m_module_should_log;
+	}
+
+	/**
+	 * Set the module should log with level. It can swith a module log and control
+	 * the log of specify module.
+	 * @param should_log_handler  It's a handler that pass level and module_id and
+	 *                            return this message should log.
+	 * @example
+	 *     std::vector<LogLevel> module_levels(1000, LogLevel::DEBUG);
+	 *     module_levels[TEST_MODULE] = LogLevel::OFF;
+	 *     logger.set_module_should_log_handler([&module_levels](LogLevel level, std::uint16_t module_id)
+	 *     {
+	 *         return module_levels[module_id] >= level;
+	 *     });
+	 */
+	void set_module_should_log_handler(ModuleShouldLogHandler should_log_handler)
+	{
+		m_module_should_log = should_log_handler;
 	}
 
 	template <typename ... Args>
@@ -606,9 +682,14 @@ public:
 			 const T& value);
 
 private:
-	bool should_log(LogLevel level) const
+	bool should_log(LogLevel level, std::uint16_t module_id) const
 	{
-		return m_level <= level;
+		bool should = m_level <= level;
+		if (should && m_module_should_log)
+		{
+			return m_module_should_log(level, module_id);
+		}
+		return should;
 	}
 
 	void generate_signature(LogLevel level,
@@ -628,6 +709,7 @@ private:
 	}
 
 	LogLevel m_level = LogLevel::INFO;
+	ModuleShouldLogHandler m_module_should_log;
 	std::shared_ptr<Sink> m_sink;
 	StringTablePtr m_str_table;
 	BinaryMessageSignature m_signature;
@@ -651,7 +733,7 @@ void BinaryLogger<Sink>::log(LogLevel level,
 							 const char* fmt,
 							 const Args& ... args)
 {
-	if (this->should_log(level))
+	if (this->should_log(level, module_id))
 	{
 		generate_signature(level, module_id, location, fmt);
 
@@ -671,7 +753,7 @@ void BinaryLogger<Sink>::log(LogLevel level,
 							 const SourceLocation& location,
 							 const char* str)
 {
-	if (this->should_log(level))
+	if (this->should_log(level, module_id))
 	{
 		generate_signature(level, module_id, location, str);
 		m_signature.set_argument_length(0);
@@ -687,7 +769,7 @@ void BinaryLogger<Sink>::log(LogLevel level,
 							 const SourceLocation& location,
 							 const T& value)
 {
-	if (this->should_log(level))
+	if (this->should_log(level, module_id))
 	{
 		generate_signature(level, module_id, location, "{}");
 
@@ -714,7 +796,7 @@ public:
 	/**
 	 * @note Line is start at 0.
 	 */
-	void jump_to(std::size_t line);
+	void jump(std::size_t line);
 
 	bool eof()
 	{
