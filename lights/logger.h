@@ -129,7 +129,7 @@ public:
 	 * @param should_log_handler  It's a handler that pass level and module_id and
 	 *                            return this message should log.
 	 * @example
-	 *     std::vector<LogLevel> module_levels(1000, LogLevel::DEBUG);
+	 *     std::vector<LogLevel> module_levels(MAX_MODULE_SIZE, LogLevel::DEBUG);
 	 *     module_levels[TEST_MODULE] = LogLevel::OFF;
 	 *     logger.set_module_should_log_handler([&module_levels](LogLevel level, std::uint16_t module_id)
 	 *     {
@@ -269,7 +269,7 @@ private:
 		return should;
 	}
 
-	void generate_signature(std::uint16_t module_id);
+	void generate_signature(LogLevel level, std::uint16_t module_id);
 
 	void recore_location(const SourceLocation& location)
 	{
@@ -306,7 +306,7 @@ void TextLogger<Sink>::log(LogLevel level,
 	if (this->should_log(level, module_id))
 	{
 		m_writer.clear();
-		this->generate_signature(module_id);
+		this->generate_signature(level, module_id);
 		m_writer.write(fmt, args ...);
 		recore_location(location);
 		m_writer.append(LIGHTS_LINE_ENDER);
@@ -320,7 +320,7 @@ void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const Source
 	if (this->should_log(level, module_id))
 	{
 		m_writer.clear();
-		this->generate_signature(module_id);
+		this->generate_signature(level, module_id);
 		m_writer.append(str);
 		recore_location(location);
 		m_writer.append(LIGHTS_LINE_ENDER);
@@ -335,7 +335,7 @@ void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const Source
 	if (this->should_log(level, module_id))
 	{
 		m_writer.clear();
-		this->generate_signature(module_id);
+		this->generate_signature(level, module_id);
 		m_writer << value;
 		recore_location(location);
 		m_writer.append(LIGHTS_LINE_ENDER);
@@ -359,7 +359,7 @@ void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const Source
 //}
 
 template <typename Sink>
-void TextLogger<Sink>::generate_signature(std::uint16_t module_id)
+void TextLogger<Sink>::generate_signature(LogLevel level, std::uint16_t module_id)
 {
 	PreciseTime precise_time = get_precise_time();
 	m_writer << '[' << Timestamp(precise_time.seconds) << '.';
@@ -378,7 +378,7 @@ void TextLogger<Sink>::generate_signature(std::uint16_t module_id)
 			m_writer << "[" << module_id << "] ";
 		}
 	}
-	m_writer << "[" << to_string(m_level) << "] ";
+	m_writer << "[" << to_string(level) << "] ";
 }
 
 
@@ -651,7 +651,7 @@ public:
 	 * @param should_log_handler  It's a handler that pass level and module_id and
 	 *                            return this message should log.
 	 * @example
-	 *     std::vector<LogLevel> module_levels(1000, LogLevel::DEBUG);
+	 *     std::vector<LogLevel> module_levels(MAX_MODULE_SIZE, LogLevel::DEBUG);
 	 *     module_levels[TEST_MODULE] = LogLevel::OFF;
 	 *     logger.set_module_should_log_handler([&module_levels](LogLevel level, std::uint16_t module_id)
 	 *     {
