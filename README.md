@@ -30,3 +30,6 @@ Light weight and light speed library set.
 
 ## Platform
 - Only support linux now.
+
+## Example
+- See the folder [example](https://github.com/wherewindblow/lights).
