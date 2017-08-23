@@ -388,18 +388,9 @@ public:
 	using StringViewPtr = std::shared_ptr<const StringView>;
 	using StringTablePtr = std::shared_ptr<StringTable>;
 
-	/**
-	 * @note To use this function must call @c init_instance before.
-	 */
-	static StringTablePtr& instance()
+	static StringTablePtr create(StringView filename)
 	{
-		assert(instance_ptr && "Must call init_instance before call this");
-		return instance_ptr;
-	}
-
-	static void init_instance(StringView filename)
-	{
-		instance_ptr = std::make_shared<StringTable>(filename);
+		return std::make_shared<StringTable>(filename);
 	}
 
 	StringTable(StringView filename);
@@ -623,7 +614,7 @@ class BinaryLogger
 public:
 	using ModuleShouldLogHandler = std::function<bool(LogLevel, std::uint16_t)>;
 
-	BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink, StringTablePtr str_table = StringTable::instance());
+	BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink, StringTablePtr str_table);
 
 	std::uint16_t get_log_id() const
 	{
@@ -786,7 +777,7 @@ void BinaryLogger<Sink>::log(LogLevel level,
 class BinaryLogReader
 {
 public:
-	BinaryLogReader(StringView log_filename, StringTablePtr str_table = StringTable::instance()) :
+	BinaryLogReader(StringView log_filename, StringTablePtr str_table) :
 		m_file(log_filename, "rb"), m_str_table(str_table)
 	{
 	}
