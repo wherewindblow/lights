@@ -37,6 +37,12 @@ inline void zero_array(T (&array)[N])
 	zero_array(array, N);
 }
 
+template <typename T, std::size_t N>
+inline std::size_t size_of_array(T (&array)[N])
+{
+	return N;
+}
+
 
 template <typename Index, typename Num, typename Max>
 inline bool is_safe_index(Index index, Num num, Max max)
