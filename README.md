@@ -2,11 +2,11 @@
 Light weight and light speed library set.
 
 ## Library List
-- format  Type-safe format and similar to the one used by str.format in Python.
-- log     Logging library with use format library to format messag.
+- **format**  Type-safe format and similar to the one used by str.format in Python.
+- **log**     Logging library with use format library to format messag.
 
 ## Features
-- format
+- **format**
 	- Basic write API with format string syntax similar to the one used by str.format in Python.
 	- Write API similar to the one used by iostreams.
 	- Simple wrapper format API can easy use and return std::string.
@@ -15,7 +15,7 @@ Light weight and light speed library set.
 	- High speed and close or better performance to std::printf.
 	- Allow to use adapter to adapt user-defined type as sink of format.
 
-- log
+- **log**
 	- Hight performance.
 	- Custom formatting with log message.
 	- Conditional logging with log message.
@@ -32,4 +32,4 @@ Light weight and light speed library set.
 - Only support linux now.
 
 ## Example
-- See the folder [example](https://github.com/wherewindblow/lights).
+- See the folder [example](https://github.com/wherewindblow/lights/tree/master/example).
