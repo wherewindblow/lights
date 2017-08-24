@@ -23,8 +23,6 @@ PreciseTime get_precise_time()
 }
 
 
-StringTable::StringTablePtr StringTable::instance_ptr = nullptr;
-
 StringTable::StringTable(StringView filename)
 {
 	m_file.open(filename.data());

@@ -17,4 +17,8 @@
 #define LIGHTS_INTERNAL_DEBUG(format, ...) \
 	std::printf("file: %s, line: %d, func: %s > " format LIGHTS_LINE_ENDER, __FILE__, __LINE__, __func__, __VA_ARGS__);
 
+/**
+ * Define this macro to open LIGHTS_LOG to expand in compile time
+ * or disable all log that use with LIGHTS_LOG macro.
+ */
 #define LIGHTS_OPEN_LOG

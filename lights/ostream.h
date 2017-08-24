@@ -2,6 +2,8 @@
  * ostream.h
  * @author wherewindblow
  * @date   Aug 17, 2017
+ *
+ * Include this file to support operation with std::ostream.
  */
 
 #pragma once

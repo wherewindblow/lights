@@ -124,6 +124,11 @@ class TimeRotatingFileSink
 public:
 	static constexpr std::time_t ONE_DAY_SECONDS = 3600 * 24;
 
+	/**
+	 * @param name_format  Must have a placeholder "{}" and it'll replace by rotating time.
+	 * @param duration     Within a duration, all message will log to same file.
+	 * @param day_point    The seconds of a day that will execute rotating.
+	 */
 	TimeRotatingFileSink(std::string name_format,
 						 std::time_t duration = ONE_DAY_SECONDS,
 						 std::time_t day_point = 0) :

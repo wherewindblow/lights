@@ -1,5 +1,5 @@
 /**
- * block_description.h
+ * sequence.h
  * @author wherewindblow
  * @date   Aug 06, 2017
  */

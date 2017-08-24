@@ -142,7 +142,7 @@ public:
 	}
 
 	/**
-	 * @note cannot pass @c fmt as nullptr or is ambiguous with another call function.
+	 * @note Cannot pass @c fmt as nullptr or is ambiguous with another call function.
 	 */
 	template <typename ... Args>
 	void log(LogLevel level, const char* fmt, const Args& ... args)
@@ -232,7 +232,7 @@ public:
 	}
 
 	/**
-	 * @note cannot pass @c module_id as 0 or is ambiguous with another call function.
+	 * @note Cannot pass @c module_id as 0 or is ambiguous with another call function.
 	 */
 	template <typename ... Args>
 	void log(LogLevel level,
@@ -242,7 +242,7 @@ public:
 			 const Args& ... args);
 
 	/**
-	 * @note cannot pass @c module_id as 0 or is ambiguous with another call function.
+	 * @note Cannot pass @c module_id as 0 or is ambiguous with another call function.
 	 */
 	void log(LogLevel level,
 			 std::uint16_t module_id,
@@ -250,7 +250,7 @@ public:
 			 const char* str);
 
 	/**
-	 * @note cannot pass @c module_id as 0 or is ambiguous with another call function.
+	 * @note Cannot pass @c module_id as 0 or is ambiguous with another call function.
 	 */
 	template <typename T>
 	void log(LogLevel level,
@@ -412,8 +412,6 @@ public:
 	}
 
 private:
-	static StringTablePtr instance_ptr;
-
 	struct StringHash
 	{
 		size_t operator()(const StringViewPtr& str) const noexcept
@@ -810,6 +808,10 @@ private:
 #	define LIGHTS_LOG(logger, level, module, ...)
 #endif
 
+/**
+ * Unified interface of logger to log message.
+ * @param ... Can use format string and arguments or just a any type value.
+ */
 #define LIGHTS_DEBUG(logger, module, ...) \
 	LIGHTS_LOG(logger, lights::LogLevel::DEBUG, module, __VA_ARGS__);
 #define LIGHTS_INFO(logger, module, ...) \
