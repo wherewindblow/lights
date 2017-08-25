@@ -47,6 +47,15 @@ private:
 
 #define LIGHTS_CURRENT_SOURCE_LOCATION lights::SourceLocation(__FILE__, __LINE__, BOOST_CURRENT_FUNCTION)
 
+inline SourceLocation invalid_source_location()
+{
+	return { nullptr, 0, nullptr };
+}
+
+inline bool is_invalid(const SourceLocation& location)
+{
+	return location.file() == nullptr;
+}
 
 namespace error_code {
 

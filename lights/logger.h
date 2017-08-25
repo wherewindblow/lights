@@ -147,7 +147,7 @@ public:
 	template <typename ... Args>
 	void log(LogLevel level, const char* fmt, const Args& ... args)
 	{
-		log(level, 1, LIGHTS_CURRENT_SOURCE_LOCATION, fmt, args ...);
+		log(level, 1, invalid_source_location(), fmt, args ...);
 	}
 
 	template <typename ... Args>
@@ -177,7 +177,7 @@ public:
 
 	void log(LogLevel level, const char* str)
 	{
-		log(level, 1, LIGHTS_CURRENT_SOURCE_LOCATION, str);
+		log(level, 1, invalid_source_location(), str);
 	}
 
 	void debug(const char* str)
@@ -204,7 +204,7 @@ public:
 	template <typename T>
 	void log(LogLevel level, const T& value)
 	{
-		log(level, 1, LIGHTS_CURRENT_SOURCE_LOCATION, value);
+		log(level, 1, invalid_source_location(), value);
 	}
 
 	template <typename T>
@@ -273,7 +273,7 @@ private:
 
 	void recore_location(const SourceLocation& location)
 	{
-		if (is_record_location())
+		if (is_record_location() && !is_invalid(location))
 		{
 			m_writer.write(" [{}:{}][{}]", location.file(), location.line(), location.function());
 		}
