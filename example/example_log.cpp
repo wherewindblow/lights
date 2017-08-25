@@ -53,6 +53,8 @@ void example_TextLogger()
 	// Set which level can be log.
 	logger.set_level(lights::LogLevel::DEBUG);
 
+	ModuleType::init_str();
+
 	// If want to record module.
 	logger.set_module_name_handler([](std::uint16_t id) {
 		return ModuleType::str[id];
