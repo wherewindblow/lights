@@ -29,10 +29,7 @@ public:
 	 * @param filename  The file to be write.
 	 */
 	SimpleFileSink(StringView filename) :
-		m_file(filename.data(), "ab+")
-	{
-		m_file.setbuf(nullptr);
-	}
+		m_file(filename.data(), "ab+") {}
 
 	void write(SequenceView sequence)
 	{
