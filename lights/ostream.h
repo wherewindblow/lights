@@ -26,23 +26,23 @@ template <typename Sink>
 class StringBuffer: public std::streambuf
 {
 public:
-	explicit StringBuffer(Sink& sink) :
-		m_string(sink) {}
+	explicit StringBuffer(FormatSinkAdapter<Sink>& out) :
+		m_out(out) {}
 
 	virtual int_type overflow(int_type ch) override
 	{
-		m_string.append(static_cast<char>(ch));
+		m_out.append(static_cast<char>(ch));
 		return ch;
 	}
 
 	virtual std::streamsize	xsputn(const char* s, std::streamsize n) override
 	{
-		m_string.append({s, static_cast<std::size_t>(n)});
+		m_out.append({s, static_cast<std::size_t>(n)});
 		return n;
 	}
 
 private:
-	FormatSinkAdapter<Sink>& m_string;
+	FormatSinkAdapter<Sink>& m_out;
 };
 
 } // namespace details
