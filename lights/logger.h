@@ -13,8 +13,6 @@
 #include <unordered_map>
 #include <fstream>
 
-#include <time.h>
-
 #include "format.h"
 #include "file.h"
 #include "exception.h"
@@ -351,9 +349,6 @@ void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const Source
 //void TextLogger<Sink>::generate_signature()
 //{
 //	std::time_t time = std::time(nullptr);
-//	std::tm tm;
-//	localtime_r(&time, &tm);
-//
 //	m_writer << '[' << Timestamp(time);
 //	m_writer << "] [" << m_name << "] [" << to_string(m_level) << "] ";
 //}
@@ -416,7 +411,7 @@ private:
 	{
 		size_t operator()(const StringViewPtr& str) const noexcept
 		{
-			return std::_Hash_impl::hash(str->data(), str->length());
+			return env_hash(str->data(), str->length());
 		}
 	};
 

@@ -15,9 +15,8 @@
 #include <limits>
 #include <functional>
 
-#include <errno.h>
-
 #include "config.h"
+#include "env.h"
 #include "sequence.h"
 #include "common.h"
 
@@ -209,47 +208,6 @@ private:
 	char* m_begin;
 };
 
-
-class ErrorFormater
-{
-public:
-	StringView format(int errer_no)
-	{
-		// Not use sys_nerr and sys_errlist directly, although the are easy to control.
-		// Because sys_nerr may bigger that sys_errlist size and sys_errlist may have't
-		// all string for errno. In the way will lead to segment fault.
-#if (_POSIX_C_SOURCE >= 200112L) && !_GNU_SOURCE  // XSI-compliant (posix) version.
-		if (strerror_r(errer_no, m_buf, sizeof(m_buf)) == 0)
-		{
-			return m_buf;
-		}
-		else
-		{
-			return "Unkown error";
-		}
-#else // GNU-specific version, m_buf only use when it is unkown.
-		return strerror_r(errer_no, m_buf, sizeof(m_buf));
-#endif
-	}
-
-	StringView format(ErrorNumber errer_no)
-	{
-		return this->format(errer_no.value);
-	}
-
-	StringView format_current_error()
-	{
-		return this->format(errno);
-	}
-
-private:
-	// 100 charater is enough to put all error string
-	// on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2) (Englist Version).
-	// In another languague version may have to change to largger to
-	// hold all message.
-	// In GNU-specific version 100 charater can hold all unkown error.
-	char m_buf[100];
-};
 
 template <typename Sink>
 inline FormatSinkAdapter<Sink> write_2_digit(FormatSinkAdapter<Sink> out, unsigned num)
@@ -590,15 +548,16 @@ inline void to_string(FormatSinkAdapter<Sink> out, long double n)
 template <typename Sink>
 inline void to_string(FormatSinkAdapter<Sink> out, ErrorNumber error_no)
 {
-	details::ErrorFormater formater;
-	out.append(formater.format(error_no));
+	char buf[ENV_MAX_ERROR_STR_LEN];
+	const char* result = env_strerror(error_no.value, buf, ENV_MAX_ERROR_STR_LEN);
+	out.append(result);
 }
 
 template <typename Sink>
 void to_string(FormatSinkAdapter<Sink> out, Timestamp timestamp)
 {
 	std::tm tm;
-	localtime_r(&timestamp.value, &tm);
+	env_localtime(&timestamp.value, &tm);
 
 	out << static_cast<unsigned>(tm.tm_year + 1900) << '-';
 	details::write_2_digit(out, static_cast<unsigned>(tm.tm_mon + 1)) << '-';

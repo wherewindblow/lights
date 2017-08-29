@@ -10,6 +10,7 @@
 #include <cassert>
 
 #include "config.h"
+#include "env.h"
 #include "sequence.h"
 #include "format.h"
 #include "exception.h"
@@ -130,14 +131,12 @@ public:
 
 	std::streamoff tell()
 	{
-		// Return type off_t will fit into suitable type for 32 and 64 architechures.
-		return ftello(m_file);
+		return env_ftell(m_file);
 	}
 
 	void seek(std::streamoff off, FileSeekWhence whence)
 	{
-		// off type off_t will fit into suitable type for 32 and 64 architechures.
-		fseeko(m_file, off, static_cast<int>(whence));
+		env_fseek(m_file, off, static_cast<int>(whence));
 	}
 
 	void rewind()
