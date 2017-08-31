@@ -6,11 +6,13 @@ set(LIGHTS_SOURCE_FILES
         format.h format.cpp
         ostream.h
         file.h
+        string_table.h string_table.cpp
         logger.h logger.cpp
         common.h
         current_function.hpp
         exception.h exception.cpp
 
+        format/binary_format.h
         log_sinks/stdout_sink.h
         log_sinks/cout_sink.h
         log_sinks/null_sink.h

@@ -6,6 +6,8 @@
 
 #include "example_log.h"
 
+#include <vector>
+
 #include <lights/logger.h>
 #include <lights/log_sinks/file_sink.h>
 #include <lights/log_sinks/stdout_sink.h>

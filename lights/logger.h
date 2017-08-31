@@ -8,14 +8,12 @@
 
 #include <cstring>
 #include <ctime>
-#include <memory>
-#include <vector>
-#include <unordered_map>
-#include <fstream>
 
 #include "format.h"
+#include "format/binary_format.h"
 #include "file.h"
 #include "exception.h"
+#include "string_table.h"
 
 
 namespace lights {
@@ -377,85 +375,6 @@ void TextLogger<Sink>::generate_signature(LogLevel level, std::uint16_t module_i
 }
 
 
-class StringTable
-{
-public:
-	using StringViewPtr = std::shared_ptr<const StringView>;
-	using StringTablePtr = std::shared_ptr<StringTable>;
-
-	static StringTablePtr create(StringView filename)
-	{
-		return std::make_shared<StringTable>(filename);
-	}
-
-	StringTable(StringView filename);
-
-	~StringTable();
-
-	std::size_t get_str_index(StringView str);
-
-	std::size_t add_str(StringView str);
-
-	StringView operator[] (std::size_t index) const
-	{
-		return *m_str_array[index];
-	}
-
-	StringView get_str(std::size_t index) const
-	{
-		return (*this)[index];
-	}
-
-private:
-	struct StringHash
-	{
-		size_t operator()(const StringViewPtr& str) const noexcept
-		{
-			return env_hash(str->data(), str->length());
-		}
-	};
-
-	struct StringEqualTo
-	{
-		bool operator()(const StringViewPtr& lhs, const StringViewPtr& rhs) const noexcept
-		{
-			if (lhs->length() != rhs->length())
-			{
-				return false;
-			}
-			else
-			{
-				return std::memcmp(lhs->data(), rhs->data(), rhs->length()) == 0;
-			}
-		}
-	};
-
-	struct EmptyDeleter
-	{
-		void operator()(const StringView*) const noexcept {}
-	};
-
-	struct StringDeleter
-	{
-		void operator()(const StringView* str) const noexcept
-		{
-			delete[] str->data();
-			delete str;
-		}
-	};
-
-	std::fstream m_file;
-	std::size_t m_last_index = static_cast<std::size_t>(-1);
-	std::vector<StringViewPtr> m_str_array; // To generate index
-	std::unordered_map<StringViewPtr,
-					   std::uint32_t,
-					   StringHash,
-					   StringEqualTo> m_str_hash; // To find faster.
-};
-
-using StringTablePtr = StringTable::StringTablePtr;
-
-
 struct BinaryMessageSignature
 {
 public:
@@ -682,12 +601,12 @@ private:
 							StringView descript)
 	{
 		m_signature.set_time(get_precise_time());
-		auto file_id = m_str_table->get_str_index(location.file());
+		auto file_id = m_str_table->get_index(location.file());
 		m_signature.set_file_id(static_cast<std::uint32_t>(file_id));
-		auto function_id = m_str_table->get_str_index(location.function());
+		auto function_id = m_str_table->get_index(location.function());
 		m_signature.set_function_id(static_cast<std::uint32_t>(function_id));
 		m_signature.set_line(location.line());
-		m_signature.set_description_id(static_cast<std::uint32_t>(m_str_table->get_str_index(descript)));
+		m_signature.set_description_id(static_cast<std::uint32_t>(m_str_table->get_index(descript)));
 		m_signature.set_module_id(module_id);
 		m_signature.set_level(level);
 	}
