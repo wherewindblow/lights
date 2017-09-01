@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <limits>
 #include <functional>
 
 #include "config.h"

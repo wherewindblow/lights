@@ -7,7 +7,7 @@
 #pragma once
 
 #include <cstring>
-#include <algorithm>
+#include <type_traits>
 
 
 namespace lights {
