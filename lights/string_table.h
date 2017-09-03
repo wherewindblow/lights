@@ -8,7 +8,6 @@
 
 #include <memory>
 
-#include "env.h"
 #include "sequence.h"
 
 
@@ -20,13 +19,12 @@ struct StringTableImpl;
 
 } // namespace details
 
+class StringTable;
+using StringTablePtr = std::shared_ptr<StringTable>;
 
 class StringTable
 {
 public:
-	using StringViewPtr = std::shared_ptr<const StringView>;
-	using StringTablePtr = std::shared_ptr<StringTable>;
-
 	static StringTablePtr create(StringView filename)
 	{
 		return std::make_shared<StringTable>(filename);
@@ -66,6 +64,5 @@ private:
 	std::unique_ptr<ImplementType> p_impl;
 };
 
-using StringTablePtr = StringTable::StringTablePtr;
 
 } // namespace lights

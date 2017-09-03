@@ -53,8 +53,8 @@ private:
  * that use insertion operator with std::ostream and T.
  * Aim to support format with
  *   `std::ostream& operator<< (std::ostream& out, const T& value)`
- * @param out    Abstract string.
- * @param value  User type.
+ * @param out    A FormatSinkAdapter.
+ * @param value  User-defined type value.
  */
 template <typename Sink, typename T>
 inline void to_string(FormatSinkAdapter<Sink> out, const T& value)
@@ -64,14 +64,18 @@ inline void to_string(FormatSinkAdapter<Sink> out, const T& value)
 	ostream << value;
 }
 
-
+/**
+ * Inserts @c StringView object to @c std::ostream object.
+ */
 inline std::ostream& operator<< (std::ostream& out, StringView str)
 {
 	out.write(str.data(), str.length());
 	return out;
 }
 
-
+/**
+ * Inserts @c SequenceView object to @c std::ostream object.
+ */
 inline std::ostream& operator<< (std::ostream& out, SequenceView sequence)
 {
 	out << to_string_view(sequence);

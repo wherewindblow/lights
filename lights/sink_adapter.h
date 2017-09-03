@@ -13,6 +13,9 @@
 
 namespace lights {
 
+/**
+ * SinkAdapter is a virtual base class and use as backend of ouput.
+ */
 class SinkAdapter
 {
 public:
@@ -22,7 +25,9 @@ public:
 	virtual std::size_t write(SequenceView buffer) = 0;
 };
 
-
+/**
+ * NullSinkAdapter will accept all data and do nothing.
+ */
 class NullSinkAdapter: public SinkAdapter
 {
 public:
@@ -33,12 +38,18 @@ public:
 };
 
 
+/**
+ * Inserts @c SequenceView object to @c SinkAdapter object.
+ */
 inline SinkAdapter& operator<< (SinkAdapter& sink, SequenceView sequence)
 {
 	sink.write(sequence);
 	return sink;
 }
 
+/**
+ * Inserts @c StringView object to @c SinkAdapter object.
+ */
 inline SinkAdapter& operator<< (SinkAdapter& sink, StringView str)
 {
 	sink.write(str);
@@ -49,6 +60,10 @@ inline SinkAdapter& operator<< (SinkAdapter& sink, StringView str)
 template <typename Sink>
 class FormatSinkAdapter;
 
+/**
+ * Explicit template specialization for SinkAdapter.
+ * Aim to allow change sink in runtime via inherit from SinkAdapter.
+ */
 template <>
 class FormatSinkAdapter<SinkAdapter>
 {

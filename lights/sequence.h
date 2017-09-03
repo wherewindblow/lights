@@ -13,6 +13,10 @@
 
 namespace lights {
 
+/**
+ * Reference to a string, only contain a pointer and length.
+ * It's can convert from @c std::string and literal string.
+ */
 class String
 {
 public:
@@ -68,11 +72,11 @@ private:
 	std::size_t m_length;
 };
 
-
 /**
- * View of string, can reduce data copy.
+ * Reference to a const string, only contain a pointer and length.
+ * It's can convert from @c String, @c std::string and literal string.
  * @note Cannot store this at some place, because you cannot know where the
- *       resource that internal point to will not available. The best way to
+ *       resource that internal point to will not valid. The best way to
  *       use it is use as parameter.
  */
 class StringView
@@ -129,6 +133,10 @@ private:
 };
 
 
+/**
+ * Reference to a void buffer, only contain a pointer and length.
+ * It's can convert from @c String.
+ */
 class Sequence
 {
 public:
@@ -172,9 +180,10 @@ private:
 
 
 /**
- * View of sequence, can reduce data copy.
+ * Reference to a void buffer, only contain a pointer and length.
+ * It's can convert from @c Sequence, @c String and @c StringView.
  * @note Cannot store this at some place, because you cannot know where the
- *       resource that internal point to will not available. The best way to
+ *       resource that internal point to will not valid. The best way to
  *       use it is use as parameter.
  */
 class SequenceView
@@ -183,8 +192,8 @@ public:
 	SequenceView(const void* data, std::size_t len) :
 		m_data(data), m_length(len) {}
 
-	SequenceView(Sequence buffer):
-		m_data(buffer.data()), m_length(buffer.length()) {}
+	SequenceView(Sequence sequence):
+		m_data(sequence.data()), m_length(sequence.length()) {}
 
 	SequenceView(String str) :
 		m_data(str.data()), m_length(str.length()) {}
@@ -220,12 +229,17 @@ private:
 };
 
 
-
+/**
+ * Convert @c Sequence object to @c String object.
+ */
 inline String to_string(Sequence sequence)
 {
 	return String(static_cast<String::CharType*>(sequence.data()), sequence.length());
 }
 
+/**
+ * Convert @c SequenceView object to @c StringView object.
+ */
 inline StringView to_string_view(SequenceView sequence)
 {
 	return StringView(static_cast<StringView::CharType*>(sequence.data()), sequence.length());

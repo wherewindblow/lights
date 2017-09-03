@@ -18,14 +18,17 @@ namespace lights {
 template <std::size_t buffer_size>
 class BinaryStoreWriter;
 
+/**
+ * Empty function.
+ */
 template <std::size_t buffer_size>
 inline void write(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> /* out */, StringView /* fmt */)
 {
 }
 
 /**
- * This explicit template specialization must declare before use it or cannot
- * into this function and into general write function.
+ * @note This explicit template specialization must declare before use it or cannot
+ *       into this function and into general write function.
  */
 template <std::size_t buffer_size, typename Arg, typename ... Args>
 void write(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out,
@@ -51,6 +54,9 @@ void write(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out,
 }
 
 
+/**
+ * Enum all type of binary format support.
+ */
 enum class BinaryTypeCode: std::uint8_t
 {
 	INVALID = 0,
@@ -85,6 +91,9 @@ inline BinaryTypeCode get_type_code(const char*)
 	return BinaryTypeCode::STRING;
 }
 
+/**
+ * Get @c BinaryTypeCode by integer type @c T.
+ */
 template <typename T>
 inline BinaryTypeCode get_type_code(T)
 {
@@ -113,7 +122,9 @@ inline BinaryTypeCode get_type_code(T)
 	return static_cast<BinaryTypeCode>(static_cast<int>(BinaryTypeCode::INT8_T) + offset);
 }
 
-
+/**
+ * Get type with of type by BinaryTypeCode.
+ */
 inline std::uint8_t get_type_width(BinaryTypeCode code)
 {
 	static std::uint8_t widths[] = {
@@ -138,7 +149,11 @@ inline std::uint8_t get_type_width(BinaryTypeCode code)
 	}
 }
 
-
+/**
+ * BinaryStoreWriter use to store all format arguments and delay text format.
+ * @tparam buffer_size  Default size is @c WRITER_BUFFER_SIZE_DEFAULT
+ * @note If the internal buffer is full will have no effect.
+ */
 template <std::size_t buffer_size = WRITER_BUFFER_SIZE_DEFAULT>
 class BinaryStoreWriter
 {
@@ -150,6 +165,9 @@ public:
 		ENDED
 	};
 
+	/**
+	 * @note If the internal buffer is full will have no effect.
+	 */
 	void append(char ch)
 	{
 		if (can_append(sizeof(BinaryTypeCode) + sizeof(ch)))
@@ -163,6 +181,9 @@ public:
 		}
 	}
 
+	/**
+	 * @note If the internal buffer is full will have no effect.
+	 */
 	void append(StringView str)
 	{
 		if (str.length() == 0)
@@ -216,6 +237,9 @@ public:
 		LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(std::uint8_t);
 	}
 
+	/**
+	 * Inserts a integer and convert to small integer type when can convert.
+	 */
 #define LIGHTS_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(Type, FitSmallType) \
 	BinaryStoreWriter& operator<< (Type n) \
 	{ \
@@ -257,6 +281,7 @@ public:
 
 	/**
 	 * It's only for write format to call and easy to restore.
+	 * @note If the internal buffer is full will have no effect.
 	 */
 	template <typename T>
 	void add_composed_type(const T& value)
@@ -294,66 +319,104 @@ public:
 		}
 	}
 
+	/**
+	 * Forward to @c lights::write() function.
+	 * @note If the internal buffer is full will have no effect.
+	 */
 	template <typename Arg, typename ... Args>
 	void write(StringView fmt, const Arg& value, const Args& ... args)
 	{
 		lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
 	}
 
+	/**
+	 * Forward to @c lights::write() function.
+	 * @note If the internal buffer is full will have no effect.
+	 */
 	void write(StringView fmt)
 	{
 		lights::write(make_format_sink_adapter(*this), fmt);
 	}
 
+	/**
+	 * Return the internal buffer.
+	 */
 	const std::uint8_t* data() const
 	{
 		return m_buffer;
 	}
 
+	/**
+	 * Return the internal buffer in c string but not null-terminated.
+	 */
 	const char* c_str() const
 	{
 		return str_view().data();
 	}
 
+	/**
+	 * Return a @c std::string that convert from internal buffer.
+	 */
 	std::string str() const
 	{
 		return str_view().to_string();
 	}
 
+	/**
+	 * Return a @c StringView of internal buffer.
+	 * @note The return value is only valid when this object have no change
+	 *       the area of return @c StringView.
+	 */
 	StringView str_view() const
 	{
 		return { reinterpret_cast<const char*>(m_buffer), m_length };
 	}
 
+	/**
+	 * Return the length of internal buffer.
+	 */
 	std::size_t length() const
 	{
 		return m_length;
 	}
 
+	/**
+	 * Return the length of internal buffer.
+	 * @details It's same as @c length() function.
+	 */
 	std::size_t size() const
 	{
 		return m_length;
 	}
 
+	/**
+	 * Set the format result length to zero.
+	 */
 	void clear()
 	{
 		m_length = 0;
 	}
 
 	/**
-	 * Get max size can be.
+	 * Return the max size that format result can be.
 	 */
 	constexpr std::size_t max_size() const
 	{
 		return buffer_size;
 	}
 
+	/**
+	 * Return the internal buffer size.
+	 */
 	constexpr std::size_t capacity() const
 	{
 		return buffer_size;
 	}
 
 private:
+	/**
+	 * Check can append @c len data.
+	 */
 	bool can_append(std::size_t len)
 	{
 		return m_length + len <= max_size();
@@ -401,6 +464,9 @@ private:
 };
 
 
+/**
+ * Use @c BinaryStoreWriter member function to format integer to speed up.
+ */
 #define LIGHTS_BINARY_STORE_WRITER_TO_STRING(Type) \
 template <std::size_t buffer_size> \
 inline void to_string(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out, Type n) \
@@ -413,33 +479,62 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_TO_STRING)
 #undef LIGHTS_BINARY_STORE_WRITER_TO_STRING
 
 
+/**
+ * BinaryRestoreWriter use to format text with arguments that store by @c BinaryStoreWriter.
+ * @tparam buffer_size  Default size is @c WRITER_BUFFER_SIZE_DEFAULT
+ * @note If the internal buffer is full will have no effect.
+ */
 template <std::size_t buffer_size = WRITER_BUFFER_SIZE_DEFAULT>
 class BinaryRestoreWriter
 {
 public:
+	/**
+	 * @note If the internal buffer is full will have no effect.
+	 */
 	void append(char ch)
 	{
 		m_writer.append(ch);
 	}
 
+	/**
+	 * @note If the internal buffer is full will have no effect.
+	 */
 	void append(StringView str)
 	{
 		m_writer.append(str);
 	}
 
+	/**
+	 * Forward to lights::write() function to format text.
+	 * @note If the internal buffer is full will have no effect.
+	 */
 	template <typename Arg, typename ... Args>
 	void write_text(StringView fmt, const Arg& value, const Args& ... args)
 	{
 		// Must add namespace scope limit or cannot find suitable function.
 		lights::write(make_format_sink_adapter(m_writer), fmt, value, args ...);
 	}
+
+	/**
+	 * Forward to lights::write() function to format text.
+	 * @note If the internal buffer is full will have no effect.
+	 */
 	void write_text(StringView fmt)
 	{
 		lights::write(make_format_sink_adapter(m_writer), fmt);
 	}
 
+	/**
+	 * Forward to lights::write() function to format binary.
+	 * @note If the internal buffer is full will have no effect.
+	 */
 	void write_binary(StringView fmt, const std::uint8_t* binary_store_args, std::size_t args_length);
 
+	/**
+	 * Forward to lights::operater<<() function.
+	 * @return Return the reference of this object.
+	 * @note If the internal buffer is full will have no effect.
+	 */
 	template <typename T>
 	BinaryRestoreWriter& operator<< (const T& value)
 	{
@@ -447,41 +542,69 @@ public:
 		return *this;
 	}
 
+	/**
+	 * Return a pointer to null-terminated character array that store in internal.
+	 */
 	const char* c_str() const
 	{
 		return m_writer.c_str();
 	}
 
+	/**
+	 * Return a @c std::string that convert from internal buffer.
+	 * @note This convertion will generate a data copy.
+	 */
 	std::string str() const
 	{
 		return m_writer.str();
 	}
 
+	/**
+	 * Return a @c StringView of internal buffer.
+	 * @note The return value is only valid when this object have no change
+	 *       the area of return @c StringView.
+	 */
 	StringView str_view() const
 	{
 		return m_writer.str_view();
 	}
 
+	/**
+	 * Return the length of internal buffer.
+	 */
 	std::size_t length() const
 	{
 		return m_writer.length();
 	}
 
+	/**
+	 * Return the length of internal buffer.
+	 * @details It's same as @c length() function.
+	 */
 	std::size_t size() const
 	{
 		return m_writer.size();
 	}
 
+	/**
+	 * Set the format result length to zero.
+	 */
 	void clear()
 	{
 		m_writer.clear();
 	}
 
+	/**
+	 * Return the max size that format result can be.
+	 */
 	constexpr std::size_t max_size() const
 	{
 		return m_writer.max_size();
 	}
 
+	/**
+	 * Return the internal buffer size.
+	 */
 	constexpr std::size_t capacity() const
 	{
 		return m_writer.capacity();

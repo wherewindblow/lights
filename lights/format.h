@@ -37,12 +37,14 @@ namespace lights {
 	LIGHTS_IMPLEMENT_UNSIGNED_INTEGER_FUNCTION(macro)
 
 
-// To set this type to signed char for convenient to assign to
-// any type. Char is the smallest basic type and assign to other
-// type will not lose data. And signed will ensure this value is -1
-// not 255, -1 signed char fit into int will be -1, fit into signed
-// int will be the biggest value of signed int. If unsigned fit
-// into int will be 255 and unsigned int also is this value.
+/**
+ * To set this type to signed char for convenient to assign to
+ * any type. Char is the smallest basic type and assign to other
+ * type will not lose data. And signed will ensure this value is -1
+ * not 255, -1 signed char fit into int will be -1, fit into signed
+ * int will be the biggest value of signed int. If unsigned fit
+ * into int will be 255 and unsigned int also is this value.
+ */
 static const signed char INVALID_INDEX = -1;
 
 
@@ -57,7 +59,7 @@ struct IntegerFormatSpec
 
 
 /**
- * A wrapper aim to identify this is a error not an integer.
+ * A wrapper aim to identity this is a error not an integer.
  */
 struct ErrorNumber
 {
@@ -72,6 +74,9 @@ inline ErrorNumber current_error()
 	return ErrorNumber(errno);
 }
 
+/**
+ * A wrapper aim to identity this is a time not an integer.
+ */
 struct Timestamp
 {
 	Timestamp() = default;
@@ -91,7 +96,7 @@ inline Timestamp current_timestamp()
  * It's light weight and can be use as pass by value.
  * @tparam Sink  To be write backend.
  * @note This class template cannot to be use, and must to be
- *       instantiation and implement the method by user.
+ *       explicit specialization and implement the method by user.
  */
 template <typename Sink>
 class FormatSinkAdapter
@@ -134,7 +139,9 @@ inline FormatSinkAdapter<T> make_format_sink_adapter(T& value)
 	return FormatSinkAdapter<T>(value);
 }
 
-
+/**
+ * Explicit tempate specialization of std::string
+ */
 template <>
 class FormatSinkAdapter<std::string>
 {
@@ -173,9 +180,22 @@ static constexpr char digists[] =
 #endif
 
 
+/**
+ * Get the need space of format integer @c n.
+ * @tparam Integer  Any integer type.
+ * @param n         A integer that type of Integer.
+ */
 template <typename Integer>
 std::size_t format_need_space(Integer n);
 
+/**
+ * Format a integer @c n to @c output.
+ * @tparam Integer  Any integer type.
+ * @param n         A integer that type of Integer.
+ * @param output    Point to that last place of ouput.
+ * @return  The result that point to first digit.
+ * @note Format character backwards to @c output and @c *output this pos is not use.
+ */
 template <typename Integer>
 char* format_integer(Integer n, char* output);
 
@@ -221,11 +241,15 @@ inline FormatSinkAdapter<Sink> write_2_digit(FormatSinkAdapter<Sink> out, unsign
 }
 
 
+/**
+ * Integer format spec tag is only use to identity which spec is indicate.
+ */
 struct BinarySpecTag {};
 struct OctalSpecTag {};
 struct DecimalSpecTag {};
 struct HexSpecLowerCaseTag {};
 struct HexSpecUpperCaseTag {};
+
 
 /**
  * Convert integer to binary character.
@@ -499,7 +523,11 @@ inline void to_string(FormatSinkAdapter<Sink> out, char ch)
 	out.append(ch);
 }
 
-
+/**
+ * Format all type of integer to string.
+ * @details Why must explicit specialization it? Because if not do that, SFINAE will
+ *          pass user-defined type into this template function and cause compile error.
+ */
 #define LIGHTS_INTEGER_TO_STRING(Type)            \
 template <typename Sink>                          \
 inline void to_string(FormatSinkAdapter<Sink> out, Type n) \
@@ -557,6 +585,7 @@ void to_string(FormatSinkAdapter<Sink> out, Timestamp timestamp)
 	env_localtime(&timestamp.value, &tm);
 
 	out << static_cast<unsigned>(tm.tm_year + 1900) << '-';
+	// Why not use pad, because pad will it more complex and slow.
 	details::write_2_digit(out, static_cast<unsigned>(tm.tm_mon + 1)) << '-';
 	details::write_2_digit(out, static_cast<unsigned>(tm.tm_mday)) << ' ';
 	details::write_2_digit(out, static_cast<unsigned>(tm.tm_hour)) << ':';
@@ -702,11 +731,10 @@ inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, de
 
 
 /**
- * Append the @c arg to the end of @c out. It'll invoke @c to_string
- * Aim to support append not char* and not std::string
- * to the end of @c out.
- * @param out    Abstract string.
- * @param value  Any type.
+ * Append the @c arg to the end of @c out. It'll invoke @c to_string()
+ * Aim to support append not string type to the end of @c out.
+ * @param out    A FormatSinkAdapter.
+ * @param value  Any type value.
  */
 template <typename Sink, typename T>
 inline void append(FormatSinkAdapter<Sink> out, const T& value)
@@ -740,13 +768,13 @@ inline void append(FormatSinkAdapter<Sink> out, StringView str)
 
 
 /**
- * Insert value into the sink. It'll invoke @c append
+ * Insert value into the sink. It'll invoke @c append()
  * Aim to support user can define
- *   `StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value)`
- * to format with user type
- * @param out    Abstract string.
- * @param value  Built-in type or user type.
- * @return StringAdapter.
+ *   `FormatSinkAdapter<Sink> operator<< (FormatSinkAdapter<Sink> out, const T& value)`
+ * to format with user type.
+ * @param out    A FormatSinkAdapter.
+ * @param value  Built-in type or user-defined type value.
+ * @return FormatSinkAdapter.
  */
 template <typename Sink, typename T>
 inline FormatSinkAdapter<Sink> operator<< (FormatSinkAdapter<Sink> out, const T& value)
@@ -755,7 +783,9 @@ inline FormatSinkAdapter<Sink> operator<< (FormatSinkAdapter<Sink> out, const T&
 	return out;
 }
 
-
+/**
+ * Use for recursion of unpack arguments of @c write() when have not argument.
+ */
 template <typename Sink>
 inline void write(FormatSinkAdapter<Sink> out, StringView fmt)
 {
@@ -765,7 +795,7 @@ inline void write(FormatSinkAdapter<Sink> out, StringView fmt)
 /**
  * Write to the end of string that use @c fmt and @c args ...
  * @param sink  Output holder.
- * @param fmt   Format that use '{}' as placeholder.
+ * @param fmt   Format string that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
  * @return Formated string.
  * @note If args is user type, it must have a user function as
@@ -816,6 +846,12 @@ enum WriterBufferSize: std::size_t
 };
 
 
+/**
+ * TextWriter use to format text and have internal buffer to hold all format result.
+ * @tparam buffer_size  Default size is @c WRITER_BUFFER_SIZE_DEFAULT.
+ * @note If the internal buffer is full will have no effect, unless have already
+ *       set full handler.
+ */
 template <std::size_t buffer_size = WRITER_BUFFER_SIZE_DEFAULT>
 class TextWriter
 {
@@ -826,7 +862,8 @@ public:
 	 * Basic append function to append a character.
 	 * Append a char to the end of internal buffer.
 	 * @param ch  Character to append.
-	 * @note If the internal buffer is full will have no effect.
+	 * @note If the internal buffer is full will have no effect, unless have already
+	 *       set full handler.
 	 */
 	void append(char ch)
 	{
@@ -854,7 +891,8 @@ public:
 	 * Append the first len character string point to by str to the end of internal buffer.
 	 * @param str  Point to the character string to append.
 	 * @param len  Length of character to append.
-	 * @note If the internal buffer is full will have no effect.
+	 * @note If the internal buffer is full will have no effect, unless have already
+	 *       set full handler.
 	 */
 	void append(StringView str)
 	{
@@ -873,6 +911,11 @@ public:
 		}
 	}
 
+	/**
+	 * Forward to lights::write() function.
+	 * @note If the internal buffer is full will have no effect, unless have already
+	 *       set full handler.
+	 */
 	template <typename Arg, typename ... Args>
 	void write(StringView fmt, const Arg& value, const Args& ... args)
 	{
@@ -880,11 +923,22 @@ public:
 		lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
 	}
 
+	/**
+	 * Forward to lights::write() function.
+	 * @note If the internal buffer is full will have no effect, unless have already
+	 *       set full handler.
+	 */
 	void write(StringView fmt)
 	{
 		lights::write(make_format_sink_adapter(*this), fmt);
 	}
 
+	/**
+	 * Inserts integer to internal buffer.
+	 * @return Return the reference of this object.
+	 * @note If the internal buffer is full will have no effect, unless have already
+	 *       set full handler.
+	 */
 #define LIGHTS_TEXT_WRITER_APPEND_INTEGER(Type)           \
 	TextWriter& operator<< (Type n)                       \
 	{                                                       \
@@ -901,6 +955,13 @@ public:
 
 #undef LIGHTS_TEXT_WRITER_APPEND_INTEGER
 
+	/**
+	 * Forward to lights::operater<<() function.
+	 * @param value  User-defined type value.
+	 * @return Return the reference of this object.
+	 * @note If the internal buffer is full will have no effect, unless have already
+	 *       set full handler.
+	 */
 	template <typename T>
 	TextWriter& operator<< (const T& value)
 	{
@@ -908,32 +969,54 @@ public:
 		return *this;
 	}
 
+	/**
+	 * Return a pointer to null-terminated character array that store in internal.
+	 */
 	const char* c_str() const
 	{
 		const_cast<TextWriter*>(this)->m_buffer[m_length] = '\0';
 		return m_buffer;
 	}
 
+	/**
+	 * Return a @c std::string that convert from internal buffer.
+	 * @note This convertion will generate a data copy.
+	 */
 	std::string str() const
 	{
 		return str_view().to_string();
 	}
 
+	/**
+	 * Return a @c StringView of internal buffer.
+	 * @note The return value is only valid when this object have no change
+	 *       the area of return @c StringView.
+	 */
 	StringView str_view() const
 	{
 		return { m_buffer, m_length };
 	}
 
+	/**
+	 * Return the length of internal buffer.
+	 */
 	std::size_t length() const
 	{
 		return m_length;
 	}
 
+	/**
+	 * Return the length of internal buffer.
+	 * @details It's same as @c length() function.
+	 */
 	std::size_t size() const
 	{
 		return m_length;
 	}
 
+	/**
+	 * Set the format result length to zero.
+	 */
 	void clear()
 	{
 		m_length = 0;
@@ -944,19 +1027,27 @@ public:
 		return m_full_handler;
 	}
 
+	/**
+	 * Set full handler to listen for internal buffer is full.
+	 * @details After set full handler, this handler will be call when internal buffer
+	 *          is full. And reset interal buffer and try to append argument.
+	 */
 	void set_full_handler(const FullHandler& full_handler)
 	{
 		m_full_handler = full_handler;
 	}
 
 	/**
-	 * Get max size can be.
+	 * Return the max size that format result can be.
 	 */
 	constexpr std::size_t max_size() const
 	{
 		return buffer_size - 1; // Remain a charater to hold null chareter.
 	}
 
+	/**
+	 * Return the internal buffer size.
+	 */
 	constexpr std::size_t capacity() const
 	{
 		return buffer_size;
@@ -1040,6 +1131,10 @@ private:
 	TextWriter<buffer_size>& m_sink;
 };
 
+
+/**
+ * Use @c TextWriter member function to format integer to speed up.
+ */
 #define LIGHTS_TEXT_WRITER_TO_STRING(Type) \
 template <std::size_t buffer_size> \
 inline void to_string(FormatSinkAdapter<TextWriter<buffer_size>> out, Type n) \
@@ -1054,7 +1149,7 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_TEXT_WRITER_TO_STRING)
 
 /**
  * Format string that use @c fmt and @c args ...
- * @param fmt   Format that use '{}' as placeholder.
+ * @param fmt   Format string that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
  * @return Formated string.
  * @note If args is user type, it must have a user function as

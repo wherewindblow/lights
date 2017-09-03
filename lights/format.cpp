@@ -1,4 +1,4 @@
-/**
+/*
  * format.cpp
  * @author wherewindblow
  * @date   Aug 13, 2017
@@ -55,9 +55,6 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_DETAILS_FORMAT_NEED_SPACE);
 #undef LIGHTS_DETAILS_FORMAT_NEED_SPACE
 
 
-/**
- * @note Format character backwards to @c output and @c output this pos is not use.
- */
 template <typename Integer>
 char* format_integer(Integer n, char* output)
 {

@@ -11,6 +11,7 @@
 #include <fstream>
 
 #include "exception.h"
+#include "env.h"
 
 
 namespace lights {
@@ -111,7 +112,7 @@ StringTable::~StringTable()
 
 std::size_t StringTable::get_index(StringView str)
 {
-	StringViewPtr str_ptr(&str, ImplementType::EmptyDeleter());
+	ImplementType::StringViewPtr str_ptr(&str, ImplementType::EmptyDeleter());
 	auto itr = impl()->str_hash.find(str_ptr);
 	if (itr == impl()->str_hash.end())
 	{
@@ -129,7 +130,7 @@ std::size_t StringTable::add_str(StringView str)
 	char* storage = new char[str.length()];
 	copy_array(storage, str.data(), str.length());
 	StringView* new_view = new StringView(storage, str.length());
-	StringViewPtr str_ptr(new_view, ImplementType::StringDeleter());
+	ImplementType::StringViewPtr str_ptr(new_view, ImplementType::StringDeleter());
 
 	impl()->str_array.push_back(str_ptr);
 	auto pair = std::make_pair(str_ptr, impl()->str_array.size() - 1);
