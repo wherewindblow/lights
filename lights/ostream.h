@@ -64,18 +64,13 @@ inline void to_string(FormatSinkAdapter<Sink> out, const T& value)
 	ostream << value;
 }
 
-/**
- * Inserts @c StringView object to @c std::ostream object.
- */
+
 inline std::ostream& operator<< (std::ostream& out, StringView str)
 {
 	out.write(str.data(), str.length());
 	return out;
 }
 
-/**
- * Inserts @c SequenceView object to @c std::ostream object.
- */
 inline std::ostream& operator<< (std::ostream& out, SequenceView sequence)
 {
 	out << to_string_view(sequence);

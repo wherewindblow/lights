@@ -17,6 +17,9 @@
 
 namespace lights {
 
+/**
+ * SourceLocation records the source file location.
+ */
 class SourceLocation
 {
 public:
@@ -45,6 +48,9 @@ private:
 	std::uint32_t m_line;
 };
 
+/**
+ * Returns the current source file location.
+ */
 #define LIGHTS_CURRENT_SOURCE_LOCATION lights::SourceLocation(__FILE__, __LINE__, BOOST_CURRENT_FUNCTION)
 
 inline SourceLocation invalid_source_location()
@@ -69,6 +75,10 @@ enum Type
 } // namespace error_code
 
 
+/**
+ * ErrorCodeDescriptions have without arguments description and with arguments description.
+ * To get full descrition must use @c with_args and format with arguments.
+ */
 struct ErrorCodeDescriptions
 {
 	ErrorCodeDescriptions(StringView without_args, StringView with_args) :
@@ -84,6 +94,11 @@ struct ErrorCodeDescriptions
 };
 
 
+/**
+ * ErrorCodeCategory is a virtual base class of error category.
+ * @details Why not use std::system_category() directyl. Because it use std::string as return
+ *          type of get a description of error and that will waste more time.
+ */
 class ErrorCodeCategory
 {
 public:
@@ -94,7 +109,9 @@ public:
 	virtual ErrorCodeDescriptions descriptions(int code) const = 0;
 };
 
-
+/**
+ * LightsErrorCodeCategory is a implementation of error category that use in this lights libraray.
+ */
 class LightsErrorCodeCategory: public ErrorCodeCategory
 {
 public:
@@ -109,6 +126,10 @@ public:
 	}
 };
 
+
+/**
+ * Exception is the base class of all exception that use in this library.
+ */
 class Exception: public std::exception
 {
 public:
@@ -117,11 +138,17 @@ public:
 	{
 	}
 
+	/**
+	 * Returns the occur source location of this exception.
+	 */
 	const SourceLocation& occur_location() const
 	{
 		return m_occur_location;
 	}
 
+	/**
+	 * Returns the error message with null-terminated string.
+	 */
 	const char* what() const noexcept override;
 
 	int code() const
@@ -134,6 +161,11 @@ public:
 		return m_code_category;
 	}
 
+	/**
+	 * Dumps the error message to sink adapter @c out.
+	 * Derived class can implement it via format with arguments.
+	 * @note The error message is no include occur location.
+	 */
 	virtual void dump_message(SinkAdapter& out) const;
 
 private:
@@ -174,6 +206,7 @@ private:
 
 
 /**
+ * Throws a exception and record the current source location.
  * @arg ... Expand to fmt and arg ...
  * @note Expand macro method is not standard.
  */
@@ -181,6 +214,10 @@ private:
         throw ExceptionType(LIGHTS_CURRENT_SOURCE_LOCATION, ##__VA_ARGS__);
 
 
+/**
+ * Dumps all message of exception to sink adapter, include error message and occur source
+ * location.
+ */
 void dump(const Exception& ex, SinkAdapter& out);
 
 inline SinkAdapter& operator<< (SinkAdapter& out, const Exception& ex)

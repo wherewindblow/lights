@@ -189,12 +189,12 @@ template <typename Integer>
 std::size_t format_need_space(Integer n);
 
 /**
- * Format a integer @c n to @c output.
+ * Formats a integer @c n to @c output.
  * @tparam Integer  Any integer type.
  * @param n         A integer that type of Integer.
  * @param output    Point to that last place of ouput.
  * @return  The result that point to first digit.
- * @note Format character backwards to @c output and @c *output this pos is not use.
+ * @note Formats character backwards to @c output and @c *output this pos is not use.
  */
 template <typename Integer>
 char* format_integer(Integer n, char* output);
@@ -252,7 +252,7 @@ struct HexSpecUpperCaseTag {};
 
 
 /**
- * Convert integer to binary character.
+ * Converts integer to binary character.
  * @param value  Integer
  * @return Binary character
  */
@@ -263,7 +263,7 @@ inline char to_binary_char(T value)
 }
 
 /**
- * Convert integer to lower case hex character.
+ * Converts integer to lower case hex character.
  * @param ch  Integer that on range [0, 16)
  * @return Hex character
  */
@@ -280,7 +280,7 @@ inline char to_hex_lower_case_char(char ch)
 }
 
 /**
- * Convert integer to upper case hex character.
+ * Converts integer to upper case hex character.
  * @param ch  Integer that on range [0, 16)
  * @return Hex character
  */
@@ -524,7 +524,7 @@ inline void to_string(FormatSinkAdapter<Sink> out, char ch)
 }
 
 /**
- * Format all type of integer to string.
+ * Formats all type of integer to string.
  * @details Why must explicit specialization it? Because if not do that, SFINAE will
  *          pass user-defined type into this template function and cause compile error.
  */
@@ -594,7 +594,7 @@ void to_string(FormatSinkAdapter<Sink> out, Timestamp timestamp)
 }
 
 /**
- * Create a new spec with padding parameter.
+ * Creates a new spec with padding parameter.
  */
 template <typename Integer, typename Tag>
 inline IntegerFormatSpec<Integer, Tag> pad(IntegerFormatSpec<Integer, Tag> spec, char fill, int width)
@@ -605,7 +605,7 @@ inline IntegerFormatSpec<Integer, Tag> pad(IntegerFormatSpec<Integer, Tag> spec,
 }
 
 /**
- * Create a spec with padding parameter.
+ * Creates a spec with padding parameter.
  * @note Integer only can use integer type.
  */
 template <typename Integer>
@@ -622,7 +622,7 @@ inline IntegerFormatSpec<Integer, details::DecimalSpecTag> pad(Integer n, char f
 }
 
 /**
- * Create a binary spec of formate integer.
+ * Creates a binary spec of formate integer.
  * @note Integer only can use integer type.
  */
 template <typename Integer>
@@ -633,7 +633,7 @@ inline IntegerFormatSpec<Integer, details::BinarySpecTag> binary(Integer n)
 }
 
 /**
- * Convert integer to binary string.
+ * Converts integer to binary string.
  * @param out   The output place to hold the converted string.
  * @param spec  A spec of format integer.
  */
@@ -645,7 +645,7 @@ inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, de
 
 
 /**
- * Create a octal spec of formate integer.
+ * Creates a octal spec of formate integer.
  * @note Integer only can use integer type.
  */
 template <typename Integer>
@@ -656,7 +656,7 @@ inline IntegerFormatSpec<Integer, details::OctalSpecTag> octal(Integer n)
 }
 
 /**
- * Convert integer to binary string.
+ * Converts integer to binary string.
  * @param out   The output place to hold the converted string.
  * @param spec  A spec of format integer.
  */
@@ -668,7 +668,7 @@ inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, de
 
 
 /**
- * Create a hex lower case spec of formate integer.
+ * Creates a hex lower case spec of formate integer.
  * @note Integer only can use integer type.
  */
 template <typename Integer>
@@ -679,7 +679,7 @@ inline IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> hex_lower_case(I
 }
 
 /**
- * Convert integer to hex lower case string.
+ * Converts integer to hex lower case string.
  * @param out   The output place to hold the converted string.
  * @param spec  A spec of format integer.
  */
@@ -690,7 +690,7 @@ inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, de
 }
 
 /**
- * Create a hex upper case spec of formate integer.
+ * Creates a hex upper case spec of formate integer.
  * @note Integer only can use integer type.
  */
 template <typename Integer>
@@ -701,7 +701,7 @@ inline IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> hex_upper_case(I
 }
 
 /**
- * Convert integer to hex upper case string.
+ * Converts integer to hex upper case string.
  * @param out   The output place to hold the converted string.
  * @param spec  A spec of format integer.
  */
@@ -712,7 +712,7 @@ inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, de
 }
 
 /**
- * Convert integer to decimal string.
+ * Converts integer to decimal string.
  * @param out   The output place to hold the converted string.
  * @param spec  A spec of format integer.
  */
@@ -731,7 +731,7 @@ inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, de
 
 
 /**
- * Append the @c arg to the end of @c out. It'll invoke @c to_string()
+ * Appends the @c arg to the end of @c out. It'll invoke @c to_string()
  * Aim to support append not string type to the end of @c out.
  * @param out    A FormatSinkAdapter.
  * @param value  Any type value.
@@ -768,7 +768,7 @@ inline void append(FormatSinkAdapter<Sink> out, StringView str)
 
 
 /**
- * Insert value into the sink. It'll invoke @c append()
+ * Inserts value into the sink. It'll invoke @c append()
  * Aim to support user can define
  *   `FormatSinkAdapter<Sink> operator<< (FormatSinkAdapter<Sink> out, const T& value)`
  * to format with user type.
@@ -784,7 +784,7 @@ inline FormatSinkAdapter<Sink> operator<< (FormatSinkAdapter<Sink> out, const T&
 }
 
 /**
- * Use for recursion of unpack arguments of @c write() when have not argument.
+ * Uses for recursion of unpack arguments of @c write() when have not argument.
  */
 template <typename Sink>
 inline void write(FormatSinkAdapter<Sink> out, StringView fmt)
@@ -793,9 +793,9 @@ inline void write(FormatSinkAdapter<Sink> out, StringView fmt)
 }
 
 /**
- * Write to the end of string that use @c fmt and @c args ...
+ * Writes to the end of string that use @c fmt and @c args ...
  * @param sink  Output holder.
- * @param fmt   Format string that use '{}' as placeholder.
+ * @param fmt   Formats string that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
  * @return Formated string.
  * @note If args is user type, it must have a user function as
@@ -860,7 +860,7 @@ public:
 
 	/**
 	 * Basic append function to append a character.
-	 * Append a char to the end of internal buffer.
+	 * Appends a char to the end of internal buffer.
 	 * @param ch  Character to append.
 	 * @note If the internal buffer is full will have no effect, unless have already
 	 *       set full handler.
@@ -888,8 +888,8 @@ public:
 
 	/**
 	 * Basic append function to append len of characters.
-	 * Append the first len character string point to by str to the end of internal buffer.
-	 * @param str  Point to the character string to append.
+	 * Appends the first len character string point to by str to the end of internal buffer.
+	 * @param str  Points to the character string to append.
 	 * @param len  Length of character to append.
 	 * @note If the internal buffer is full will have no effect, unless have already
 	 *       set full handler.
@@ -912,7 +912,7 @@ public:
 	}
 
 	/**
-	 * Forward to lights::write() function.
+	 * Forwards to lights::write() function.
 	 * @note If the internal buffer is full will have no effect, unless have already
 	 *       set full handler.
 	 */
@@ -935,7 +935,7 @@ public:
 
 	/**
 	 * Inserts integer to internal buffer.
-	 * @return Return the reference of this object.
+	 * @return The reference of this object.
 	 * @note If the internal buffer is full will have no effect, unless have already
 	 *       set full handler.
 	 */
@@ -956,9 +956,9 @@ public:
 #undef LIGHTS_TEXT_WRITER_APPEND_INTEGER
 
 	/**
-	 * Forward to lights::operater<<() function.
+	 * Forwards to lights::operater<<() function.
 	 * @param value  User-defined type value.
-	 * @return Return the reference of this object.
+	 * @return The reference of this object.
 	 * @note If the internal buffer is full will have no effect, unless have already
 	 *       set full handler.
 	 */
@@ -970,7 +970,7 @@ public:
 	}
 
 	/**
-	 * Return a pointer to null-terminated character array that store in internal.
+	 * Returns a pointer to null-terminated character array that store in internal.
 	 */
 	const char* c_str() const
 	{
@@ -979,7 +979,7 @@ public:
 	}
 
 	/**
-	 * Return a @c std::string that convert from internal buffer.
+	 * Returns a @c std::string that convert from internal buffer.
 	 * @note This convertion will generate a data copy.
 	 */
 	std::string str() const
@@ -988,7 +988,7 @@ public:
 	}
 
 	/**
-	 * Return a @c StringView of internal buffer.
+	 * Returns a @c StringView of internal buffer.
 	 * @note The return value is only valid when this object have no change
 	 *       the area of return @c StringView.
 	 */
@@ -998,7 +998,7 @@ public:
 	}
 
 	/**
-	 * Return the length of internal buffer.
+	 * Returns the length of internal buffer.
 	 */
 	std::size_t length() const
 	{
@@ -1006,7 +1006,7 @@ public:
 	}
 
 	/**
-	 * Return the length of internal buffer.
+	 * Returns the length of internal buffer.
 	 * @details It's same as @c length() function.
 	 */
 	std::size_t size() const
@@ -1015,7 +1015,7 @@ public:
 	}
 
 	/**
-	 * Set the format result length to zero.
+	 * Sets the format result length to zero.
 	 */
 	void clear()
 	{
@@ -1028,7 +1028,7 @@ public:
 	}
 
 	/**
-	 * Set full handler to listen for internal buffer is full.
+	 * Sets full handler to listen for internal buffer is full.
 	 * @details After set full handler, this handler will be call when internal buffer
 	 *          is full. And reset interal buffer and try to append argument.
 	 */
@@ -1038,7 +1038,7 @@ public:
 	}
 
 	/**
-	 * Return the max size that format result can be.
+	 * Returns the max size that format result can be.
 	 */
 	constexpr std::size_t max_size() const
 	{
@@ -1046,7 +1046,7 @@ public:
 	}
 
 	/**
-	 * Return the internal buffer size.
+	 * Returns the internal buffer size.
 	 */
 	constexpr std::size_t capacity() const
 	{
@@ -1133,7 +1133,7 @@ private:
 
 
 /**
- * Use @c TextWriter member function to format integer to speed up.
+ * Uses @c TextWriter member function to format integer to speed up.
  */
 #define LIGHTS_TEXT_WRITER_TO_STRING(Type) \
 template <std::size_t buffer_size> \
@@ -1148,8 +1148,8 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_TEXT_WRITER_TO_STRING)
 
 
 /**
- * Format string that use @c fmt and @c args ...
- * @param fmt   Format string that use '{}' as placeholder.
+ * Formats string that use @c fmt and @c args ...
+ * @param fmt   Formats string that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
  * @return Formated string.
  * @note If args is user type, it must have a user function as

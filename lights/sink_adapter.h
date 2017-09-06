@@ -38,18 +38,12 @@ public:
 };
 
 
-/**
- * Inserts @c SequenceView object to @c SinkAdapter object.
- */
 inline SinkAdapter& operator<< (SinkAdapter& sink, SequenceView sequence)
 {
 	sink.write(sequence);
 	return sink;
 }
 
-/**
- * Inserts @c StringView object to @c SinkAdapter object.
- */
 inline SinkAdapter& operator<< (SinkAdapter& sink, StringView str)
 {
 	sink.write(str);

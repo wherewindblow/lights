@@ -229,17 +229,11 @@ private:
 };
 
 
-/**
- * Convert @c Sequence object to @c String object.
- */
 inline String to_string(Sequence sequence)
 {
 	return String(static_cast<String::CharType*>(sequence.data()), sequence.length());
 }
 
-/**
- * Convert @c SequenceView object to @c StringView object.
- */
 inline StringView to_string_view(SequenceView sequence)
 {
 	return StringView(static_cast<StringView::CharType*>(sequence.data()), sequence.length());

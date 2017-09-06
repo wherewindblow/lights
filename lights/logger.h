@@ -38,6 +38,9 @@ inline const StringView to_string(LogLevel level)
 	return details::log_level_names[static_cast<std::uint8_t>(level)];
 }
 
+/**
+ * PreciseTime use to record hight resolution time point.
+ */
 struct PreciseTime
 {
 	PreciseTime() = default;
@@ -50,15 +53,18 @@ struct PreciseTime
 	std::int64_t nanoseconds;
 };
 
+/**
+ * Returns the current time point.
+ */
 PreciseTime get_precise_time();
 
 
 /**
- * Logger message to the backend sink.
- * @tparam Sink  Support `void write(const void* buf, std::size_t len);`
+ * Logs message with readable text to the backend sink.
+ * @tparam Sink  Support `void write(SequenceView sequence);`
  *
  * Message is compose by a signature header and message body.
- * Signature is compose by time, logger name and log level.
+ * Signature is compose by time, logger name, log level, log module and source location.
  */
 template <typename Sink>
 class TextLogger
@@ -69,31 +75,51 @@ public:
 
 	TextLogger(StringView name, std::shared_ptr<Sink> sink);
 
+	/**
+	 * Returns the name of this logger.
+	 */
 	const std::string& get_name() const
 	{
 		return m_name;
 	}
 
+	/**
+	 * Returns the level of this logger.
+	 */
 	LogLevel get_level() const
 	{
 		return m_level;
 	}
 
+	/**
+	 * Sets the level of this logger and all log message level is greater or equal to this
+	 * level will be record to sink.
+	 */
 	void set_level(LogLevel level)
 	{
 		m_level = level;
 	}
 
+	/**
+	 * Checks is open switch of record source location. The default value is open.
+	 */
 	bool is_record_location() const
 	{
 		return m_record_location;
 	}
 
+	/**
+	 * Sets switch of record source location.
+	 * @note Open switch can get more info, but also will raise output.
+	 */
 	void set_record_location(bool enable_record)
 	{
 		m_record_location = enable_record;
 	}
 
+	/**
+	 * Checks is open switch of record module. The default value is open.
+	 */
 	bool is_record_module() const
 	{
 		return m_record_module;
@@ -109,6 +135,9 @@ public:
 		return m_module_name_handler;
 	}
 
+	/**
+	 * Sets the handler to convert module id to name.
+	 */
 	void set_module_name_handler(ModuleNameHandler module_name_handler)
 	{
 		m_module_name_handler = module_name_handler;
@@ -120,10 +149,8 @@ public:
 	}
 
 	/**
-	 * Set the module should log with level. It can swith a module log and control
+	 * Sets the module should log with level. It can swith a module log and control
 	 * the log of specify module.
-	 * @param should_log_handler  It's a handler that pass level and module_id and
-	 *                            return this message should log.
 	 * @example
 	 *     std::vector<LogLevel> module_levels(MAX_MODULE_SIZE, LogLevel::DEBUG);
 	 *     module_levels[TEST_MODULE] = LogLevel::OFF;
@@ -375,6 +402,9 @@ void TextLogger<Sink>::generate_signature(LogLevel level, std::uint16_t module_i
 }
 
 
+/**
+ * Binary log message header.
+ */
 struct BinaryMessageSignature
 {
 public:
@@ -517,8 +547,10 @@ private:
 
 
 /**
- * Logger message to the backend sink.
- * @tparam Sink  Support `void write(const void* buf, std::size_t len);`
+ * Logs message with binary mode to the backend sink. Binary log message is optimized with output,
+ * so can save output and record more information. On the other hand, binary log message is
+ * structured and can be convenient analyse.
+ * @tparam Sink  Support `void write(SequenceView sequence);`
  */
 template <typename Sink>
 class BinaryLogger
@@ -538,6 +570,9 @@ public:
 		return m_level;
 	}
 
+	/**
+	 * Sets the level of this logger.
+	 */
 	void set_level(LogLevel level)
 	{
 		m_level = level;
@@ -549,10 +584,8 @@ public:
 	}
 
 	/**
-	 * Set the module should log with level. It can swith a module log and control
+	 * Sets the module should log with level. It can swith a module log and control
 	 * the log of specify module.
-	 * @param should_log_handler  It's a handler that pass level and module_id and
-	 *                            return this message should log.
 	 * @example
 	 *     std::vector<LogLevel> module_levels(MAX_MODULE_SIZE, LogLevel::DEBUG);
 	 *     module_levels[TEST_MODULE] = LogLevel::OFF;

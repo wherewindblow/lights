@@ -532,7 +532,7 @@ public:
 
 	/**
 	 * Forward to lights::operater<<() function.
-	 * @return Return the reference of this object.
+	 * @return The reference of this object.
 	 * @note If the internal buffer is full will have no effect.
 	 */
 	template <typename T>

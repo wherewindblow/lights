@@ -12,7 +12,6 @@
 #include "config.h"
 #include "env.h"
 #include "sequence.h"
-#include "format.h"
 #include "exception.h"
 
 
@@ -29,25 +28,36 @@ enum class FileBufferingMode
 };
 
 
+/**
+ * FileStream provide operation with a file.
+ */
 class FileStream
 {
 public:
 	FileStream() = default;
 
+	/**
+	 * Opens a file with @c filename and @c modes
+	 * @throw Thrown OpenFileError when have error.
+	 */
 	FileStream(StringView filename, StringView modes)
 	{
-		this->open(filename, modes);
+		open(filename, modes);
 	}
 
+	/**
+	 * Automaticly close a file when there is a open file.
+	 */
 	~FileStream()
 	{
-		if (m_file != nullptr)
+		if (is_open())
 		{
-			this->close();
+			close();
 		}
 	}
 
 	/**
+	 * Opens a file with @c filename and @c modes
 	 * @throw Thrown OpenFileError when have error.
 	 */
 	void open(StringView filename, StringView modes)
@@ -61,6 +71,7 @@ public:
 	}
 
 	/**
+	 * Reopens a file with @c filename and @c modes
 	 * @throw Thrown OpenFileError when have error.
 	 */
 	void reopen(StringView filename, StringView modes)
@@ -72,41 +83,68 @@ public:
 		}
 	}
 
+	/**
+	 * Checks the file is open.
+	 */
 	bool is_open() const
 	{
 		return m_file != nullptr;
 	}
 
+	/**
+	 * Reads file content into @c sequence.
+	 * @return Number of read successfully.
+	 */
 	std::size_t read(Sequence sequence)
 	{
 		return std::fread(sequence.data(), sizeof(char), sequence.length(), m_file);
 	}
 
+	/**
+	 * Writes @c sequence into file.
+	 * @param sequence
+	 * @return Number of write successfully.
+	 */
 	std::size_t write(SequenceView sequence)
 	{
 		return std::fwrite(sequence.data(), sizeof(char), sequence.length(), m_file);
 	}
 
+	/**
+	 * Synchronizes with the actual file.
+	 */
 	void flush()
 	{
 		std::fflush(m_file);
 	}
 
+	/**
+	 * Reads a charater.
+	 */
 	int get_char()
 	{
 		return std::getc(m_file);
 	}
 
+	/**
+	 * Writes the charater @c ch.
+	 */
 	int put_char(int ch)
 	{
 		return std::putc(ch, m_file);
 	}
 
+	/**
+	 * Puts the charater @c ch back.
+	 */
 	int unget_char(int ch)
 	{
 		return std::ungetc(ch, m_file);
 	}
 
+	/**
+	 * Reads the next character without extracting it.
+	 */
 	int peek()
 	{
 		int ch = get_char();
@@ -114,61 +152,94 @@ public:
 		return ch;
 	}
 
+	/**
+	 * Checks is end of file.
+	 */
 	bool eof()
 	{
 		return std::feof(m_file) != 0;
 	}
 
+	/**
+	 * Checks have error now.
+	 */
 	bool error()
 	{
 		return std::ferror(m_file) != 0;
 	}
 
+	/**
+	 * Clears error state.
+	 */
 	void clear_error()
 	{
 		std::clearerr(m_file);
 	}
 
+	/**
+	 * Returns the current file position indicator.
+	 */
 	std::streamoff tell()
 	{
 		return env_ftell(m_file);
 	}
 
+	/**
+	 * Moves the file position indicator to a specific location in a file.
+	 */
 	void seek(std::streamoff off, FileSeekWhence whence)
 	{
 		env_fseek(m_file, off, static_cast<int>(whence));
 	}
 
+	/**
+	 * Moves the file position indicator to the beginning in a file.
+	 */
 	void rewind()
 	{
 		std::rewind(m_file);
 	}
 
+	/**
+	 * Returns the size of a file.
+	 */
 	std::size_t size()
 	{
 		std::streamoff origin = this->tell();
-		this->seek(0, FileSeekWhence::END);
+		seek(0, FileSeekWhence::END);
 		std::streamoff size = this->tell();
-		this->seek(origin, FileSeekWhence::BEGIN);
+		seek(origin, FileSeekWhence::BEGIN);
 		return static_cast<std::size_t>(size);
 	}
 
+	/**
+	 * Closes a file.
+	 */
 	void close()
 	{
 		std::fclose(m_file);
 		m_file = nullptr;
 	}
 
+	/**
+	 * Sets the file buffer.
+	 */
 	void setbuf(char* buffer)
 	{
 		std::setbuf(m_file, buffer);
 	}
 
+	/**
+	 * Sets the file buffer with size.
+	 */
 	void setvbuf(char* buffer, std::size_t size, FileBufferingMode mode)
 	{
 		std::setvbuf(m_file, buffer, static_cast<int>(mode), size);
 	}
 
+	/**
+	 * Writes @c str and append line ender.
+	 */
 	void write_line(StringView str)
 	{
 		write(str);
@@ -185,7 +256,9 @@ private:
 	std::FILE* m_file = nullptr;
 };
 
-
+/**
+ * Standard stdin stream.
+ */
 inline FileStream& stdin_stream()
 {
 	static FileStream stream;
@@ -193,6 +266,9 @@ inline FileStream& stdin_stream()
 	return stream;
 }
 
+/**
+ * Standard stdout stream.
+ */
 inline FileStream& stdout_stream()
 {
 	static FileStream stream;
@@ -200,6 +276,9 @@ inline FileStream& stdout_stream()
 	return stream;
 }
 
+/**
+ * Standard stderr stream.
+ */
 inline FileStream& stderr_stream()
 {
 	static FileStream stream;
@@ -207,7 +286,9 @@ inline FileStream& stderr_stream()
 	return stream;
 }
 
-
+/**
+ * Sink adapter of file stream.
+ */
 class FileSinkAdapter: public SinkAdapter
 {
 public:
@@ -224,7 +305,9 @@ private:
 	FileStream& m_stream;
 };
 
-
+/**
+ * Dumps a excetion @c ex message to file stream @c out.
+ */
 inline void dump(const Exception& ex, FileStream& out)
 {
 	FileSinkAdapter sink(out);
