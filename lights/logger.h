@@ -296,7 +296,7 @@ private:
 
 	void recore_location(const SourceLocation& location)
 	{
-		if (is_record_location() && !is_invalid(location))
+		if (is_record_location() && is_valid(location))
 		{
 			m_writer.write(" [{}:{}][{}]", location.file(), location.line(), location.function());
 		}
@@ -728,6 +728,9 @@ public:
 	{
 	}
 
+	/**
+	 * @note Return nullptr when have no log message to read.
+	 */
 	StringView read();
 
 	/**

@@ -29,7 +29,7 @@ StringView BinaryLogReader::read()
 	auto len = m_file.read(Sequence(&m_signature, m_signature.get_memory_size()));
 	if (len != m_signature.get_memory_size())
 	{
-		return StringView(nullptr, 0);
+		return nullptr;
 	}
 
 	std::unique_ptr<std::uint8_t[]> arguments(new std::uint8_t[m_signature.get_argument_length()]);

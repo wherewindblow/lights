@@ -15,8 +15,8 @@ void read_log(lights::StringView log_filename, lights::StringView str_table_file
 	lights::BinaryLogReader reader(log_filename, str_table);
 	while (!reader.eof())
 	{
-		auto log = reader.read();
-		if (log.data() == nullptr)
+		lights::StringView log = reader.read();
+		if (!lights::is_valid(log))
 		{
 			break;
 		}

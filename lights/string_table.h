@@ -38,6 +38,10 @@ public:
 
 	std::size_t add_str(StringView str);
 
+	/**
+	 * Get string by index.
+	 * @note Return nullptr if index is invalid.
+	 */
 	StringView get_str(std::size_t index) const;
 
 	StringView operator[] (std::size_t index) const

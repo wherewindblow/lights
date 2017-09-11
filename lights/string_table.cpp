@@ -138,10 +138,17 @@ std::size_t StringTable::add_str(StringView str)
 	return pair.second;
 }
 
-// TODO: Check index is valid.
+
 StringView StringTable::get_str(std::size_t index) const
 {
-	return *impl()->str_array[index];
+	if (index < impl()->str_array.size())
+	{
+		return *impl()->str_array[index];
+	}
+	else
+	{
+		return nullptr;
+	}
 }
 
 } // namespace lights

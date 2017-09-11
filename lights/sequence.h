@@ -239,4 +239,15 @@ inline StringView to_string_view(SequenceView sequence)
 	return StringView(static_cast<StringView::CharType*>(sequence.data()), sequence.length());
 }
 
+#define LIGHTS_IS_INVALID_SEQUENCE(Type) \
+inline bool is_valid(Type sequence) \
+{ \
+	return sequence.data() != nullptr; \
+}
+
+LIGHTS_IS_INVALID_SEQUENCE(String);
+LIGHTS_IS_INVALID_SEQUENCE(StringView);
+LIGHTS_IS_INVALID_SEQUENCE(Sequence);
+LIGHTS_IS_INVALID_SEQUENCE(SequenceView);
+
 } // namespace lights

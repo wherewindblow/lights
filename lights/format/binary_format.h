@@ -191,6 +191,7 @@ public:
 
 	/**
 	 * @note If the internal buffer is full will have no effect.
+	 *       If @c store_in_table is set but string table is not set will also have no effect.
 	 */
 	void append(StringView str, bool store_in_table = false)
 	{
@@ -770,7 +771,19 @@ std::uint8_t BinaryRestoreWriter<buffer_size>::write_argument(const std::uint8_t
 			auto index = reinterpret_cast<const uint32_t*>(value_begin);
 			if (m_str_table)
 			{
-				m_writer << m_str_table->get_str(*index);
+				StringView str = m_str_table->get_str(*index);
+				if (is_valid(str))
+				{
+					m_writer << str;
+				}
+				else
+				{
+					m_writer << "[[Invalid string index: " << *index << "]]";
+				}
+			}
+			else
+			{
+				m_writer << "[[Use STRING_REF but string table is not set]]";
 			}
 			break;
 		}

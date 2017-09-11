@@ -59,9 +59,9 @@ inline SourceLocation invalid_source_location()
 	return { nullptr, 0, nullptr };
 }
 
-inline bool is_invalid(const SourceLocation& location)
+inline bool is_valid(const SourceLocation& location)
 {
-	return location.file() == nullptr;
+	return location.file() != nullptr && location.function() != nullptr;
 }
 
 namespace error_code {
