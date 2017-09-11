@@ -15,7 +15,7 @@ StringView LightsErrorCodeCategory::name() const
 }
 
 
-ErrorCodeDescriptions LightsErrorCodeCategory::descriptions(int code) const
+const ErrorCodeDescriptions& LightsErrorCodeCategory::descriptions(int code) const
 {
 	static ErrorCodeDescriptions map[] = {
 		{"Success"},
@@ -37,29 +37,29 @@ ErrorCodeDescriptions LightsErrorCodeCategory::descriptions(int code) const
 
 const char* Exception::what() const noexcept
 {
-	return m_code_category.descriptions(m_code).without_args.data();
+	return get_description(ErrorCodeDescriptions::TYPE_WITHOUT_ARGS).data();
 }
 
 
-void Exception::dump_message(SinkAdapter& out) const
+void Exception::dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType /* description_type */) const
 {
-	StringView str = code_category().descriptions(m_code).without_args;
+	StringView str = get_description(ErrorCodeDescriptions::TYPE_WITHOUT_ARGS);
 	out.write(str);
 }
 
 
-void OpenFileError::dump_message(SinkAdapter& out) const
+void OpenFileError::dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const
 {
 	write(make_format_sink_adapter(out),
-		  code_category().descriptions(code()).with_args,
+		  get_description(description_type),
 		  m_filename,
 		  current_error());
 }
 
-void InvalidArgument::dump_message(SinkAdapter& out) const
+void InvalidArgument::dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const
 {
 	write(make_format_sink_adapter(out),
-		  code_category().descriptions(code()).with_args,
+		  get_description(description_type),
 		  m_description);
 }
 
@@ -71,7 +71,7 @@ void dump(const Exception& ex, SinkAdapter& out)
 	auto& loc = ex.occur_location();
 	out << loc.file() << ":";
 	to_string(make_format_sink_adapter(out), loc.line());
-	out << "#" << loc.function();
+	out << "##" << loc.function();
 }
 
 } // namespace lights

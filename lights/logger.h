@@ -631,7 +631,7 @@ private:
 	void generate_signature(LogLevel level,
 							std::uint16_t module_id,
 							const SourceLocation& location,
-							StringView descript)
+							StringView description)
 	{
 		m_signature.set_time(get_precise_time());
 		auto file_id = m_str_table->get_index(location.file());
@@ -639,7 +639,7 @@ private:
 		auto function_id = m_str_table->get_index(location.function());
 		m_signature.set_function_id(static_cast<std::uint32_t>(function_id));
 		m_signature.set_line(location.line());
-		m_signature.set_description_id(static_cast<std::uint32_t>(m_str_table->get_index(descript)));
+		m_signature.set_description_id(static_cast<std::uint32_t>(m_str_table->get_index(description)));
 		m_signature.set_module_id(module_id);
 		m_signature.set_level(level);
 	}
@@ -707,10 +707,11 @@ void BinaryLogger<Sink>::log(LogLevel level,
 {
 	if (this->should_log(level, module_id))
 	{
-		generate_signature(level, module_id, location, "{}");
+		StringView description = "{}";
+		generate_signature(level, module_id, location, description);
 
 		m_writer.clear();
-		m_writer.write("{}", value);
+		m_writer.write(description, value);
 		m_signature.set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
 
 		m_sink->write({&m_signature, m_signature.get_memory_size()});

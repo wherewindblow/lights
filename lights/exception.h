@@ -11,6 +11,7 @@
 #include "sequence.h"
 #include "sink_adapter.h"
 #include "format.h"
+#include "format/binary_format.h"
 #include "current_function.hpp"
 #include "common.h"
 
@@ -79,18 +80,32 @@ enum Type
  * ErrorCodeDescriptions have without arguments description and with arguments description.
  * To get full descrition must use @c with_args and format with arguments.
  */
-struct ErrorCodeDescriptions
+class ErrorCodeDescriptions
 {
-	ErrorCodeDescriptions(StringView without_args, StringView with_args) :
-		without_args(without_args), with_args(with_args)
+public:
+	enum DescriptionType
+	{
+		TYPE_WITHOUT_ARGS,
+		TYPE_WITH_ARGS,
+		TYPE_MAX
+	};
+
+	ErrorCodeDescriptions(StringView without_args,
+						  StringView with_args) :
+		m_descriptions { without_args, with_args}
 	{}
 
 	ErrorCodeDescriptions(StringView without_args) :
 		ErrorCodeDescriptions(without_args, without_args)
 	{}
 
-	StringView without_args;
-	StringView with_args;
+	StringView get_description(DescriptionType description_type) const
+	{
+		return m_descriptions[description_type];
+	}
+
+private:
+	StringView m_descriptions[TYPE_MAX];
 };
 
 
@@ -106,7 +121,7 @@ public:
 	virtual ~ErrorCodeCategory() = default;
 
 	virtual StringView name() const = 0;
-	virtual ErrorCodeDescriptions descriptions(int code) const = 0;
+	virtual const ErrorCodeDescriptions& descriptions(int code) const = 0;
 };
 
 /**
@@ -117,7 +132,7 @@ class LightsErrorCodeCategory: public ErrorCodeCategory
 public:
 	virtual StringView name() const;
 
-	virtual ErrorCodeDescriptions descriptions(int code) const;
+	virtual const ErrorCodeDescriptions& descriptions(int code) const;
 
 	static LightsErrorCodeCategory& instance()
 	{
@@ -161,12 +176,19 @@ public:
 		return m_code_category;
 	}
 
+	StringView get_description(ErrorCodeDescriptions::DescriptionType description_type) const
+	{
+		return code_category().descriptions(code()).get_description(description_type);
+	}
+
 	/**
 	 * Dumps the error message to sink adapter @c out.
 	 * Derived class can implement it via format with arguments.
 	 * @note The error message is no include occur location.
 	 */
-	virtual void dump_message(SinkAdapter& out) const;
+	virtual void dump_message(SinkAdapter& out,
+							  ErrorCodeDescriptions::DescriptionType description_type =
+							  		ErrorCodeDescriptions::TYPE_WITH_ARGS) const;
 
 private:
 	SourceLocation m_occur_location;
@@ -183,7 +205,7 @@ public:
 	{
 	}
 
-	void dump_message(SinkAdapter& out) const override;
+	void dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const override;
 
 private:
 	std::string m_filename;
@@ -198,7 +220,7 @@ public:
 	{
 	}
 
-	void dump_message(SinkAdapter& out) const override;
+	void dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const override;
 
 private:
 	std::string m_description;
