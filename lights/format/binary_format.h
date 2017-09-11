@@ -11,6 +11,7 @@
 
 #include "../sequence.h"
 #include "../format.h"
+#include "../string_table.h"
 
 
 namespace lights {
@@ -72,6 +73,7 @@ enum class BinaryTypeCode: std::uint8_t
 	INT64_T = 10,
 	UINT64_T = 11,
 	COMPOSED_TYPE  = 12,
+	STRING_REF = 13,
 	MAX
 };
 
@@ -129,13 +131,14 @@ inline std::uint8_t get_type_width(BinaryTypeCode code)
 {
 	static std::uint8_t widths[] = {
 		0, // Invalid.
-		1, 1, // bool and char
-		1,    // string.
+		1, 1, // Bool and char
+		1,    // String.
 		1, 1, // 8 bits
 		2, 2, // 16 bits
 		4, 4, // 32 bits
 		8, 8, // 64 bits
-		2,    // user-define composed type
+		2,    // User-define composed type
+		4,    // String reference only store a string table index.
 	};
 
 	std::uint8_t index = static_cast<std::uint8_t>(code);
@@ -165,6 +168,11 @@ public:
 		ENDED
 	};
 
+	BinaryStoreWriter() = default;
+
+	BinaryStoreWriter(StringTablePtr str_table):
+		m_str_table(str_table) {}
+
 	/**
 	 * @note If the internal buffer is full will have no effect.
 	 */
@@ -184,7 +192,7 @@ public:
 	/**
 	 * @note If the internal buffer is full will have no effect.
 	 */
-	void append(StringView str)
+	void append(StringView str, bool store_in_table = false)
 	{
 		if (str.length() == 0)
 		{
@@ -196,7 +204,23 @@ public:
 		}
 		else
 		{
-			if (can_append(str.length() + sizeof(BinaryTypeCode) + sizeof(std::uint8_t)))
+			if (store_in_table && m_str_table)
+			{
+				BinaryTypeCode type_code = BinaryTypeCode::STRING_REF;
+				if (can_append(sizeof(BinaryTypeCode) + get_type_width(type_code)))
+				{
+					if (m_state == FormatComposedTypeState::STARTED)
+					{
+						++m_composed_member_num;
+					}
+					m_buffer[m_length++] = static_cast<std::uint8_t>(type_code);
+					std::uint32_t* p = reinterpret_cast<std::uint32_t *>(&m_buffer[m_length]);
+					auto index = static_cast<std::uint32_t>(m_str_table->get_index(str));
+					*p = index;
+					m_length += get_type_width(type_code);
+				}
+			}
+			else if (can_append(str.length() + sizeof(BinaryTypeCode) + sizeof(std::uint8_t)))
 			{
 				if (m_state == FormatComposedTypeState::STARTED)
 				{
@@ -426,6 +450,7 @@ private:
 	std::uint8_t m_buffer[buffer_size];
 	FormatComposedTypeState m_state = FormatComposedTypeState::NO_INIT;
 	std::uint16_t m_composed_member_num = 0;
+	StringTablePtr m_str_table;
 };
 
 
@@ -488,6 +513,11 @@ template <std::size_t buffer_size = WRITER_BUFFER_SIZE_DEFAULT>
 class BinaryRestoreWriter
 {
 public:
+	BinaryRestoreWriter() = default;
+
+	BinaryRestoreWriter(StringTablePtr str_table):
+		m_str_table(str_table) {}
+
 	/**
 	 * @note If the internal buffer is full will have no effect.
 	 */
@@ -617,6 +647,7 @@ private:
 	std::uint8_t write_argument(const uint8_t* binary_store_args);
 
 	TextWriter<buffer_size> m_writer;
+	StringTablePtr m_str_table;
 };
 
 
@@ -731,6 +762,15 @@ std::uint8_t BinaryRestoreWriter<buffer_size>::write_argument(const std::uint8_t
 			for (std::size_t i = 0; i < *member_num; ++i)
 			{
 				width += write_argument(binary_store_args + sizeof(BinaryTypeCode) + width);
+			}
+			break;
+		}
+		case BinaryTypeCode::STRING_REF:
+		{
+			auto index = reinterpret_cast<const uint32_t*>(value_begin);
+			if (m_str_table)
+			{
+				m_writer << m_str_table->get_str(*index);
 			}
 			break;
 		}

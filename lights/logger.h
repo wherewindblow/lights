@@ -655,7 +655,7 @@ private:
 
 template <typename Sink>
 BinaryLogger<Sink>::BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink, StringTablePtr str_table) :
-	m_sink(sink), m_str_table(str_table)
+	m_sink(sink), m_str_table(str_table), m_writer(m_str_table)
 {
 	m_signature.set_log_id(log_id);
 }
@@ -724,7 +724,7 @@ class BinaryLogReader
 {
 public:
 	BinaryLogReader(StringView log_filename, StringTablePtr str_table) :
-		m_file(log_filename, "rb"), m_str_table(str_table)
+		m_file(log_filename, "rb"), m_str_table(str_table), m_writer(str_table)
 	{
 	}
 
