@@ -124,7 +124,31 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_DETAILS_FORMAT_INTEGER);
 } // namespace details
 
 
-void TextWriter::hand_for_full(StringView str)
+void TextWriter::handle_full(char ch)
+{
+	if (m_full_handler)
+	{
+		m_full_handler(str_view());
+		clear();
+		if (sizeof(ch) <= max_size())
+		{
+			append(ch);
+		}
+	}
+}
+
+
+void TextWriter::handle_not_enougth_space(StringView& str)
+{
+	// Append to the remaining place.
+	StringView part(str.data(), max_size() - m_length);
+	append(part);
+	str.move_forward(part.length());
+	handle_full(str);
+}
+
+
+void TextWriter::handle_full(StringView str)
 {
 	if (m_full_handler)
 	{

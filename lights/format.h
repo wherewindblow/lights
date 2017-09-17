@@ -891,15 +891,7 @@ public:
 		}
 		else // Full
 		{
-			if (m_full_handler)
-			{
-				m_full_handler(str_view());
-				clear();
-				if (sizeof(ch) <= max_size())
-				{
-					append(ch);
-				}
-			}
+			handle_full(ch);
 		}
 	}
 
@@ -920,11 +912,7 @@ public:
 		}
 		else // Have not enought space to hold all.
 		{
-			// Append to the remaining place.
-			StringView part(str.data(), max_size() - m_length);
-			append(part);
-			str.move_forward(part.length());
-			hand_for_full(str);
+			handle_not_enougth_space(str);
 		}
 	}
 
@@ -1069,7 +1057,11 @@ private:
 		return m_length + len <= max_size();
 	}
 
-	void hand_for_full(StringView str);
+	void handle_full(char ch);
+
+	void handle_not_enougth_space(StringView& str);
+	
+	void handle_full(StringView str);
 
 	bool m_use_default_buffer;
 	char* m_buffer;

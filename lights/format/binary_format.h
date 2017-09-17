@@ -171,47 +171,7 @@ public:
 	 * @note If the internal buffer is full will have no effect.
 	 *       If @c store_in_table is set but string table is not set will also have no effect.
 	 */
-	void append(StringView str, bool store_in_table = false)
-	{
-		if (str.length() == 0)
-		{
-			return;
-		}
-		else if (str.length() == 1)
-		{
-			append(str[0]);
-		}
-		else
-		{
-			if (store_in_table && m_str_table_ptr)
-			{
-				BinaryTypeCode type_code = BinaryTypeCode::STRING_REF;
-				if (can_append(sizeof(BinaryTypeCode) + get_type_width(type_code)))
-				{
-					if (m_state == FormatComposedTypeState::STARTED)
-					{
-						++m_composed_member_num;
-					}
-					m_buffer[m_length++] = static_cast<std::uint8_t>(type_code);
-					std::uint32_t* p = reinterpret_cast<std::uint32_t *>(&m_buffer[m_length]);
-					auto index = static_cast<std::uint32_t>(m_str_table_ptr->get_index(str));
-					*p = index;
-					m_length += get_type_width(type_code);
-				}
-			}
-			else if (can_append(str.length() + sizeof(BinaryTypeCode) + sizeof(std::uint8_t)))
-			{
-				if (m_state == FormatComposedTypeState::STARTED)
-				{
-					++m_composed_member_num;
-				}
-				m_buffer[m_length++] = static_cast<std::uint8_t>(BinaryTypeCode::STRING);
-				m_buffer[m_length++] = static_cast<std::uint8_t>(str.length());
-				std::memcpy(m_buffer + m_length, str.data(), str.length());
-				m_length += str.length();
-			}
-		}
-	}
+	void append(StringView str, bool store_in_table = false);
 
 #define LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type) \
 	{ \
@@ -287,40 +247,7 @@ public:
 	 * @note If the internal buffer is full will have no effect.
 	 */
 	template <typename T>
-	void add_composed_type(const T& value)
-	{
-		if (m_state == FormatComposedTypeState::STARTED) // Reduce recursion.
-		{
-			make_format_sink_adapter(*this) << value;
-		}
-		else
-		{
-			m_composed_member_num = 0;
-			std::uint8_t* type = m_buffer + m_length;
-			auto composed_member_num = reinterpret_cast<std::uint16_t*>(m_buffer + m_length + sizeof(BinaryTypeCode));
-			const auto composed_header_len = sizeof(BinaryTypeCode) + sizeof(std::uint16_t) / sizeof(std::uint8_t);
-			m_length += composed_header_len;
-			m_state = FormatComposedTypeState::STARTED;
-			make_format_sink_adapter(*this) << value;
-			m_state = FormatComposedTypeState::ENDED;
-
-			if (m_composed_member_num > 1)
-			{
-				*type = static_cast<std::uint8_t>(BinaryTypeCode::COMPOSED_TYPE);
-				*composed_member_num = m_composed_member_num;
-			}
-			else if (m_composed_member_num == 1)
-			{
-				std::size_t len = (m_buffer + m_length) - reinterpret_cast<std::uint8_t*>(composed_member_num + 1);
-				std::memmove(type, composed_member_num + 1, len);
-				m_length -= composed_header_len;
-			}
-			else // m_composed_member_num == 0, insert failure.
-			{
-				m_length -= composed_header_len;
-			}
-		}
-	}
+	void add_composed_type(const T& value);
 
 	/**
 	 * Forward to @c lights::write() function.
@@ -510,6 +437,43 @@ inline void BinaryStoreWriter::write(StringView fmt, const Arg& value, const Arg
 inline void BinaryStoreWriter::write(StringView fmt)
 {
 	lights::write(make_format_sink_adapter(*this), fmt);
+}
+
+
+template <typename T>
+void BinaryStoreWriter::add_composed_type(const T& value)
+{
+	if (m_state == FormatComposedTypeState::STARTED) // Reduce recursion.
+	{
+		make_format_sink_adapter(*this) << value;
+	}
+	else
+	{
+		m_composed_member_num = 0;
+		std::uint8_t* type = m_buffer + m_length;
+		auto composed_member_num = reinterpret_cast<std::uint16_t*>(m_buffer + m_length + sizeof(BinaryTypeCode));
+		const auto composed_header_len = sizeof(BinaryTypeCode) + sizeof(std::uint16_t) / sizeof(std::uint8_t);
+		m_length += composed_header_len;
+		m_state = FormatComposedTypeState::STARTED;
+		make_format_sink_adapter(*this) << value;
+		m_state = FormatComposedTypeState::ENDED;
+
+		if (m_composed_member_num > 1)
+		{
+			*type = static_cast<std::uint8_t>(BinaryTypeCode::COMPOSED_TYPE);
+			*composed_member_num = m_composed_member_num;
+		}
+		else if (m_composed_member_num == 1)
+		{
+			std::size_t len = (m_buffer + m_length) - reinterpret_cast<std::uint8_t*>(composed_member_num + 1);
+			std::memmove(type, composed_member_num + 1, len);
+			m_length -= composed_header_len;
+		}
+		else // m_composed_member_num == 0, insert failure.
+		{
+			m_length -= composed_header_len;
+		}
+	}
 }
 
 

@@ -9,6 +9,49 @@
 
 namespace lights {
 
+void BinaryStoreWriter::append(StringView str, bool store_in_table)
+{
+	if (str.length() == 0)
+	{
+		return;
+	}
+	else if (str.length() == 1)
+	{
+		append(str[0]);
+	}
+	else
+	{
+		if (store_in_table && m_str_table_ptr)
+		{
+			BinaryTypeCode type_code = BinaryTypeCode::STRING_REF;
+			if (can_append(sizeof(BinaryTypeCode) + get_type_width(type_code)))
+			{
+				if (m_state == FormatComposedTypeState::STARTED)
+				{
+					++m_composed_member_num;
+				}
+				m_buffer[m_length++] = static_cast<std::uint8_t>(type_code);
+				std::uint32_t* p = reinterpret_cast<std::uint32_t *>(&m_buffer[m_length]);
+				auto index = static_cast<std::uint32_t>(m_str_table_ptr->get_index(str));
+				*p = index;
+				m_length += get_type_width(type_code);
+			}
+		}
+		else if (can_append(str.length() + sizeof(BinaryTypeCode) + sizeof(std::uint8_t)))
+		{
+			if (m_state == FormatComposedTypeState::STARTED)
+			{
+				++m_composed_member_num;
+			}
+			m_buffer[m_length++] = static_cast<std::uint8_t>(BinaryTypeCode::STRING);
+			m_buffer[m_length++] = static_cast<std::uint8_t>(str.length());
+			std::memcpy(m_buffer + m_length, str.data(), str.length());
+			m_length += str.length();
+		}
+	}
+}
+
+
 void BinaryRestoreWriter::write_binary(StringView fmt, const std::uint8_t* binary_store_args, std::size_t args_length)
 {
 	if (args_length == 0)
