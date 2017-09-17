@@ -275,15 +275,15 @@ public:
 	 */
 	const char* c_str() const
 	{
-		return str_view().data();
+		return string_view().data();
 	}
 
 	/**
 	 * Return a @c std::string that convert from internal buffer.
 	 */
-	std::string str() const
+	std::string std_string() const
 	{
-		return str_view().to_string();
+		return string_view().to_std_string();
 	}
 
 	/**
@@ -291,7 +291,7 @@ public:
 	 * @note The return value is only valid when this object have no change
 	 *       the area of return @c StringView.
 	 */
-	StringView str_view() const
+	StringView string_view() const
 	{
 		return { reinterpret_cast<const char*>(m_buffer), m_length };
 	}
@@ -498,11 +498,8 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_TO_STRING)
 class BinaryRestoreWriter
 {
 public:
-	BinaryRestoreWriter(String write_target, StringTablePtr str_table_ptr) :
+	BinaryRestoreWriter(String write_target = invalid_string(), StringTablePtr str_table_ptr = nullptr) :
 		m_writer(write_target), m_str_table_ptr(str_table_ptr) {}
-
-	BinaryRestoreWriter(String write_target) :
-		BinaryRestoreWriter(write_target, nullptr) {}
 
 	/**
 	 * @note If the internal buffer is full will have no effect.
@@ -570,9 +567,9 @@ public:
 	 * Return a @c std::string that convert from internal buffer.
 	 * @note This convertion will generate a data copy.
 	 */
-	std::string str() const
+	std::string std_string() const
 	{
-		return m_writer.str();
+		return m_writer.std_string();
 	}
 
 	/**
@@ -580,9 +577,9 @@ public:
 	 * @note The return value is only valid when this object have no change
 	 *       the area of return @c StringView.
 	 */
-	StringView str_view() const
+	StringView string_view() const
 	{
-		return m_writer.str_view();
+		return m_writer.string_view();
 	}
 
 	/**

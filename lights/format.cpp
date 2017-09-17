@@ -128,7 +128,7 @@ void TextWriter::handle_full(char ch)
 {
 	if (m_full_handler)
 	{
-		m_full_handler(str_view());
+		m_full_handler(string_view());
 		clear();
 		if (sizeof(ch) <= max_size())
 		{
@@ -152,7 +152,7 @@ void TextWriter::handle_full(StringView str)
 {
 	if (m_full_handler)
 	{
-		m_full_handler(str_view());
+		m_full_handler(string_view());
 		clear();
 		if (str.length() <= max_size())
 		{
@@ -167,7 +167,7 @@ void TextWriter::handle_full(StringView str)
 				append(part);
 				if (append_len == max_size())
 				{
-					m_full_handler(str_view());
+					m_full_handler(string_view());
 					clear();
 				}
 				str.move_forward(append_len);

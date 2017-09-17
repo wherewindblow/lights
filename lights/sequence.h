@@ -56,7 +56,7 @@ public:
 		return m_length;
 	}
 
-	std::string to_string() const
+	std::string to_std_string() const
 	{
 		return std::string(m_data, m_length);
 	}
@@ -116,7 +116,7 @@ public:
 		return m_length;
 	}
 
-	std::string to_string() const
+	std::string to_std_string() const
 	{
 		return std::string(m_data, m_length);
 	}

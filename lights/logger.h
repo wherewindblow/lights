@@ -329,7 +329,7 @@ void TextLogger::log(LogLevel level,
 		m_writer.write(fmt, args ...);
 		recore_location(location);
 		m_writer.append(LIGHTS_LINE_ENDER);
-		m_sink_ptr->write(m_writer.str_view());
+		m_sink_ptr->write(m_writer.string_view());
 	}
 }
 
@@ -344,7 +344,7 @@ void TextLogger::log(LogLevel level, std::uint16_t module_id, const SourceLocati
 		m_writer << value;
 		recore_location(location);
 		m_writer.append(LIGHTS_LINE_ENDER);
-		m_sink_ptr->write(m_writer.str_view());
+		m_sink_ptr->write(m_writer.string_view());
 	}
 }
 
@@ -615,7 +615,7 @@ void BinaryLogger::log(LogLevel level,
 		m_signature.set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
 
 		m_sink_ptr->write({&m_signature, m_signature.get_memory_size()});
-		m_sink_ptr->write(m_writer.str_view());
+		m_sink_ptr->write(m_writer.string_view());
 	}
 }
 
@@ -636,7 +636,7 @@ void BinaryLogger::log(LogLevel level,
 		m_signature.set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
 
 		m_sink_ptr->write({&m_signature, m_signature.get_memory_size()});
-		m_sink_ptr->write(m_writer.str_view());
+		m_sink_ptr->write(m_writer.string_view());
 	}
 }
 

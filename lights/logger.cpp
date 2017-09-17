@@ -27,7 +27,7 @@ void TextLogger::log(LogLevel level, std::uint16_t module_id, const SourceLocati
 		m_writer.append(str);
 		recore_location(location);
 		m_writer.append(LIGHTS_LINE_ENDER);
-		m_sink_ptr->write(m_writer.str_view());
+		m_sink_ptr->write(m_writer.string_view());
 	}
 }
 
@@ -131,7 +131,7 @@ StringView BinaryLogReader::read()
 						m_signature.get_line(),
 						m_str_table_ptr->get_str(m_signature.get_function_id()));
 
-	return m_writer.str_view();
+	return m_writer.string_view();
 }
 
 

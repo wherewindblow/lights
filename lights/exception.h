@@ -201,7 +201,7 @@ class OpenFileError: public Exception
 {
 public:
 	OpenFileError(const SourceLocation& occur_location, StringView filename):
-		Exception(occur_location, error_code::OPEN_FILE_FAILURE), m_filename(filename.to_string())
+		Exception(occur_location, error_code::OPEN_FILE_FAILURE), m_filename(filename.to_std_string())
 	{
 	}
 
@@ -216,7 +216,7 @@ class InvalidArgument: public Exception
 {
 public:
 	InvalidArgument(const SourceLocation& occur_location, StringView description):
-		Exception(occur_location, error_code::INVALID_ARGUMENT), m_description(description.to_string())
+		Exception(occur_location, error_code::INVALID_ARGUMENT), m_description(description.to_std_string())
 	{
 	}
 

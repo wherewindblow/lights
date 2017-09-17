@@ -63,8 +63,8 @@ void example_format()
 	// Effective way to format.
 	LIGHTS_DEFAULT_TEXT_WRITER(writer);
 	writer.write("Current position is {}:{}", __FILE__, __LINE__);
-	lights::stdout_stream().write_line(writer.str_view()); // Avoid create std::string and only return the internal string.
-	lights::stdout_stream().write_line(writer.str()); // Return std::string.
+	lights::stdout_stream().write_line(writer.string_view()); // Avoid create std::string and only return the internal string.
+	lights::stdout_stream().write_line(writer.std_string()); // Return std::string.
 
 	// Costom user-defined sink target.
 	char external_buffer[500];

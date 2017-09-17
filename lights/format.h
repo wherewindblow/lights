@@ -980,9 +980,9 @@ public:
 	 * Returns a @c std::string that convert from internal buffer.
 	 * @note This convertion will generate a data copy.
 	 */
-	std::string str() const
+	std::string std_string() const
 	{
-		return str_view().to_string();
+		return string_view().to_std_string();
 	}
 
 	/**
@@ -990,7 +990,7 @@ public:
 	 * @note The return value is only valid when this object have no change
 	 *       the area of return @c StringView.
 	 */
-	StringView str_view() const
+	StringView string_view() const
 	{
 		return { m_buffer, m_length };
 	}
@@ -1060,7 +1060,7 @@ private:
 	void handle_full(char ch);
 
 	void handle_not_enougth_space(StringView& str);
-	
+
 	void handle_full(StringView str);
 
 	bool m_use_default_buffer;
