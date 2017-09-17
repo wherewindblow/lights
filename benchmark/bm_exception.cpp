@@ -194,7 +194,7 @@ void BM_exception_std_error_code(benchmark::State& state)
 
 void BM_exception_lights_Exception(benchmark::State& state)
 {
-	lights::NullSinkAdapter null;
+	lights::NullSink null;
 	int performat_what = state.range(0);
 	while (state.KeepRunning())
 	{
@@ -220,7 +220,7 @@ void BM_exception_str_std_exception(benchmark::State& state)
 	{
 		try
 		{
-			LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
+			LIGHTS_DEFAULT_TEXT_WRITER(writer);
 			writer.write("Open file \"{}\" failure", __FILE__);
 			throw std::runtime_error(writer.c_str());
 		}
@@ -237,7 +237,7 @@ void BM_exception_str_std_exception(benchmark::State& state)
 
 void BM_exception_str_lights_Exception(benchmark::State& state)
 {
-	lights::NullSinkAdapter null;
+	lights::NullSink null;
 	int performat_what = state.range(0);
 	while (state.KeepRunning())
 	{
@@ -368,7 +368,7 @@ void BM_exception_pad_std_exception(benchmark::State& state)
 	{
 		try
 		{
-			LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer)
+			LIGHTS_DEFAULT_TEXT_WRITER(writer)
 			writer.write(EXCEPTION_FORMAT_ARGS);
 			throw std::runtime_error(writer.c_str());
 		}
@@ -393,7 +393,7 @@ void BM_exception_pad_std_exception_ptr(benchmark::State& state)
 	{
 		try
 		{
-			LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer)
+			LIGHTS_DEFAULT_TEXT_WRITER(writer)
 			writer.write(EXCEPTION_FORMAT_ARGS);
 			throw std::make_shared<std::runtime_error>(writer.c_str());
 		}
@@ -441,7 +441,7 @@ void BM_exception_pad_boost_exception(benchmark::State& state)
 	{
 		try
 		{
-			LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer)
+			LIGHTS_DEFAULT_TEXT_WRITER(writer)
 			writer.write(EXCEPTION_FORMAT_ARGS);
 			BOOST_THROW_EXCEPTION(std::runtime_error(writer.c_str()));
 		}

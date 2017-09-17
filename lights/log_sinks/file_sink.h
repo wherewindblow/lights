@@ -21,7 +21,7 @@
 namespace lights {
 namespace log_sinks {
 
-class SimpleFileSink
+class SimpleFileSink: public SinkAdapter
 {
 public:
 	/**
@@ -31,9 +31,9 @@ public:
 	SimpleFileSink(StringView filename) :
 		m_file(filename.data(), "ab+") {}
 
-	void write(SequenceView sequence)
+	std::size_t write(SequenceView sequence) override
 	{
-		m_file.write(sequence);
+		return m_file.write(sequence);
 	}
 
 private:
@@ -41,7 +41,7 @@ private:
 };
 
 
-class SizeRotatingFileSink
+class SizeRotatingFileSink: public SinkAdapter
 {
 public:
 	SizeRotatingFileSink() = default;
@@ -90,15 +90,16 @@ public:
 		this->rotate();
 	}
 
-	void write(SequenceView sequence)
+	std::size_t write(SequenceView sequence) override
 	{
 		while (m_current_size + sequence.length() > m_max_size)
 		{
 			this->fill_remain();
 			this->rotate();
 		}
-		m_file.write(sequence);
-		m_current_size += sequence.length();
+		std::size_t writed_length = m_file.write(sequence);
+		m_current_size += writed_length;
+		return writed_length;
 	}
 
 private:
@@ -116,7 +117,7 @@ private:
 };
 
 
-class TimeRotatingFileSink
+class TimeRotatingFileSink: public SinkAdapter
 {
 public:
 	static constexpr std::time_t ONE_DAY_SECONDS = 3600 * 24;
@@ -128,36 +129,16 @@ public:
 	 */
 	TimeRotatingFileSink(std::string name_format,
 						 std::time_t duration = ONE_DAY_SECONDS,
-						 std::time_t day_point = 0) :
-		m_name_format(name_format),
-		m_duration(duration),
-		m_day_point(day_point)
-	{
-		if (day_point > ONE_DAY_SECONDS)
-		{
-			LIGHTS_THROW_EXCEPTION(InvalidArgument, format("day_point {} is bigger than ONE_DAY_SECONDS", day_point));
-		}
-		std::time_t now = std::time(nullptr);
-		m_next_rotating_time = now;
-		m_next_rotating_time -= m_next_rotating_time % ONE_DAY_SECONDS;
-		m_next_rotating_time += day_point;
+						 std::time_t day_point = 0);
 
-		if (m_next_rotating_time > now)
-		{
-			m_next_rotating_time -= m_duration;
-		}
-
-		rotate();
-	}
-
-	void write(SequenceView sequence)
+	std::size_t write(SequenceView sequence) override
 	{
 		std::time_t now = std::time(nullptr);
 		if (now >= m_next_rotating_time)
 		{
 			rotate();
 		}
-		m_file.write(sequence);
+		return m_file.write(sequence);
 	}
 
 	void rotate();

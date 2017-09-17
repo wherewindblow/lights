@@ -147,7 +147,7 @@ StringView StringTable::get_str(std::size_t index) const
 	}
 	else
 	{
-		return nullptr;
+		return invalid_string_view();
 	}
 }
 

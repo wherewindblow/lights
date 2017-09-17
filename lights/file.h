@@ -289,10 +289,10 @@ inline FileStream& stderr_stream()
 /**
  * Sink adapter of file stream.
  */
-class FileSinkAdapter: public SinkAdapter
+class FileSink: public SinkAdapter
 {
 public:
-	explicit FileSinkAdapter(FileStream& stream):
+	explicit FileSink(FileStream& stream):
 		m_stream(stream)
 	{}
 
@@ -310,7 +310,7 @@ private:
  */
 inline void dump(const Exception& ex, FileStream& out)
 {
-	FileSinkAdapter sink(out);
+	FileSink sink(out);
 	dump(ex, sink);
 }
 

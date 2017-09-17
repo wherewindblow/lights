@@ -39,7 +39,7 @@ void BM_logger_lights_TextLogger(benchmark::State& state)
 {
 	int device = state.range(0);
 	auto file_sink = std::make_shared<lights::log_sinks::SimpleFileSink>(LOGGER_FILENAME(device));
-	lights::TextLogger<lights::log_sinks::SimpleFileSink> logger("log", file_sink);
+	lights::TextLogger logger("log", file_sink);
 	logger.set_record_module(false);
 //	logger.set_record_location(false);
 
@@ -58,7 +58,7 @@ void BM_logger_more_lights_TextLogger(benchmark::State& state)
 
 	int device = state.range(0);
 	auto file_sink = std::make_shared<lights::log_sinks::SimpleFileSink>(LOGGER_FILENAME(device));
-	lights::TextLogger<lights::log_sinks::SimpleFileSink> logger("log", file_sink);
+	lights::TextLogger logger("log", file_sink);
 
 	while (state.KeepRunning())
 	{
@@ -74,8 +74,8 @@ void BM_logger_more_lights_BinaryLogger(benchmark::State& state)
 
 	int device = state.range(0);
 	auto file_sink = std::make_shared<lights::log_sinks::SimpleFileSink>(LOGGER_FILENAME(device));
-	auto str_table = lights::StringTable::create("log_str_table");
-	lights::BinaryLogger<lights::log_sinks::SimpleFileSink> logger(TEST_LOGGER, file_sink, str_table);
+	auto str_table_ptr = lights::StringTable::create("log_str_table");
+	lights::BinaryLogger logger(TEST_LOGGER, file_sink, str_table_ptr);
 
 	while (state.KeepRunning())
 	{

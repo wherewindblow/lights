@@ -71,6 +71,29 @@ void SizeRotatingFileSink::rotate()
 }
 
 
+TimeRotatingFileSink::TimeRotatingFileSink(std::string name_format, time_t duration, time_t day_point) :
+	m_name_format(name_format),
+	m_duration(duration),
+	m_day_point(day_point)
+{
+	if (day_point > ONE_DAY_SECONDS)
+	{
+		LIGHTS_THROW_EXCEPTION(InvalidArgument, format("day_point {} is bigger than ONE_DAY_SECONDS", day_point));
+	}
+	std::time_t now = std::time(nullptr);
+	m_next_rotating_time = now;
+	m_next_rotating_time -= m_next_rotating_time % ONE_DAY_SECONDS;
+	m_next_rotating_time += day_point;
+
+	if (m_next_rotating_time > now)
+	{
+		m_next_rotating_time -= m_duration;
+	}
+
+	rotate();
+}
+
+
 void TimeRotatingFileSink::rotate()
 {
 	std::time_t time = std::time(nullptr);

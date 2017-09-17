@@ -61,7 +61,7 @@ void example_format()
 	lights::stdout_stream().write_line(msg);
 
 	// Effective way to format.
-	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
+	LIGHTS_DEFAULT_TEXT_WRITER(writer);
 	writer.write("Current position is {}:{}", __FILE__, __LINE__);
 	lights::stdout_stream().write_line(writer.str_view()); // Avoid create std::string and only return the internal string.
 	lights::stdout_stream().write_line(writer.str()); // Return std::string.

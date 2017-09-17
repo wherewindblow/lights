@@ -26,9 +26,9 @@ public:
 };
 
 /**
- * NullSinkAdapter will accept all data and do nothing.
+ * NullSink will accept all data and do nothing.
  */
-class NullSinkAdapter: public SinkAdapter
+class NullSink: public SinkAdapter
 {
 public:
 	std::size_t write(SequenceView buffer) override

@@ -1152,15 +1152,15 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_TEXT_WRITER_TO_STRING)
 /**
  * Create a text writer with a buffer that in statck.
  */
-#define LIGHTS_CREATE_TEXT_WRITER(name, buffer_size) \
+#define LIGHTS_TEXT_WRITER(name, buffer_size) \
 	char LIGHTS_CONCAT(name##_write_target_, __LINE__)[buffer_size]; \
 	lights::TextWriter name({LIGHTS_CONCAT(name##_write_target_, __LINE__), buffer_size});
 
 /**
  * Create a text writer with default size.
  */
-#define LIGHTS_CREATE_DEFAULT_TEXT_WRITER(name) \
-	LIGHTS_CREATE_TEXT_WRITER(name, lights::WRITER_BUFFER_SIZE_DEFAULT)
+#define LIGHTS_DEFAULT_TEXT_WRITER(name) \
+	LIGHTS_TEXT_WRITER(name, lights::WRITER_BUFFER_SIZE_DEFAULT)
 
 
 /**

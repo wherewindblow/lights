@@ -134,13 +134,13 @@ public:
 	 * Create write and specify write target. If write target is not specify,
 	 * will use default write target with default size.
 	 */
-	BinaryStoreWriter(Sequence write_target = invalid_sequence(), StringTablePtr str_table = nullptr):
+	BinaryStoreWriter(Sequence write_target = invalid_sequence(), StringTablePtr str_table_ptr = nullptr):
 		m_use_default_buffer(!is_valid(write_target)),
 		m_buffer(is_valid(write_target) ?
 				 static_cast<std::uint8_t*>(write_target.data()) :
 				 new std::uint8_t[WRITER_BUFFER_SIZE_DEFAULT]),
 		m_capacity(is_valid(write_target) ? write_target.length() : WRITER_BUFFER_SIZE_DEFAULT),
-		m_str_table(str_table)
+		m_str_table_ptr(str_table_ptr)
 	{}
 
 	~BinaryStoreWriter()
@@ -183,7 +183,7 @@ public:
 		}
 		else
 		{
-			if (store_in_table && m_str_table)
+			if (store_in_table && m_str_table_ptr)
 			{
 				BinaryTypeCode type_code = BinaryTypeCode::STRING_REF;
 				if (can_append(sizeof(BinaryTypeCode) + get_type_width(type_code)))
@@ -194,7 +194,7 @@ public:
 					}
 					m_buffer[m_length++] = static_cast<std::uint8_t>(type_code);
 					std::uint32_t* p = reinterpret_cast<std::uint32_t *>(&m_buffer[m_length]);
-					auto index = static_cast<std::uint32_t>(m_str_table->get_index(str));
+					auto index = static_cast<std::uint32_t>(m_str_table_ptr->get_index(str));
 					*p = index;
 					m_length += get_type_width(type_code);
 				}
@@ -425,7 +425,7 @@ private:
 	std::size_t m_capacity;
 	FormatComposedTypeState m_state = FormatComposedTypeState::NO_INIT;
 	std::uint16_t m_composed_member_num = 0;
-	StringTablePtr m_str_table;
+	StringTablePtr m_str_table_ptr;
 };
 
 
@@ -534,8 +534,8 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_TO_STRING)
 class BinaryRestoreWriter
 {
 public:
-	BinaryRestoreWriter(String write_target, StringTablePtr str_table) :
-		m_writer(write_target), m_str_table(str_table) {}
+	BinaryRestoreWriter(String write_target, StringTablePtr str_table_ptr) :
+		m_writer(write_target), m_str_table_ptr(str_table_ptr) {}
 
 	BinaryRestoreWriter(String write_target) :
 		BinaryRestoreWriter(write_target, nullptr) {}
@@ -669,7 +669,7 @@ private:
 	std::uint8_t write_argument(const uint8_t* binary_store_args);
 
 	TextWriter m_writer;
-	StringTablePtr m_str_table;
+	StringTablePtr m_str_table_ptr;
 };
 
 } // namespace lights

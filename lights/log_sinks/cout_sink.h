@@ -17,12 +17,13 @@
 namespace lights {
 namespace log_sinks {
 
-class CoutSink
+class CoutSink: public SinkAdapter
 {
 public:
-	void write(SequenceView sequence)
+	std::size_t write(SequenceView sequence) override
 	{
 		std::cout << sequence;
+		return sequence.length();
 	}
 
 	static std::shared_ptr<CoutSink> instance()
@@ -33,12 +34,13 @@ public:
 };
 
 
-class CerrSink
+class CerrSink: public SinkAdapter
 {
 public:
-	void write(SequenceView sequence)
+	std::size_t write(SequenceView sequence) override
 	{
 		std::cerr << sequence;
+		return sequence.length();
 	}
 
 	static std::shared_ptr<CerrSink> instance()
@@ -49,12 +51,13 @@ public:
 };
 
 
-class ClogSink
+class ClogSink: public SinkAdapter
 {
 public:
-	void write(SequenceView sequence)
+	std::size_t  write(SequenceView sequence) override
 	{
 		std::clog << sequence;
+		return sequence.length();
 	}
 
 	static std::shared_ptr<ClogSink> instance()

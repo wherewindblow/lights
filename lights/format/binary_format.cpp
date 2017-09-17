@@ -124,9 +124,9 @@ std::uint8_t BinaryRestoreWriter::write_argument(const std::uint8_t* binary_stor
 		case BinaryTypeCode::STRING_REF:
 		{
 			auto index = reinterpret_cast<const uint32_t*>(value_begin);
-			if (m_str_table)
+			if (m_str_table_ptr)
 			{
-				StringView str = m_str_table->get_str(*index);
+				StringView str = m_str_table_ptr->get_str(*index);
 				if (is_valid(str))
 				{
 					m_writer << str;

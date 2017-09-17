@@ -15,12 +15,9 @@
 namespace lights {
 namespace log_sinks {
 
-class NullSink
+class NullSink: lights::NullSink
 {
 public:
-	void write(SequenceView sequence)
-	{}
-
 	static std::shared_ptr<NullSink> instance()
 	{
 		static auto instance = std::make_shared<NullSink>();

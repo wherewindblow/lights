@@ -16,12 +16,12 @@
 namespace lights {
 namespace log_sinks {
 
-class StdoutSink
+class StdoutSink: public SinkAdapter
 {
 public:
-	void write(SequenceView sequence)
+	std::size_t write(SequenceView sequence) override
 	{
-		stdout_stream().write(sequence);
+		return stdout_stream().write(sequence);
 	}
 
 	static std::shared_ptr<StdoutSink> instance()
@@ -32,12 +32,12 @@ public:
 };
 
 
-class StderrSink
+class StderrSink: public SinkAdapter
 {
 public:
-	void write(SequenceView sequence)
+	std::size_t write(SequenceView sequence) override
 	{
-		stderr_stream().write(sequence);
+		return stderr_stream().write(sequence);
 	}
 
 	static std::shared_ptr<StderrSink> instance()

@@ -10,9 +10,9 @@
 
 void read_log(lights::StringView log_filename, lights::StringView str_table_filename)
 {
-	auto str_table = lights::StringTable::create(str_table_filename);
+	auto str_table_ptr = lights::StringTable::create(str_table_filename);
 
-	lights::BinaryLogReader reader(log_filename, str_table);
+	lights::BinaryLogReader reader(log_filename, str_table_ptr);
 	while (!reader.eof())
 	{
 		lights::StringView log = reader.read();

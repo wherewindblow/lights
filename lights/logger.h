@@ -61,19 +61,20 @@ PreciseTime get_precise_time();
 
 /**
  * Logs message with readable text to the backend sink.
- * @tparam Sink  Support `void write(SequenceView sequence);`
  *
  * Message is compose by a signature header and message body.
  * Signature is compose by time, logger name, log level, log module and source location.
  */
-template <typename Sink>
+
+using LogSinkPtr = std::shared_ptr<SinkAdapter>;
+
 class TextLogger
 {
 public:
 	using ModuleNameHandler = std::function<StringView(std::uint16_t)>;
 	using ModuleShouldLogHandler = std::function<bool(LogLevel, std::uint16_t)>;
 
-	TextLogger(StringView name, std::shared_ptr<Sink> sink);
+	TextLogger(StringView name, LogSinkPtr sink_ptr);
 
 	/**
 	 * Returns the name of this logger.
@@ -308,23 +309,14 @@ private:
 	bool m_record_module = true;
 	ModuleNameHandler m_module_name_handler;
 	ModuleShouldLogHandler m_module_should_log;
-	std::shared_ptr<Sink> m_sink;
+	LogSinkPtr m_sink_ptr;
 	char m_write_target[WRITER_BUFFER_SIZE_DEFAULT];
 	TextWriter m_writer;
 };
 
 
-template <typename Sink>
-TextLogger<Sink>::TextLogger(StringView name, std::shared_ptr<Sink> sink) :
-	m_name(name.data()),
-	m_sink(sink),
-	m_writer(make_string(m_write_target))
-{}
-
-
-template <typename Sink>
 template <typename ... Args>
-void TextLogger<Sink>::log(LogLevel level,
+void TextLogger::log(LogLevel level,
 						   std::uint16_t module_id,
 						   const SourceLocation& location,
 						   const char* fmt,
@@ -337,27 +329,13 @@ void TextLogger<Sink>::log(LogLevel level,
 		m_writer.write(fmt, args ...);
 		recore_location(location);
 		m_writer.append(LIGHTS_LINE_ENDER);
-		m_sink->write(m_writer.str_view());
+		m_sink_ptr->write(m_writer.str_view());
 	}
 }
 
-template <typename Sink>
-void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const SourceLocation& location, const char* str)
-{
-	if (this->should_log(level, module_id))
-	{
-		m_writer.clear();
-		this->generate_signature(level, module_id);
-		m_writer.append(str);
-		recore_location(location);
-		m_writer.append(LIGHTS_LINE_ENDER);
-		m_sink->write(m_writer.str_view());
-	}
-}
 
-template <typename Sink>
 template <typename T>
-void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const SourceLocation& location, const T& value)
+void TextLogger::log(LogLevel level, std::uint16_t module_id, const SourceLocation& location, const T& value)
 {
 	if (this->should_log(level, module_id))
 	{
@@ -366,43 +344,8 @@ void TextLogger<Sink>::log(LogLevel level, std::uint16_t module_id, const Source
 		m_writer << value;
 		recore_location(location);
 		m_writer.append(LIGHTS_LINE_ENDER);
-		m_sink->write(m_writer.str_view());
+		m_sink_ptr->write(m_writer.str_view());
 	}
-}
-
-/**
- * Use second as a tick to record timestamp.
- * It's faster than use chrono, but precision is not enought.
- */
-//template <typename Sink>
-//void TextLogger<Sink>::generate_signature()
-//{
-//	std::time_t time = std::time(nullptr);
-//	m_writer << '[' << Timestamp(time);
-//	m_writer << "] [" << m_name << "] [" << to_string(m_level) << "] ";
-//}
-
-template <typename Sink>
-void TextLogger<Sink>::generate_signature(LogLevel level, std::uint16_t module_id)
-{
-	PreciseTime precise_time = get_precise_time();
-	m_writer << '[' << Timestamp(precise_time.seconds) << '.';
-
-	auto millis = precise_time.nanoseconds / 1000 / 1000;
-	m_writer << pad(static_cast<unsigned>(millis), '0', 3);
-	m_writer << "] [" << m_name << "] ";
-	if (is_record_module())
-	{
-		if (m_module_name_handler)
-		{
-			m_writer << "[" << m_module_name_handler(module_id) << "] ";
-		}
-		else
-		{
-			m_writer << "[" << module_id << "] ";
-		}
-	}
-	m_writer << "[" << to_string(level) << "] ";
 }
 
 
@@ -554,15 +497,13 @@ private:
  * Logs message with binary mode to the backend sink. Binary log message is optimized with output,
  * so can save output and record more information. On the other hand, binary log message is
  * structured and can be convenient analyse.
- * @tparam Sink  Support `void write(SequenceView sequence);`
  */
-template <typename Sink>
 class BinaryLogger
 {
 public:
 	using ModuleShouldLogHandler = std::function<bool(LogLevel, std::uint16_t)>;
 
-	BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink, StringTablePtr str_table);
+	BinaryLogger(std::uint16_t log_id, LogSinkPtr sink_ptr, StringTablePtr str_table_ptr);
 
 	std::uint16_t get_log_id() const
 	{
@@ -638,39 +579,28 @@ private:
 							StringView description)
 	{
 		m_signature.set_time(get_precise_time());
-		auto file_id = m_str_table->get_index(location.file());
+		auto file_id = m_str_table_ptr->get_index(location.file());
 		m_signature.set_file_id(static_cast<std::uint32_t>(file_id));
-		auto function_id = m_str_table->get_index(location.function());
+		auto function_id = m_str_table_ptr->get_index(location.function());
 		m_signature.set_function_id(static_cast<std::uint32_t>(function_id));
 		m_signature.set_line(location.line());
-		m_signature.set_description_id(static_cast<std::uint32_t>(m_str_table->get_index(description)));
+		m_signature.set_description_id(static_cast<std::uint32_t>(m_str_table_ptr->get_index(description)));
 		m_signature.set_module_id(module_id);
 		m_signature.set_level(level);
 	}
 
 	LogLevel m_level = LogLevel::INFO;
 	ModuleShouldLogHandler m_module_should_log;
-	std::shared_ptr<Sink> m_sink;
-	StringTablePtr m_str_table;
+	LogSinkPtr m_sink_ptr;
+	StringTablePtr m_str_table_ptr;
 	BinaryMessageSignature m_signature;
 	char m_write_target[WRITER_BUFFER_SIZE_LARGE];
 	BinaryStoreWriter m_writer;
 };
 
 
-template <typename Sink>
-BinaryLogger<Sink>::BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink, StringTablePtr str_table) :
-	m_sink(sink),
-	m_str_table(str_table),
-	m_writer(make_sequence(m_write_target), m_str_table)
-{
-	m_signature.set_log_id(log_id);
-}
-
-
-template <typename Sink>
 template <typename ... Args>
-void BinaryLogger<Sink>::log(LogLevel level,
+void BinaryLogger::log(LogLevel level,
 							 std::uint16_t module_id,
 							 const SourceLocation& location,
 							 const char* fmt,
@@ -684,30 +614,14 @@ void BinaryLogger<Sink>::log(LogLevel level,
 		m_writer.write(fmt, args ...);
 		m_signature.set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
 
-		m_sink->write({&m_signature, m_signature.get_memory_size()});
-		m_sink->write(m_writer.str_view());
+		m_sink_ptr->write({&m_signature, m_signature.get_memory_size()});
+		m_sink_ptr->write(m_writer.str_view());
 	}
 }
 
 
-template <typename Sink>
-void BinaryLogger<Sink>::log(LogLevel level,
-							 std::uint16_t module_id,
-							 const SourceLocation& location,
-							 const char* str)
-{
-	if (this->should_log(level, module_id))
-	{
-		generate_signature(level, module_id, location, str);
-		m_signature.set_argument_length(0);
-		m_sink->write({&m_signature, m_signature.get_memory_size()});
-	}
-}
-
-
-template <typename Sink>
 template <typename T>
-void BinaryLogger<Sink>::log(LogLevel level,
+void BinaryLogger::log(LogLevel level,
 							 std::uint16_t module_id,
 							 const SourceLocation& location,
 							 const T& value)
@@ -721,8 +635,8 @@ void BinaryLogger<Sink>::log(LogLevel level,
 		m_writer.write(description, value);
 		m_signature.set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
 
-		m_sink->write({&m_signature, m_signature.get_memory_size()});
-		m_sink->write(m_writer.str_view());
+		m_sink_ptr->write({&m_signature, m_signature.get_memory_size()});
+		m_sink_ptr->write(m_writer.str_view());
 	}
 }
 
@@ -730,10 +644,10 @@ void BinaryLogger<Sink>::log(LogLevel level,
 class BinaryLogReader
 {
 public:
-	BinaryLogReader(StringView log_filename, StringTablePtr str_table) :
+	BinaryLogReader(StringView log_filename, StringTablePtr str_table_ptr) :
 		m_file(log_filename, "rb"),
-		m_str_table(str_table),
-		m_writer(make_string(m_write_target), str_table)
+		m_str_table_ptr(str_table_ptr),
+		m_writer(make_string(m_write_target), str_table_ptr)
 	{
 	}
 
@@ -755,7 +669,7 @@ public:
 
 private:
 	FileStream m_file;
-	StringTablePtr m_str_table;
+	StringTablePtr m_str_table_ptr;
 	BinaryMessageSignature m_signature;
 	char m_write_target[WRITER_BUFFER_SIZE_LARGE];
 	BinaryRestoreWriter m_writer;
