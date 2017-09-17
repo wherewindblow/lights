@@ -848,15 +848,32 @@ enum WriterBufferSize: std::size_t
 
 /**
  * TextWriter use to format text and have internal buffer to hold all format result.
- * @tparam buffer_size  Default size is @c WRITER_BUFFER_SIZE_DEFAULT.
+ * Specify buffer by manual can easy to limit the output.
  * @note If the internal buffer is full will have no effect, unless have already
  *       set full handler.
  */
-template <std::size_t buffer_size = WRITER_BUFFER_SIZE_DEFAULT>
 class TextWriter
 {
 public:
 	using FullHandler = std::function<void(StringView)>;
+
+	/**
+	 * Create write and specify write target. If write target is not specify,
+	 * will use default write target with default size.
+	 */
+	TextWriter(String write_target = invalid_string()):
+		m_use_default_buffer(!is_valid(write_target)),
+		m_buffer(is_valid(write_target) ? write_target.data() : new char[WRITER_BUFFER_SIZE_DEFAULT]),
+		m_capacity(is_valid(write_target) ? write_target.length() : WRITER_BUFFER_SIZE_DEFAULT)
+	{}
+
+	~TextWriter()
+	{
+		if (m_use_default_buffer)
+		{
+			delete[] m_buffer;
+		}
+	}
 
 	/**
 	 * Basic append function to append a character.
@@ -917,21 +934,14 @@ public:
 	 *       set full handler.
 	 */
 	template <typename Arg, typename ... Args>
-	void write(StringView fmt, const Arg& value, const Args& ... args)
-	{
-		// Must add namespace scope limit or cannot find suitable function.
-		lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
-	}
+	void write(StringView fmt, const Arg& value, const Args& ... args);
 
 	/**
 	 * Forward to lights::write() function.
 	 * @note If the internal buffer is full will have no effect, unless have already
 	 *       set full handler.
 	 */
-	void write(StringView fmt)
-	{
-		lights::write(make_format_sink_adapter(*this), fmt);
-	}
+	void write(StringView fmt);
 
 	/**
 	 * Inserts integer to internal buffer.
@@ -1040,17 +1050,17 @@ public:
 	/**
 	 * Returns the max size that format result can be.
 	 */
-	constexpr std::size_t max_size() const
+	std::size_t max_size() const
 	{
-		return buffer_size - 1; // Remain a charater to hold null chareter.
+		return m_capacity - 1; // Remain a charater to hold null chareter.
 	}
 
 	/**
 	 * Returns the internal buffer size.
 	 */
-	constexpr std::size_t capacity() const
+	std::size_t capacity() const
 	{
-		return buffer_size;
+		return m_capacity;
 	}
 
 private:
@@ -1061,48 +1071,19 @@ private:
 
 	void hand_for_full(StringView str);
 
+	bool m_use_default_buffer;
+	char* m_buffer;
 	std::size_t m_length = 0;
-	char m_buffer[buffer_size];
+	std::size_t m_capacity;
 	FullHandler m_full_handler;
 };
 
 
-template <std::size_t buffer_size>
-void TextWriter<buffer_size>::hand_for_full(StringView str)
-{
-	if (m_full_handler)
-	{
-		m_full_handler(str_view());
-		clear();
-		if (str.length() <= max_size())
-		{
-			append(str);
-		}
-		else // Have not enought space to hold all.
-		{
-			while (str.length())
-			{
-				std::size_t append_len = (str.length() <= max_size()) ? str.length() : max_size();
-				StringView part(str.data(), append_len);
-				append(part);
-				if (append_len == max_size())
-				{
-					m_full_handler(str_view());
-					clear();
-				}
-				str.move_forward(append_len);
-			}
-		}
-	}
-}
-
-
 template <>
-template <std::size_t buffer_size>
-class FormatSinkAdapter<TextWriter<buffer_size>>
+class FormatSinkAdapter<TextWriter>
 {
 public:
-	explicit FormatSinkAdapter(TextWriter<buffer_size>& sink) : m_sink(sink) {}
+	explicit FormatSinkAdapter(TextWriter& sink) : m_sink(sink) {}
 
 	void append(char ch)
 	{
@@ -1122,22 +1103,37 @@ public:
 		m_sink.append(str);
 	}
 
-	TextWriter<buffer_size>& get_internal_sink()
+	TextWriter& get_internal_sink()
 	{
 		return m_sink;
 	}
 
 private:
-	TextWriter<buffer_size>& m_sink;
+	TextWriter& m_sink;
 };
+
+
+template <typename Arg, typename ... Args>
+inline void TextWriter::write(StringView fmt, const Arg& value, const Args& ... args)
+{
+	// Must add namespace scope limit or cannot find suitable function.
+	lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
+}
+
+/**
+ * @note Must ensure the specialization of FormatSinkAdapter is declere before use.
+ */
+inline void TextWriter::write(StringView fmt)
+{
+	lights::write(make_format_sink_adapter(*this), fmt);
+}
 
 
 /**
  * Uses @c TextWriter member function to format integer to speed up.
  */
 #define LIGHTS_TEXT_WRITER_TO_STRING(Type) \
-template <std::size_t buffer_size> \
-inline void to_string(FormatSinkAdapter<TextWriter<buffer_size>> out, Type n) \
+inline void to_string(FormatSinkAdapter<TextWriter> out, Type n) \
 { \
 	out.get_internal_sink() << n; \
 }
@@ -1145,6 +1141,26 @@ inline void to_string(FormatSinkAdapter<TextWriter<buffer_size>> out, Type n) \
 LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_TEXT_WRITER_TO_STRING)
 
 #undef LIGHTS_TEXT_WRITER_TO_STRING
+
+
+/**
+ * It's workaroud way of make sure arguments are expanded.
+ */
+#define LIGHTS_CONCAT_IMPL(a, b) a##b
+#define LIGHTS_CONCAT(a, b) LIGHTS_CONCAT_IMPL(a, b)
+
+/**
+ * Create a text writer with a buffer that in statck.
+ */
+#define LIGHTS_CREATE_TEXT_WRITER(name, buffer_size) \
+	char LIGHTS_CONCAT(name##_write_target_, __LINE__)[buffer_size]; \
+	lights::TextWriter name({LIGHTS_CONCAT(name##_write_target_, __LINE__), buffer_size});
+
+/**
+ * Create a text writer with default size.
+ */
+#define LIGHTS_CREATE_DEFAULT_TEXT_WRITER(name) \
+	LIGHTS_CREATE_TEXT_WRITER(name, lights::WRITER_BUFFER_SIZE_DEFAULT)
 
 
 /**

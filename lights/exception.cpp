@@ -74,4 +74,16 @@ void dump(const Exception& ex, SinkAdapter& out)
 	out << "##" << loc.function();
 }
 
+
+void to_string(FormatSinkAdapter<BinaryStoreWriter> out, const Exception& ex)
+{
+	details::FormatSelfSinkAdapter<BinaryStoreWriter> adapter(out);
+	ex.dump_message(adapter);
+	out << " <-- ";
+	auto& loc = ex.occur_location();
+	out.get_internal_sink().append(loc.file(), true);
+	out << ":" << loc.line() << "##";
+	out.get_internal_sink().append(loc.function(), true);
+}
+
 } // namespace lights

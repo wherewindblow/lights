@@ -239,6 +239,7 @@ inline StringView to_string_view(SequenceView sequence)
 	return StringView(static_cast<StringView::CharType*>(sequence.data()), sequence.length());
 }
 
+
 #define LIGHTS_IS_INVALID_SEQUENCE(Type) \
 inline bool is_valid(Type sequence) \
 { \
@@ -249,5 +250,51 @@ LIGHTS_IS_INVALID_SEQUENCE(String);
 LIGHTS_IS_INVALID_SEQUENCE(StringView);
 LIGHTS_IS_INVALID_SEQUENCE(Sequence);
 LIGHTS_IS_INVALID_SEQUENCE(SequenceView);
+
+
+inline String invalid_string()
+{
+	return String(nullptr, 0);
+}
+
+inline StringView invalid_string_view()
+{
+	return StringView(nullptr, 0);
+}
+
+inline Sequence invalid_sequence()
+{
+	return Sequence(nullptr, 0);
+}
+
+inline SequenceView invalid_sequence_view()
+{
+	return SequenceView(nullptr, 0);
+}
+
+
+template <typename T, std::size_t N>
+inline Sequence make_sequence(T (&target)[N])
+{
+	return Sequence(target, sizeof(T) * N);
+};
+
+template <typename T, std::size_t N>
+inline SequenceView make_sequence_view(const T (&target)[N])
+{
+	return SequenceView(target, sizeof(T) * N);
+};
+
+template <std::size_t N>
+inline String make_string(String::CharType (&target)[N])
+{
+	return String(target, sizeof(String::CharType) * N);
+};
+
+template <std::size_t N>
+inline StringView make_string_view(StringView::CharType (&target)[N])
+{
+	return StringView(target, sizeof(StringView::CharType) * N);
+};
 
 } // namespace lights

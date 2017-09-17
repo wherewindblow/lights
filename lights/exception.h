@@ -278,16 +278,7 @@ inline void to_string(FormatSinkAdapter<Sink> out, const Exception& ex)
 	adapter << ex;
 }
 
-template <std::size_t buffer_size>
-void to_string(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out, const Exception& ex)
-{
-	details::FormatSelfSinkAdapter<BinaryStoreWriter<buffer_size>> adapter(out);
-	ex.dump_message(adapter);
-	out << " <-- ";
-	auto& loc = ex.occur_location();
-	out.get_internal_sink().append(loc.file(), true);
-	out << ":" << loc.line() << "##";
-	out.get_internal_sink().append(loc.function(), true);
-}
+
+void to_string(FormatSinkAdapter<BinaryStoreWriter> out, const Exception& ex);
 
 } // namespace lights

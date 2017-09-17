@@ -68,7 +68,7 @@ void BM_format_int_fmt_MemoryWriter_insert(benchmark::State& state)
 
 void BM_format_int_lights_TextWriter_write(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	while (state.KeepRunning())
 	{
 		writer.clear();
@@ -79,7 +79,7 @@ void BM_format_int_lights_TextWriter_write(benchmark::State& state)
 
 void BM_format_int_lights_TextWriter_insert(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	while (state.KeepRunning())
 	{
 		writer.clear();
@@ -123,7 +123,7 @@ void BM_format_int_not_reuse_lights_TextWriter_write(benchmark::State& state)
 {
 	while (state.KeepRunning())
 	{
-		lights::TextWriter<> writer;
+		LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 		writer.write("{}", FORMAT_INTEGER);
 		writer.c_str();
 	}
@@ -133,7 +133,7 @@ void BM_format_int_not_reuse_lights_TextWriter_insert(benchmark::State& state)
 {
 	while (state.KeepRunning())
 	{
-		lights::TextWriter<> writer;
+		LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 		writer << FORMAT_INTEGER;
 		writer.c_str();
 	}
@@ -191,7 +191,7 @@ void BM_format_int_binary_fmt_MemoryWriter(benchmark::State& state)
 
 void BM_format_int_binary_lights_TextWriter(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	while (state.KeepRunning())
 	{
 		writer.clear();
@@ -225,7 +225,7 @@ void BM_format_int_octal_fmt_MemoryWriter(benchmark::State& state)
 
 void BM_format_int_octal_lights_TextWriter(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	while (state.KeepRunning())
 	{
 		writer.clear();
@@ -259,7 +259,7 @@ void BM_format_int_hex_fmt_MemoryWriter(benchmark::State& state)
 
 void BM_format_int_hex_lights_TextWriter(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	while (state.KeepRunning())
 	{
 		writer.clear();
@@ -315,7 +315,7 @@ void BM_format_float_fmt_MemoryWriter_insert(benchmark::State& state)
 
 void BM_format_float_lights_TextWriter_write(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	while (state.KeepRunning())
 	{
 		writer.clear();
@@ -326,7 +326,7 @@ void BM_format_float_lights_TextWriter_write(benchmark::State& state)
 
 void BM_format_float_lights_TextWriter_insert(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	while (state.KeepRunning())
 	{
 		writer.clear();
@@ -382,7 +382,7 @@ void BM_format_string_fmt_MemoryWriter_insert(benchmark::State& state)
 
 void BM_format_string_lights_TextWriter_write(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	// An optimize way to avoid calculate the lenght of string again and again.
 //	lights::StringView str = FORMAT_STRING;
 	while (state.KeepRunning())
@@ -396,7 +396,7 @@ void BM_format_string_lights_TextWriter_write(benchmark::State& state)
 
 void BM_format_string_lights_TextWriter_insert(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	while (state.KeepRunning())
 	{
 		writer.clear();
@@ -452,7 +452,7 @@ void BM_format_mix_fmt_MemoryWriter_insert(benchmark::State& state)
 
 void BM_format_mix_lights_TextWriter_write(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	while (state.KeepRunning())
 	{
 		writer.clear();
@@ -463,7 +463,7 @@ void BM_format_mix_lights_TextWriter_write(benchmark::State& state)
 
 void BM_format_mix_lights_TextWriter_insert(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	while (state.KeepRunning())
 	{
 		writer.clear();
@@ -532,7 +532,7 @@ void BM_format_time_fmt_MemoryWriter_insert(benchmark::State& state)
 void BM_format_time_lights_TextWriter_write(benchmark::State& state)
 {
 	std::time_t time = std::time(nullptr);
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 
 	while (state.KeepRunning())
 	{
@@ -553,7 +553,7 @@ void BM_format_time_lights_TextWriter_write(benchmark::State& state)
 void BM_format_time_lights_TextWriter_insert(benchmark::State& state)
 {
 	std::time_t time = std::time(nullptr);
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 
 	while (state.KeepRunning())
 	{
@@ -572,7 +572,7 @@ void BM_format_time_lights_TextWriter_insert(benchmark::State& state)
 
 void BM_format_time_lights_to_string(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	auto timestamp = lights::current_timestamp();
 
 	while (state.KeepRunning())
@@ -653,7 +653,7 @@ void BM_format_custom_fmt_MemoryWriter(benchmark::State& state)
  */
 void BM_format_custom_lights_TextWriter(benchmark::State& state)
 {
-	lights::TextWriter<> writer;
+	LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 	Coordinate coordinate;
 
 	while (state.KeepRunning())

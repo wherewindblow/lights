@@ -26,7 +26,9 @@ class ExceptionBinary: public std::exception
 {
 public:
 	ExceptionBinary(StringView what, bool store_what = false):
-		m_what(what), m_store_what(store_what)
+		m_what(what),
+		m_store_what(store_what),
+		m_store_writer(Sequence(m_store_write_target, sizeof(m_store_write_target)))
 	{
 		if (m_store_what)
 		{
@@ -40,11 +42,14 @@ public:
 		m_store_what(rhs.m_store_what),
 		m_store_writer(rhs.m_store_writer),
 		m_have_format(rhs.m_have_format),
-		m_restore_writer(rhs.m_restore_writer.get() ? std::make_unique<BinaryRestoreWriter<>>() : nullptr)
+		m_restore_write_target(rhs.m_restore_write_target.get() ?
+							   (new char[WRITER_BUFFER_SIZE_DEFAULT]) : nullptr)
 	{
-		if (rhs.m_restore_writer.get())
+		if (rhs.m_restore_write_target.get())
 		{
-			*m_restore_writer = *rhs.m_restore_writer;
+			copy_array(m_restore_write_target.get(),
+					   rhs.m_restore_write_target.get(),
+					   WRITER_BUFFER_SIZE_DEFAULT);
 		}
 	}
 
@@ -67,19 +72,24 @@ public:
 	{
 		if (!m_have_format)
 		{
-			m_restore_writer = std::make_unique<BinaryRestoreWriter<>>();
-			m_restore_writer->write_binary(m_what, m_store_writer.data(), m_store_writer.length());
+			m_restore_write_target.reset(new char[WRITER_BUFFER_SIZE_DEFAULT]);
+			String target(m_restore_write_target.get(), WRITER_BUFFER_SIZE_DEFAULT);
+			BinaryRestoreWriter restore_writer(target);
+			restore_writer.write_binary(m_what, m_store_writer.data(), m_store_writer.length());
 			m_have_format = true;
 		}
-		return m_restore_writer->c_str();
+
+		return m_restore_write_target.get();
 	}
 
 private:
 	StringView m_what;
 	bool m_store_what;
-	BinaryStoreWriter<50> m_store_writer; // Can hold 10 int parameter.
+	char m_store_write_target[50]; // Can hold 10 int parameter.
+	BinaryStoreWriter m_store_writer;
 	mutable bool m_have_format = false;
-	mutable std::unique_ptr<BinaryRestoreWriter<>> m_restore_writer;
+	mutable std::unique_ptr<char[]> m_restore_write_target;
+
 };
 
 
@@ -87,7 +97,7 @@ class ExceptionText: public std::exception
 {
 public:
 	ExceptionText(StringView what, bool store_what = false):
-		m_what(what), m_store_what(store_what)
+		m_what(what), m_store_what(store_what), m_writer({m_write_target, sizeof(m_write_target)})
 	{
 		if (m_store_what)
 		{
@@ -126,7 +136,8 @@ public:
 private:
 	StringView m_what;
 	bool m_store_what;
-	TextWriter<> m_writer;
+	char m_write_target[WRITER_BUFFER_SIZE_DEFAULT];
+	TextWriter m_writer;
 };
 
 } // namespace benchmark
@@ -209,7 +220,7 @@ void BM_exception_str_std_exception(benchmark::State& state)
 	{
 		try
 		{
-			lights::TextWriter<> writer;
+			LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer);
 			writer.write("Open file \"{}\" failure", __FILE__);
 			throw std::runtime_error(writer.c_str());
 		}
@@ -357,7 +368,7 @@ void BM_exception_pad_std_exception(benchmark::State& state)
 	{
 		try
 		{
-			lights::TextWriter<> writer;
+			LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer)
 			writer.write(EXCEPTION_FORMAT_ARGS);
 			throw std::runtime_error(writer.c_str());
 		}
@@ -382,7 +393,7 @@ void BM_exception_pad_std_exception_ptr(benchmark::State& state)
 	{
 		try
 		{
-			lights::TextWriter<> writer;
+			LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer)
 			writer.write(EXCEPTION_FORMAT_ARGS);
 			throw std::make_shared<std::runtime_error>(writer.c_str());
 		}
@@ -430,7 +441,7 @@ void BM_exception_pad_boost_exception(benchmark::State& state)
 	{
 		try
 		{
-			lights::TextWriter<> writer;
+			LIGHTS_CREATE_DEFAULT_TEXT_WRITER(writer)
 			writer.write(EXCEPTION_FORMAT_ARGS);
 			BOOST_THROW_EXCEPTION(std::runtime_error(writer.c_str()));
 		}

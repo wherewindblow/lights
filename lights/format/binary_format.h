@@ -16,43 +16,7 @@
 
 namespace lights {
 
-template <std::size_t buffer_size>
 class BinaryStoreWriter;
-
-/**
- * Empty function.
- */
-template <std::size_t buffer_size>
-inline void write(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> /* out */, StringView /* fmt */)
-{
-}
-
-/**
- * @note This explicit template specialization must declare before use it or cannot
- *       into this function and into general write function.
- */
-template <std::size_t buffer_size, typename Arg, typename ... Args>
-void write(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out,
-		   StringView fmt, const Arg& value, const Args& ... args)
-{
-	std::size_t i = 0;
-	for (; i < fmt.length(); ++i)
-	{
-		if (fmt[i] == '{' &&
-			i + 1 < fmt.length() &&
-			fmt[i+1] == '}')
-		{
-			break;
-		}
-	}
-
-	if (i < fmt.length())
-	{
-		out.get_internal_sink().add_composed_type(value);
-		fmt.move_forward(i + 2);
-		write(out, fmt, args ...);
-	}
-}
 
 
 /**
@@ -154,10 +118,8 @@ inline std::uint8_t get_type_width(BinaryTypeCode code)
 
 /**
  * BinaryStoreWriter use to store all format arguments and delay text format.
- * @tparam buffer_size  Default size is @c WRITER_BUFFER_SIZE_DEFAULT
  * @note If the internal buffer is full will have no effect.
  */
-template <std::size_t buffer_size = WRITER_BUFFER_SIZE_DEFAULT>
 class BinaryStoreWriter
 {
 public:
@@ -168,10 +130,26 @@ public:
 		ENDED
 	};
 
-	BinaryStoreWriter() = default;
+	/**
+	 * Create write and specify write target. If write target is not specify,
+	 * will use default write target with default size.
+	 */
+	BinaryStoreWriter(Sequence write_target = invalid_sequence(), StringTablePtr str_table = nullptr):
+		m_use_default_buffer(!is_valid(write_target)),
+		m_buffer(is_valid(write_target) ?
+				 static_cast<std::uint8_t*>(write_target.data()) :
+				 new std::uint8_t[WRITER_BUFFER_SIZE_DEFAULT]),
+		m_capacity(is_valid(write_target) ? write_target.length() : WRITER_BUFFER_SIZE_DEFAULT),
+		m_str_table(str_table)
+	{}
 
-	BinaryStoreWriter(StringTablePtr str_table):
-		m_str_table(str_table) {}
+	~BinaryStoreWriter()
+	{
+		if (m_use_default_buffer)
+		{
+			delete[] m_buffer;
+		}
+	}
 
 	/**
 	 * @note If the internal buffer is full will have no effect.
@@ -349,19 +327,13 @@ public:
 	 * @note If the internal buffer is full will have no effect.
 	 */
 	template <typename Arg, typename ... Args>
-	void write(StringView fmt, const Arg& value, const Args& ... args)
-	{
-		lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
-	}
+	void write(StringView fmt, const Arg& value, const Args& ... args);
 
 	/**
 	 * Forward to @c lights::write() function.
 	 * @note If the internal buffer is full will have no effect.
 	 */
-	void write(StringView fmt)
-	{
-		lights::write(make_format_sink_adapter(*this), fmt);
-	}
+	void write(StringView fmt);
 
 	/**
 	 * Return the internal buffer.
@@ -425,17 +397,17 @@ public:
 	/**
 	 * Return the max size that format result can be.
 	 */
-	constexpr std::size_t max_size() const
+	std::size_t max_size() const
 	{
-		return buffer_size;
+		return m_capacity;
 	}
 
 	/**
 	 * Return the internal buffer size.
 	 */
-	constexpr std::size_t capacity() const
+	std::size_t capacity() const
 	{
-		return buffer_size;
+		return m_capacity;
 	}
 
 private:
@@ -447,8 +419,10 @@ private:
 		return m_length + len <= max_size();
 	}
 
+	bool m_use_default_buffer;
+	std::uint8_t* m_buffer;
 	std::size_t m_length = 0;
-	std::uint8_t m_buffer[buffer_size];
+	std::size_t m_capacity;
 	FormatComposedTypeState m_state = FormatComposedTypeState::NO_INIT;
 	std::uint16_t m_composed_member_num = 0;
 	StringTablePtr m_str_table;
@@ -456,11 +430,10 @@ private:
 
 
 template <>
-template <std::size_t buffer_size>
-class FormatSinkAdapter<BinaryStoreWriter<buffer_size>>
+class FormatSinkAdapter<BinaryStoreWriter>
 {
 public:
-	explicit FormatSinkAdapter(BinaryStoreWriter<buffer_size>& sink) : m_sink(sink) {}
+	explicit FormatSinkAdapter(BinaryStoreWriter& sink) : m_sink(sink) {}
 
 	void append(char ch)
 	{
@@ -480,22 +453,71 @@ public:
 		m_sink.append(str);
 	}
 
-	BinaryStoreWriter<buffer_size>& get_internal_sink()
+	BinaryStoreWriter& get_internal_sink()
 	{
 		return m_sink;
 	}
 
 private:
-	BinaryStoreWriter<buffer_size>& m_sink;
+	BinaryStoreWriter& m_sink;
 };
+
+
+/**
+ * Empty function.
+ */
+inline void write(FormatSinkAdapter<BinaryStoreWriter> /* out */, StringView /* fmt */)
+{
+}
+
+/**
+ * @note This explicit template specialization must declare before use it or cannot
+ *       into this function and into general write function.
+ */
+template <typename Arg, typename ... Args>
+void write(FormatSinkAdapter<BinaryStoreWriter> out,
+		   StringView fmt, const Arg& value, const Args& ... args)
+{
+	std::size_t i = 0;
+	for (; i < fmt.length(); ++i)
+	{
+		if (fmt[i] == '{' &&
+			i + 1 < fmt.length() &&
+			fmt[i+1] == '}')
+		{
+			break;
+		}
+	}
+
+	if (i < fmt.length())
+	{
+		out.get_internal_sink().add_composed_type(value);
+		fmt.move_forward(i + 2);
+		write(out, fmt, args ...);
+	}
+}
+
+
+template <typename Arg, typename ... Args>
+inline void BinaryStoreWriter::write(StringView fmt, const Arg& value, const Args& ... args)
+{
+	lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
+}
+
+/**
+ * @note Must ensure the specialization of FormatSinkAdapter is declere before use.
+ */
+inline void BinaryStoreWriter::write(StringView fmt)
+{
+	lights::write(make_format_sink_adapter(*this), fmt);
+}
 
 
 /**
  * Use @c BinaryStoreWriter member function to format integer to speed up.
  */
 #define LIGHTS_BINARY_STORE_WRITER_TO_STRING(Type) \
-template <std::size_t buffer_size> \
-inline void to_string(FormatSinkAdapter<BinaryStoreWriter<buffer_size>> out, Type n) \
+inline void to_string(FormatSinkAdapter<BinaryStoreWriter> out, Type n) \
 { \
 	out.get_internal_sink() << n; \
 }
@@ -507,17 +529,16 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_TO_STRING)
 
 /**
  * BinaryRestoreWriter use to format text with arguments that store by @c BinaryStoreWriter.
- * @tparam buffer_size  Default size is @c WRITER_BUFFER_SIZE_DEFAULT
  * @note If the internal buffer is full will have no effect.
  */
-template <std::size_t buffer_size = WRITER_BUFFER_SIZE_DEFAULT>
 class BinaryRestoreWriter
 {
 public:
-	BinaryRestoreWriter() = default;
+	BinaryRestoreWriter(String write_target, StringTablePtr str_table) :
+		m_writer(write_target), m_str_table(str_table) {}
 
-	BinaryRestoreWriter(StringTablePtr str_table):
-		m_str_table(str_table) {}
+	BinaryRestoreWriter(String write_target) :
+		BinaryRestoreWriter(write_target, nullptr) {}
 
 	/**
 	 * @note If the internal buffer is full will have no effect.
@@ -628,7 +649,7 @@ public:
 	/**
 	 * Return the max size that format result can be.
 	 */
-	constexpr std::size_t max_size() const
+	std::size_t max_size() const
 	{
 		return m_writer.max_size();
 	}
@@ -636,7 +657,7 @@ public:
 	/**
 	 * Return the internal buffer size.
 	 */
-	constexpr std::size_t capacity() const
+	std::size_t capacity() const
 	{
 		return m_writer.capacity();
 	}
@@ -647,150 +668,8 @@ private:
 	 */
 	std::uint8_t write_argument(const uint8_t* binary_store_args);
 
-	TextWriter<buffer_size> m_writer;
+	TextWriter m_writer;
 	StringTablePtr m_str_table;
 };
-
-
-template <std::size_t buffer_size>
-void BinaryRestoreWriter<buffer_size>::write_binary(StringView fmt, const std::uint8_t* binary_store_args, std::size_t args_length)
-{
-	if (args_length == 0)
-	{
-		append(fmt);
-		return;
-	}
-
-	std::size_t i = 0;
-	for (; i < fmt.length(); ++i)
-	{
-		if (fmt[i] == '{' &&
-			i + 1 < fmt.length() &&
-			fmt[i+1] == '}')
-		{
-			break;
-		}
-	}
-
-	m_writer.append({fmt.data(), i});
-	if (i < fmt.length())
-	{
-		auto width = write_argument(binary_store_args);
-		fmt.move_forward(i + 2);
-		write_binary(fmt, binary_store_args + width, args_length - width);
-	}
-}
-
-
-template <std::size_t buffer_size>
-std::uint8_t BinaryRestoreWriter<buffer_size>::write_argument(const std::uint8_t* binary_store_args)
-{
-	auto width = get_type_width(static_cast<BinaryTypeCode>(*binary_store_args));
-	auto value_begin = binary_store_args + sizeof(BinaryTypeCode);
-	switch (static_cast<BinaryTypeCode>(*binary_store_args))
-	{
-		case BinaryTypeCode::INVALID:
-			break;
-		case BinaryTypeCode::BOOL:
-		{
-			bool b = static_cast<bool>(*value_begin);
-			m_writer << b;
-			break;
-		}
-		case BinaryTypeCode::CHAR:
-		{
-			char ch = static_cast<char>(*value_begin);
-			m_writer << ch;
-			break;
-		}
-		case BinaryTypeCode::STRING:
-		{
-			width += binary_store_args[1];
-			m_writer.append({reinterpret_cast<const char*>(&binary_store_args[2]), binary_store_args[1]});
-			break;
-		}
-		case BinaryTypeCode::INT8_T:
-		{
-			auto p = reinterpret_cast<const int8_t*>(value_begin);
-			m_writer << *p;
-			break;
-		}
-		case BinaryTypeCode::UINT8_T:
-		{
-			auto p = value_begin;
-			m_writer << *p;
-			break;
-		}
-		case BinaryTypeCode::INT16_T:
-		{
-			auto p = reinterpret_cast<const int16_t*>(value_begin);
-			m_writer << *p;
-			break;
-		}
-		case BinaryTypeCode::UINT16_T:
-		{
-			auto p = reinterpret_cast<const uint16_t*>(value_begin);
-			m_writer << *p;
-			break;
-		}
-		case BinaryTypeCode::INT32_T:
-		{
-			auto p = reinterpret_cast<const int32_t*>(value_begin);
-			m_writer << *p;
-			break;
-		}
-		case BinaryTypeCode::UINT32_T:
-		{
-			auto p = reinterpret_cast<const uint32_t*>(value_begin);
-			m_writer << *p;
-			break;
-		}
-		case BinaryTypeCode::INT64_T:
-		{
-			auto p = reinterpret_cast<const int64_t*>(value_begin);
-			m_writer << *p;
-			break;
-		}
-		case BinaryTypeCode::UINT64_T:
-		{
-			auto p = reinterpret_cast<const uint64_t*>(value_begin);
-			m_writer << *p;
-			break;
-		}
-		case BinaryTypeCode::COMPOSED_TYPE:
-		{
-			auto member_num = reinterpret_cast<const uint16_t*>(value_begin);
-			for (std::size_t i = 0; i < *member_num; ++i)
-			{
-				width += write_argument(binary_store_args + sizeof(BinaryTypeCode) + width);
-			}
-			break;
-		}
-		case BinaryTypeCode::STRING_REF:
-		{
-			auto index = reinterpret_cast<const uint32_t*>(value_begin);
-			if (m_str_table)
-			{
-				StringView str = m_str_table->get_str(*index);
-				if (is_valid(str))
-				{
-					m_writer << str;
-				}
-				else
-				{
-					m_writer << "[[Invalid string index: " << *index << "]]";
-				}
-			}
-			else
-			{
-				m_writer << "[[Use STRING_REF but string table is not set]]";
-			}
-			break;
-		}
-		case BinaryTypeCode::MAX:
-			break;
-	}
-	return width + sizeof(BinaryTypeCode);
-}
 
 } // namespace lights

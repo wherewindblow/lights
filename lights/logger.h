@@ -309,13 +309,17 @@ private:
 	ModuleNameHandler m_module_name_handler;
 	ModuleShouldLogHandler m_module_should_log;
 	std::shared_ptr<Sink> m_sink;
-	TextWriter<> m_writer;
+	char m_write_target[WRITER_BUFFER_SIZE_DEFAULT];
+	TextWriter m_writer;
 };
 
 
 template <typename Sink>
 TextLogger<Sink>::TextLogger(StringView name, std::shared_ptr<Sink> sink) :
-	m_name(name.data()), m_sink(sink) {}
+	m_name(name.data()),
+	m_sink(sink),
+	m_writer(make_string(m_write_target))
+{}
 
 
 template <typename Sink>
@@ -649,13 +653,16 @@ private:
 	std::shared_ptr<Sink> m_sink;
 	StringTablePtr m_str_table;
 	BinaryMessageSignature m_signature;
-	BinaryStoreWriter<WRITER_BUFFER_SIZE_LARGE> m_writer;
+	char m_write_target[WRITER_BUFFER_SIZE_LARGE];
+	BinaryStoreWriter m_writer;
 };
 
 
 template <typename Sink>
 BinaryLogger<Sink>::BinaryLogger(std::uint16_t log_id, std::shared_ptr<Sink> sink, StringTablePtr str_table) :
-	m_sink(sink), m_str_table(str_table), m_writer(m_str_table)
+	m_sink(sink),
+	m_str_table(str_table),
+	m_writer(make_sequence(m_write_target), m_str_table)
 {
 	m_signature.set_log_id(log_id);
 }
@@ -724,7 +731,9 @@ class BinaryLogReader
 {
 public:
 	BinaryLogReader(StringView log_filename, StringTablePtr str_table) :
-		m_file(log_filename, "rb"), m_str_table(str_table), m_writer(str_table)
+		m_file(log_filename, "rb"),
+		m_str_table(str_table),
+		m_writer(make_string(m_write_target), str_table)
 	{
 	}
 
@@ -748,7 +757,8 @@ private:
 	FileStream m_file;
 	StringTablePtr m_str_table;
 	BinaryMessageSignature m_signature;
-	BinaryRestoreWriter<WRITER_BUFFER_SIZE_LARGE> m_writer;
+	char m_write_target[WRITER_BUFFER_SIZE_LARGE];
+	BinaryRestoreWriter m_writer;
 };
 
 

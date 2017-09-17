@@ -122,4 +122,34 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_DETAILS_FORMAT_INTEGER);
 #undef LIGHTS_DETAILS_FORMAT_INTEGER
 
 } // namespace details
+
+
+void TextWriter::hand_for_full(StringView str)
+{
+	if (m_full_handler)
+	{
+		m_full_handler(str_view());
+		clear();
+		if (str.length() <= max_size())
+		{
+			append(str);
+		}
+		else // Have not enought space to hold all.
+		{
+			while (str.length())
+			{
+				std::size_t append_len = (str.length() <= max_size()) ? str.length() : max_size();
+				StringView part(str.data(), append_len);
+				append(part);
+				if (append_len == max_size())
+				{
+					m_full_handler(str_view());
+					clear();
+				}
+				str.move_forward(append_len);
+			}
+		}
+	}
+}
+
 } // namespace lights

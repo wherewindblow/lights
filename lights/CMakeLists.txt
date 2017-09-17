@@ -12,7 +12,7 @@ set(LIGHTS_SOURCE_FILES
         current_function.hpp
         exception.h exception.cpp
 
-        format/binary_format.h
+        format/binary_format.h format/binary_format.cpp
         log_sinks/stdout_sink.h
         log_sinks/cout_sink.h
         log_sinks/null_sink.h
