@@ -7,7 +7,6 @@
 #pragma once
 
 #include <cstdio>
-#include <cassert>
 
 #include "config.h"
 #include "env.h"
@@ -62,9 +61,9 @@ public:
 	 */
 	void open(StringView filename, StringView modes)
 	{
-		assert(!is_open() && "Cannot open file, becase there is handler that is not close.");
-		m_file = std::fopen(filename.data(), modes.data());
-		if (m_file == nullptr)
+		LIGHTS_ASSERT(!is_open() && "Cannot open file, becase there is handler that is not close.");
+		m_std_file = std::fopen(filename.data(), modes.data());
+		if (m_std_file == nullptr)
 		{
 			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
 		}
@@ -76,9 +75,9 @@ public:
 	 */
 	void reopen(StringView filename, StringView modes)
 	{
-		if (std::freopen(filename.data(), modes.data(), m_file) == nullptr)
+		if (std::freopen(filename.data(), modes.data(), m_std_file) == nullptr)
 		{
-			m_file = nullptr;
+			m_std_file = nullptr;
 			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
 		}
 	}
@@ -88,7 +87,7 @@ public:
 	 */
 	bool is_open() const
 	{
-		return m_file != nullptr;
+		return m_std_file != nullptr;
 	}
 
 	/**
@@ -97,7 +96,7 @@ public:
 	 */
 	std::size_t read(Sequence sequence)
 	{
-		return std::fread(sequence.data(), sizeof(char), sequence.length(), m_file);
+		return std::fread(sequence.data(), sizeof(char), sequence.length(), m_std_file);
 	}
 
 	/**
@@ -107,7 +106,7 @@ public:
 	 */
 	std::size_t write(SequenceView sequence)
 	{
-		return std::fwrite(sequence.data(), sizeof(char), sequence.length(), m_file);
+		return std::fwrite(sequence.data(), sizeof(char), sequence.length(), m_std_file);
 	}
 
 	/**
@@ -115,7 +114,7 @@ public:
 	 */
 	void flush()
 	{
-		std::fflush(m_file);
+		std::fflush(m_std_file);
 	}
 
 	/**
@@ -123,7 +122,7 @@ public:
 	 */
 	int get_char()
 	{
-		return std::getc(m_file);
+		return std::getc(m_std_file);
 	}
 
 	/**
@@ -131,7 +130,7 @@ public:
 	 */
 	int put_char(int ch)
 	{
-		return std::putc(ch, m_file);
+		return std::putc(ch, m_std_file);
 	}
 
 	/**
@@ -139,7 +138,7 @@ public:
 	 */
 	int unget_char(int ch)
 	{
-		return std::ungetc(ch, m_file);
+		return std::ungetc(ch, m_std_file);
 	}
 
 	/**
@@ -157,7 +156,7 @@ public:
 	 */
 	bool eof()
 	{
-		return std::feof(m_file) != 0;
+		return std::feof(m_std_file) != 0;
 	}
 
 	/**
@@ -165,7 +164,7 @@ public:
 	 */
 	bool error()
 	{
-		return std::ferror(m_file) != 0;
+		return std::ferror(m_std_file) != 0;
 	}
 
 	/**
@@ -173,7 +172,7 @@ public:
 	 */
 	void clear_error()
 	{
-		std::clearerr(m_file);
+		std::clearerr(m_std_file);
 	}
 
 	/**
@@ -181,7 +180,7 @@ public:
 	 */
 	std::streamoff tell()
 	{
-		return env_ftell(m_file);
+		return env_ftell(m_std_file);
 	}
 
 	/**
@@ -189,7 +188,7 @@ public:
 	 */
 	void seek(std::streamoff off, FileSeekWhence whence)
 	{
-		env_fseek(m_file, off, static_cast<int>(whence));
+		env_fseek(m_std_file, off, static_cast<int>(whence));
 	}
 
 	/**
@@ -197,7 +196,7 @@ public:
 	 */
 	void rewind()
 	{
-		std::rewind(m_file);
+		std::rewind(m_std_file);
 	}
 
 	/**
@@ -217,8 +216,8 @@ public:
 	 */
 	void close()
 	{
-		std::fclose(m_file);
-		m_file = nullptr;
+		std::fclose(m_std_file);
+		m_std_file = nullptr;
 	}
 
 	/**
@@ -226,7 +225,7 @@ public:
 	 */
 	void setbuf(char* buffer)
 	{
-		std::setbuf(m_file, buffer);
+		std::setbuf(m_std_file, buffer);
 	}
 
 	/**
@@ -234,7 +233,7 @@ public:
 	 */
 	void setvbuf(char* buffer, std::size_t size, FileBufferingMode mode)
 	{
-		std::setvbuf(m_file, buffer, static_cast<int>(mode), size);
+		std::setvbuf(m_std_file, buffer, static_cast<int>(mode), size);
 	}
 
 	/**
@@ -253,7 +252,7 @@ public:
 	friend FileStream& stderr_stream();
 
 private:
-	std::FILE* m_file = nullptr;
+	std::FILE* m_std_file = nullptr;
 };
 
 /**
@@ -262,7 +261,7 @@ private:
 inline FileStream& stdin_stream()
 {
 	static FileStream stream;
-	stream.m_file = stdin;
+	stream.m_std_file = stdin;
 	return stream;
 }
 
@@ -272,7 +271,7 @@ inline FileStream& stdin_stream()
 inline FileStream& stdout_stream()
 {
 	static FileStream stream;
-	stream.m_file = stdout;
+	stream.m_std_file = stdout;
 	return stream;
 }
 
@@ -282,7 +281,7 @@ inline FileStream& stdout_stream()
 inline FileStream& stderr_stream()
 {
 	static FileStream stream;
-	stream.m_file = stderr;
+	stream.m_std_file = stderr;
 	return stream;
 }
 

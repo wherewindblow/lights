@@ -6,6 +6,9 @@
 
 #include "file_sink.h"
 
+#include "../format.h"
+
+
 namespace lights {
 namespace log_sinks {
 

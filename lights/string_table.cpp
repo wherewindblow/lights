@@ -10,8 +10,9 @@
 #include <unordered_map>
 #include <fstream>
 
-#include "exception.h"
+#include "config.h"
 #include "env.h"
+#include "exception.h"
 
 
 namespace lights {

@@ -11,12 +11,10 @@
 #include <string>
 #include <memory>
 
-#include <stdio.h>
-#include <string.h>
-
 #include "../sequence.h"
 #include "../file.h"
 #include "../exception.h"
+
 
 namespace lights {
 namespace log_sinks {
@@ -53,7 +51,7 @@ public:
 	}             \
 	else          \
 	{             \
-		assert(false && "SizeRotatingFileSink: Cannot initialize when have been end initialization"); \
+		LIGHTS_ASSERT(false && "SizeRotatingFileSink: Cannot initialize when have been end initialization"); \
 	}
 
 	/**

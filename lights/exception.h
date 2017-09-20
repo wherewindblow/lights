@@ -6,12 +6,11 @@
 
 #pragma once
 
+#include <cassert>
 #include <exception>
 
 #include "sequence.h"
 #include "sink_adapter.h"
-#include "format.h"
-#include "format/binary_format.h"
 #include "current_function.hpp"
 #include "common.h"
 
@@ -69,6 +68,7 @@ namespace error_code {
 enum Type
 {
 	SUCCESS,
+	ASSERTION_ERROR,
 	INVALID_ARGUMENT,
 	OPEN_FILE_FAILURE,
 };
@@ -197,18 +197,18 @@ private:
 };
 
 
-class OpenFileError: public Exception
+class AssertionError: public Exception
 {
 public:
-	OpenFileError(const SourceLocation& occur_location, StringView filename):
-		Exception(occur_location, error_code::OPEN_FILE_FAILURE), m_filename(filename.to_std_string())
+	AssertionError(const SourceLocation& occur_location, StringView description):
+		Exception(occur_location, error_code::ASSERTION_ERROR), m_description(description)
 	{
 	}
 
 	void dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const override;
 
 private:
-	std::string m_filename;
+	StringView m_description;
 };
 
 
@@ -227,6 +227,21 @@ private:
 };
 
 
+class OpenFileError: public Exception
+{
+public:
+	OpenFileError(const SourceLocation& occur_location, StringView filename):
+		Exception(occur_location, error_code::OPEN_FILE_FAILURE), m_filename(filename.to_std_string())
+	{
+	}
+
+	void dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const override;
+
+private:
+	std::string m_filename;
+};
+
+
 /**
  * Throws a exception and record the current source location.
  * @arg ... Expand to fmt and arg ...
@@ -235,6 +250,18 @@ private:
 #define LIGHTS_THROW_EXCEPTION(ExceptionType, ...) \
         throw ExceptionType(LIGHTS_CURRENT_SOURCE_LOCATION, ##__VA_ARGS__);
 
+
+#if LIGHTS_OPEN_ASSERTION == 1
+#	define LIGHTS_ASSERT(expr) assert(expr)
+#elif LIGHTS_OPEN_ASSERTION == 2
+#	define LIGHTS_ASSERT(expr) \
+	do { \
+		if (!(expr)) \
+			LIGHTS_THROW_EXCEPTION(lights::AssertionError, #expr); \
+	} while (false);
+#else
+#	define LIGHTS_ASSERT(expr)
+#endif
 
 /**
  * Dumps all message of exception to sink adapter, include error message and occur source
@@ -278,6 +305,8 @@ inline void to_string(FormatSinkAdapter<Sink> out, const Exception& ex)
 	adapter << ex;
 }
 
+
+class BinaryStoreWriter;
 
 void to_string(FormatSinkAdapter<BinaryStoreWriter> out, const Exception& ex);
 

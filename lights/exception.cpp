@@ -6,6 +6,9 @@
 
 #include "exception.h"
 
+#include "format.h"
+#include "format/binary_format.h"
+
 
 namespace lights {
 
@@ -19,6 +22,7 @@ const ErrorCodeDescriptions& LightsErrorCodeCategory::descriptions(int code) con
 {
 	static ErrorCodeDescriptions map[] = {
 		{"Success"},
+		{"Assertion error", "Assertion error: {}"},
 		{"Invalid argument", "Invalid argument: {}"},
 		{"Open file failure", "Open file \"{}\" failure: {}"}
 	};
@@ -47,13 +51,11 @@ void Exception::dump_message(SinkAdapter& out, ErrorCodeDescriptions::Descriptio
 	out.write(str);
 }
 
-
-void OpenFileError::dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const
+void AssertionError::dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const
 {
 	write(make_format_sink_adapter(out),
 		  get_description(description_type),
-		  m_filename,
-		  current_error());
+		  m_description);
 }
 
 void InvalidArgument::dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const
@@ -61,6 +63,14 @@ void InvalidArgument::dump_message(SinkAdapter& out, ErrorCodeDescriptions::Desc
 	write(make_format_sink_adapter(out),
 		  get_description(description_type),
 		  m_description);
+}
+
+void OpenFileError::dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const
+{
+	write(make_format_sink_adapter(out),
+		  get_description(description_type),
+		  m_filename,
+		  current_error());
 }
 
 
