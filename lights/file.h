@@ -242,7 +242,7 @@ public:
 	void write_line(StringView str)
 	{
 		write(str);
-		write(StringView(LIGHTS_LINE_ENDER));
+		write(StringView(env_end_line()));
 	}
 
 	friend FileStream& stdin_stream();

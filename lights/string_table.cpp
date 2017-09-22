@@ -104,7 +104,7 @@ StringTable::~StringTable()
 		for (std::size_t i = impl()->last_index + 1; impl()->storage_file && i < impl()->str_array.size(); ++i)
 		{
 			impl()->storage_file.write(impl()->str_array[i]->data(), impl()->str_array[i]->length());
-			impl()->storage_file << LIGHTS_LINE_ENDER;
+			impl()->storage_file << env_end_line();
 		}
 		impl()->storage_file.close();
 	}

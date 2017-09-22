@@ -16,6 +16,11 @@
 
 namespace lights {
 
+inline const char* env_end_line()
+{
+	return "\n";
+}
+
 // In XSI-compliant (posix) version, 100 charater is enough to put all error
 // string on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2) (Englist Version).
 // In another languague version may have to change to largger to
