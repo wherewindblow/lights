@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 
 namespace lights {
@@ -65,7 +66,7 @@ inline env_offset_t env_ftell(std::FILE* file)
 
 inline void env_fseek(std::FILE* file, env_offset_t off, int whence)
 {
-	// off type off_t will fit into suitable type for 32 and 64 architechures.
+	// Return type off_t will fit into suitable type for 32 and 64 architechures.
 	fseeko(file, off, whence);
 }
 
@@ -77,6 +78,11 @@ inline tm* env_localtime(const std::time_t* time_point, struct tm* result)
 inline std::size_t env_hash(const void* data, std::size_t len)
 {
 	return std::_Hash_impl::hash(data, len);
+}
+
+inline bool env_file_exists(const char* filename)
+{
+	return access(filename, F_OK) == 0;
 }
 
 } // namespace lights

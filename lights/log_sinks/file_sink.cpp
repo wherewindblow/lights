@@ -31,24 +31,57 @@ void SizeRotatingFileSink::fill_remain()
 }
 
 
-void SizeRotatingFileSink::rotate()
+void SizeRotatingFileSink::rotate(std::size_t expect_size)
 {
 	bool appropriate = false;
 	while (m_index + 1 < m_max_files)
 	{
-		if (m_file.is_open())
-		{
-			m_file.close();
-		}
 		++m_index;
+
 		auto name = format(m_name_format, m_index);
-		m_file.open(name, "ab+");
-		m_current_size = m_file.size();
-		if (m_current_size < m_max_size)
+		if (env_file_exists(name.c_str()))
 		{
-			appropriate = true;
-			break;
+			continue;
 		}
+
+		bool cannot_use_previous = false;
+		if (m_index != 0) // Have none previous file, because 0 is the first index.
+		{
+			// Try to use previous file if it have enought space to write a message.
+			auto previous_name = format(m_name_format, m_index - 1);
+			if (!env_file_exists(previous_name.c_str()))
+			{
+				if (m_file.is_open())
+				{
+					m_file.close();
+				}
+				m_file.open(previous_name, "ab+");
+				if (m_file.size() + expect_size > m_max_size)
+				{
+					cannot_use_previous = true;
+				}
+				else
+				{
+					--m_index;
+				}
+			}
+		}
+		else
+		{
+			cannot_use_previous = true;
+		}
+
+		if (cannot_use_previous)
+		{
+			if (m_file.is_open())
+			{
+				m_file.close();
+			}
+			m_file.open(name, "ab+");
+		}
+		m_current_size = m_file.size();
+		appropriate = true;
+		break;
 	}
 
 	if (!appropriate)
@@ -71,6 +104,8 @@ void SizeRotatingFileSink::rotate()
 		m_file.open(last, "ab+");
 		m_current_size = m_file.size();
 	}
+
+	m_msg_writer.set_write_target(&m_file);
 }
 
 
@@ -113,8 +148,8 @@ void TimeRotatingFileSink::rotate()
 		m_file.close();
 	}
 	m_file.open(name, "ab+");
-
 	m_next_rotating_time += m_duration;
+	m_msg_writer.set_write_target(&m_file);
 }
 
 } // namespace log_sinks

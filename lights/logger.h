@@ -53,6 +53,34 @@ struct PreciseTime
 	std::int64_t nanoseconds;
 };
 
+
+inline bool is_over_flow(std::int64_t a, std::int64_t b)
+{
+	std::int64_t x = a + b;
+	return ((x^a) < 0 && (x^b) < 0);
+}
+
+inline PreciseTime operator+(const PreciseTime& left, const PreciseTime& right)
+{
+	PreciseTime result(left.seconds + right.seconds, left.nanoseconds + right.nanoseconds);
+	if (is_over_flow(left.nanoseconds, right.nanoseconds))
+	{
+		++result.seconds;
+	}
+	return result;
+}
+
+inline PreciseTime operator-(const PreciseTime& left, const PreciseTime& right)
+{
+	PreciseTime result(left.seconds - right.seconds, left.nanoseconds - right.nanoseconds);
+	if (left.nanoseconds < right.nanoseconds)
+	{
+		--result.seconds;
+		result.nanoseconds = std::abs(result.nanoseconds);
+	}
+	return result;
+}
+
 /**
  * Returns the current time point.
  */
@@ -327,7 +355,7 @@ void TextLogger::log(LogLevel level,
 		m_writer.clear();
 		this->generate_signature(level, module_id);
 		m_writer.write(fmt, args ...);
-		recore_location(location);
+		this->recore_location(location);
 		m_writer.append(env_end_line());
 		m_sink_ptr->write(m_writer.string_view());
 	}
@@ -342,7 +370,7 @@ void TextLogger::log(LogLevel level, std::uint16_t module_id, const SourceLocati
 		m_writer.clear();
 		this->generate_signature(level, module_id);
 		m_writer << value;
-		recore_location(location);
+		this->recore_location(location);
 		m_writer.append(env_end_line());
 		m_sink_ptr->write(m_writer.string_view());
 	}
@@ -472,9 +500,9 @@ public:
 		unalign_part_interface()->level = level;
 	}
 
-	std::size_t get_memory_size() const
+	static constexpr std::size_t memory_size()
 	{
-		return sizeof(m_align_part) + sizeof(m_unalign_part);
+		return sizeof(AlignPart) + sizeof(UnalignPartStorage);
 	}
 
 private:
@@ -507,7 +535,7 @@ public:
 
 	std::uint16_t get_log_id() const
 	{
-		return m_signature.get_log_id();
+		return m_signature->get_log_id();
 	}
 
 	LogLevel get_level() const
@@ -576,25 +604,27 @@ private:
 	void generate_signature(LogLevel level,
 							std::uint16_t module_id,
 							const SourceLocation& location,
-							StringView description)
+							StringView description);
+
+	void set_argument_length(std::uint16_t length)
 	{
-		m_signature.set_time(get_precise_time());
-		auto file_id = m_str_table_ptr->get_index(location.file());
-		m_signature.set_file_id(static_cast<std::uint32_t>(file_id));
-		auto function_id = m_str_table_ptr->get_index(location.function());
-		m_signature.set_function_id(static_cast<std::uint32_t>(function_id));
-		m_signature.set_line(location.line());
-		m_signature.set_description_id(static_cast<std::uint32_t>(m_str_table_ptr->get_index(description)));
-		m_signature.set_module_id(module_id);
-		m_signature.set_level(level);
+		m_signature->set_argument_length(length);
+		char* tail_length = m_write_target + BinaryMessageSignature::memory_size() + m_writer.length();
+		*reinterpret_cast<std::uint16_t*>(tail_length) = m_signature->get_argument_length();
+	}
+
+	void sink_msg()
+	{
+		SequenceView view(m_write_target, BinaryMessageSignature::memory_size() + m_writer.size() + sizeof(std::uint16_t));
+		m_sink_ptr->write(view);
 	}
 
 	LogLevel m_level = LogLevel::INFO;
 	ModuleShouldLogHandler m_module_should_log;
 	LogSinkPtr m_sink_ptr;
 	StringTablePtr m_str_table_ptr;
-	BinaryMessageSignature m_signature;
 	char m_write_target[WRITER_BUFFER_SIZE_LARGE];
+	BinaryMessageSignature* m_signature;
 	BinaryStoreWriter m_writer;
 };
 
@@ -608,14 +638,12 @@ void BinaryLogger::log(LogLevel level,
 {
 	if (this->should_log(level, module_id))
 	{
-		generate_signature(level, module_id, location, fmt);
+		this->generate_signature(level, module_id, location, fmt);
 
 		m_writer.clear();
 		m_writer.write(fmt, args ...);
-		m_signature.set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
-
-		m_sink_ptr->write({&m_signature, m_signature.get_memory_size()});
-		m_sink_ptr->write(m_writer.string_view());
+		this->set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
+		this->sink_msg();
 	}
 }
 
@@ -629,14 +657,12 @@ void BinaryLogger::log(LogLevel level,
 	if (this->should_log(level, module_id))
 	{
 		StringView description = "{}";
-		generate_signature(level, module_id, location, description);
+		this->generate_signature(level, module_id, location, description);
 
 		m_writer.clear();
 		m_writer.write(description, value);
-		m_signature.set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
-
-		m_sink_ptr->write({&m_signature, m_signature.get_memory_size()});
-		m_sink_ptr->write(m_writer.string_view());
+		this->set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
+		this->sink_msg();
 	}
 }
 
@@ -644,12 +670,7 @@ void BinaryLogger::log(LogLevel level,
 class BinaryLogReader
 {
 public:
-	BinaryLogReader(StringView log_filename, StringTablePtr str_table_ptr) :
-		m_file(log_filename, "rb"),
-		m_str_table_ptr(str_table_ptr),
-		m_writer(make_string(m_write_target), str_table_ptr)
-	{
-	}
+	BinaryLogReader(StringView log_filename, StringTablePtr str_table_ptr);
 
 	/**
 	 * @note Return nullptr when have no log message to read.
@@ -657,17 +678,19 @@ public:
 	StringView read();
 
 	/**
-	 * @note Line is start at 0.
+	 * Jump to the specify line.
+	 * @param line  When line is positive will jump to the line start from head.
+	 *              When line is negative will jump to the line start from tail.
 	 */
-	void jump(std::size_t line);
+	void jump(std::streamoff line);
 
-	bool eof()
-	{
-		m_file.peek();
-		return m_file.eof();
-	}
+	bool eof();
 
 private:
+	void jump_from_head(std::size_t line);
+
+	void jump_from_tail(std::size_t line);
+
 	FileStream m_file;
 	StringTablePtr m_str_table_ptr;
 	BinaryMessageSignature m_signature;

@@ -314,6 +314,15 @@ public:
 	}
 
 	/**
+	 * Set the size of internal buffer.
+	 * @note Must ensure @c new_size is less than @c capacity().
+	 */
+	void resize(std::size_t new_size)
+	{
+		m_length = new_size;
+	}
+
+	/**
 	 * Set the format result length to zero.
 	 */
 	void clear()

@@ -19,23 +19,49 @@
 namespace lights {
 namespace log_sinks {
 
+class LogMessageWriter
+{
+public:
+	LogMessageWriter(FileStream* file = nullptr) :
+		m_file(file) {}
+
+	void set_write_target(FileStream* file)
+	{
+		m_file = file;
+		m_buffer_length = 0;
+	}
+
+	std::size_t write(SequenceView log_msg)
+	{
+		if (m_buffer_length + log_msg.length() > FILE_DEFAULT_BUFFER_SIZE)
+		{
+			m_file->flush();
+			m_buffer_length = 0;
+		}
+
+		return m_file->write(log_msg);
+	}
+
+private:
+	std::size_t m_buffer_length = 0;
+	FileStream* m_file = nullptr;
+};
+
+
 class SimpleFileSink: public SinkAdapter
 {
 public:
-	/**
-	 * Open the file with @c filename.
-	 * @param filename  The file to be write.
-	 */
 	SimpleFileSink(StringView filename) :
-		m_file(filename.data(), "ab+") {}
+		m_file(filename.data(), "ab+"), m_msg_writer(&m_file) {}
 
-	std::size_t write(SequenceView sequence) override
+	std::size_t write(SequenceView log_msg) override
 	{
-		return m_file.write(sequence);
+		return m_msg_writer.write(log_msg);
 	}
 
 private:
 	FileStream m_file;
+	LogMessageWriter m_msg_writer;
 };
 
 
@@ -85,17 +111,16 @@ public:
 	void end_init()
 	{
 		can_init = false;
-		this->rotate();
+		this->rotate(0);
 	}
 
-	std::size_t write(SequenceView sequence) override
+	std::size_t write(SequenceView log_msg) override
 	{
-		while (m_current_size + sequence.length() > m_max_size)
+		while (m_current_size + log_msg.length() > m_max_size)
 		{
-			this->fill_remain();
-			this->rotate();
+			this->rotate(log_msg.length());
 		}
-		std::size_t writed_length = m_file.write(sequence);
+		std::size_t writed_length = m_msg_writer.write(log_msg);
 		m_current_size += writed_length;
 		return writed_length;
 	}
@@ -103,13 +128,14 @@ public:
 private:
 	void fill_remain();
 
-	void rotate();
+	void rotate(std::size_t expect_size);
 
 	bool can_init = true;
 	std::string m_name_format;
 	std::size_t m_max_size;
 	std::size_t m_max_files = static_cast<std::size_t>(-1);
 	FileStream m_file;
+	LogMessageWriter m_msg_writer;
 	std::size_t m_index = static_cast<std::size_t>(-1);
 	std::size_t m_current_size;
 };
@@ -129,14 +155,14 @@ public:
 						 std::time_t duration = ONE_DAY_SECONDS,
 						 std::time_t day_point = 0);
 
-	std::size_t write(SequenceView sequence) override
+	std::size_t write(SequenceView log_msg) override
 	{
 		std::time_t now = std::time(nullptr);
 		if (now >= m_next_rotating_time)
 		{
 			rotate();
 		}
-		return m_file.write(sequence);
+		return m_msg_writer.write(log_msg);
 	}
 
 	void rotate();
@@ -147,6 +173,7 @@ private:
 	std::time_t m_day_point;
 	std::time_t m_next_rotating_time;
 	FileStream m_file;
+	LogMessageWriter m_msg_writer;
 };
 
 } // namespace log_sinks

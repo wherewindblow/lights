@@ -26,6 +26,8 @@ enum class FileBufferingMode
 	FULL_BUFFERING = _IOFBF, LINE_BUFFERING = _IOLBF, NO_BUFFERING = _IONBF
 };
 
+constexpr const int FILE_DEFAULT_BUFFER_SIZE = BUFSIZ;
+
 
 /**
  * FileStream provide operation with a file.
