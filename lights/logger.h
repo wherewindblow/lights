@@ -684,7 +684,26 @@ public:
 	 */
 	void jump(std::streamoff line);
 
-	bool eof();
+	void jump_to_end()
+	{
+		m_file.seek(0, FileSeekWhence::END);
+	}
+
+	bool eof()
+	{
+		m_file.peek();
+		return m_file.eof();
+	}
+
+	bool have_new_message()
+	{
+		return static_cast<std::size_t>(m_file.tell()) < m_file.size();
+	}
+
+	void clear_eof()
+	{
+		m_file.clear_error();
+	}
 
 private:
 	void jump_from_head(std::size_t line);

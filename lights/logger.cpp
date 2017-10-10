@@ -209,12 +209,4 @@ void BinaryLogReader::jump_from_tail(std::size_t line)
 	}
 }
 
-
-bool BinaryLogReader::eof()
-{
-	m_file.peek();
-	return m_file.eof();
-}
-
-
 } // namespace lights
