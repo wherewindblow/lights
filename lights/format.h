@@ -573,8 +573,8 @@ inline void to_string(FormatSinkAdapter<Sink> out, long double n)
 template <typename Sink>
 inline void to_string(FormatSinkAdapter<Sink> out, ErrorNumber error_no)
 {
-	char buf[ENV_MAX_ERROR_STR_LEN];
-	const char* result = env_strerror(error_no.value, buf, ENV_MAX_ERROR_STR_LEN);
+	char buf[env::MAX_ERROR_STR_LEN];
+	const char* result = env::strerror(error_no.value, buf, env::MAX_ERROR_STR_LEN);
 	out.append(result);
 }
 
@@ -582,7 +582,7 @@ template <typename Sink>
 void to_string(FormatSinkAdapter<Sink> out, Timestamp timestamp)
 {
 	std::tm tm;
-	env_localtime(&timestamp.value, &tm);
+	env::localtime(&timestamp.value, &tm);
 
 	out << static_cast<unsigned>(tm.tm_year + 1900) << '-';
 	// Why not use pad, because pad will it more complex and slow.

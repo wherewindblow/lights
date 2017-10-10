@@ -356,7 +356,7 @@ void TextLogger::log(LogLevel level,
 		this->generate_signature(level, module_id);
 		m_writer.write(fmt, args ...);
 		this->recore_location(location);
-		m_writer.append(env_end_line());
+		m_writer.append(env::end_line());
 		m_sink_ptr->write(m_writer.string_view());
 	}
 }
@@ -371,7 +371,7 @@ void TextLogger::log(LogLevel level, std::uint16_t module_id, const SourceLocati
 		this->generate_signature(level, module_id);
 		m_writer << value;
 		this->recore_location(location);
-		m_writer.append(env_end_line());
+		m_writer.append(env::end_line());
 		m_sink_ptr->write(m_writer.string_view());
 	}
 }
@@ -656,7 +656,7 @@ void BinaryLogger::log(LogLevel level,
 {
 	if (this->should_log(level, module_id))
 	{
-		StringView description = "{}";
+		const StringView description = "{}";
 		this->generate_signature(level, module_id, location, description);
 
 		m_writer.clear();

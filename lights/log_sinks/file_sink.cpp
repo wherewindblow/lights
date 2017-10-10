@@ -39,7 +39,7 @@ void SizeRotatingFileSink::rotate(std::size_t expect_size)
 		++m_index;
 
 		auto name = format(m_name_format, m_index);
-		if (env_file_exists(name.c_str()))
+		if (env::file_exists(name.c_str()))
 		{
 			continue;
 		}
@@ -49,7 +49,7 @@ void SizeRotatingFileSink::rotate(std::size_t expect_size)
 		{
 			// Try to use previous file if it have enought space to write a message.
 			auto previous_name = format(m_name_format, m_index - 1);
-			if (!env_file_exists(previous_name.c_str()))
+			if (!env::file_exists(previous_name.c_str()))
 			{
 				if (m_file.is_open())
 				{

@@ -182,7 +182,7 @@ public:
 	 */
 	std::streamoff tell()
 	{
-		return env_ftell(m_std_file);
+		return env::ftell(m_std_file);
 	}
 
 	/**
@@ -190,7 +190,7 @@ public:
 	 */
 	void seek(std::streamoff off, FileSeekWhence whence)
 	{
-		env_fseek(m_std_file, off, static_cast<int>(whence));
+		env::fseek(m_std_file, off, static_cast<int>(whence));
 	}
 
 	/**
@@ -244,7 +244,7 @@ public:
 	void write_line(StringView str)
 	{
 		write(str);
-		write(StringView(env_end_line()));
+		write(StringView(env::end_line()));
 	}
 
 	friend FileStream& stdin_stream();

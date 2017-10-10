@@ -16,8 +16,9 @@
 
 
 namespace lights {
+namespace env {
 
-inline const char* env_end_line()
+inline const char* end_line()
 {
 	return "\n";
 }
@@ -27,7 +28,7 @@ inline const char* env_end_line()
 // In another languague version may have to change to largger to
 // hold all message.
 // In GNU-specific version 100 charater can hold all unkown error.
-constexpr int ENV_MAX_ERROR_STR_LEN = 100;
+constexpr int MAX_ERROR_STR_LEN = 100;
 
 /**
  * Return string version of error number.
@@ -36,7 +37,7 @@ constexpr int ENV_MAX_ERROR_STR_LEN = 100;
  * @note Must use return value as result, not @c buf. Because @c buf
  *       is not use sometime.
  */
-inline const char* env_strerror(int error_no, char* buf, std::size_t len)
+inline const char* strerror(int error_no, char* buf, std::size_t len)
 {
 	// Not use sys_nerr and sys_errlist directly, although the are easy to control.
 	// Because sys_nerr may bigger that sys_errlist size and sys_errlist may have't
@@ -56,33 +57,34 @@ inline const char* env_strerror(int error_no, char* buf, std::size_t len)
 }
 
 
-using env_offset_t = std::ptrdiff_t;
+using offset_t = std::ptrdiff_t;
 
-inline env_offset_t env_ftell(std::FILE* file)
+inline offset_t ftell(std::FILE* file)
 {
 	// Return type off_t will fit into suitable type for 32 and 64 architechures.
 	return ftello(file);
 }
 
-inline void env_fseek(std::FILE* file, env_offset_t off, int whence)
+inline void fseek(std::FILE* file, offset_t off, int whence)
 {
 	// Return type off_t will fit into suitable type for 32 and 64 architechures.
 	fseeko(file, off, whence);
 }
 
-inline tm* env_localtime(const std::time_t* time_point, struct tm* result)
+inline tm* localtime(const std::time_t* time_point, struct tm* result)
 {
 	return localtime_r(time_point, result);
 }
 
-inline std::size_t env_hash(const void* data, std::size_t len)
+inline std::size_t hash(const void* data, std::size_t len)
 {
 	return std::_Hash_impl::hash(data, len);
 }
 
-inline bool env_file_exists(const char* filename)
+inline bool file_exists(const char* filename)
 {
 	return access(filename, F_OK) == 0;
 }
 
+} // namespace env
 } // namespace lights
