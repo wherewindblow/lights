@@ -84,7 +84,7 @@ inline PreciseTime operator-(const PreciseTime& left, const PreciseTime& right)
 /**
  * Returns the current time point.
  */
-PreciseTime get_precise_time();
+PreciseTime current_precise_time();
 
 
 /**

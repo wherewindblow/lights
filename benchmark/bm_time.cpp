@@ -84,7 +84,7 @@ void BM_time_lights_PreciseTime(benchmark::State& state)
 	int is_format_time = state.range(0);
 	while (state.KeepRunning())
 	{
-		auto time = lights::get_precise_time();
+		auto time = lights::current_precise_time();
 
 		if (is_format_time)
 		{

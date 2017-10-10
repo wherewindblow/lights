@@ -19,6 +19,9 @@
 namespace lights {
 namespace log_sinks {
 
+/**
+ * Ensure every log message is write to backend completely.
+ */
 class LogMessageWriter
 {
 public:

@@ -47,7 +47,7 @@ void TextLogger::log(LogLevel level, std::uint16_t module_id, const SourceLocati
 
 void TextLogger::generate_signature(LogLevel level, std::uint16_t module_id)
 {
-	PreciseTime precise_time = get_precise_time();
+	PreciseTime precise_time = current_precise_time();
 	m_writer << '[' << Timestamp(precise_time.seconds) << '.';
 
 	auto millis = precise_time.nanoseconds / 1000 / 1000;
@@ -68,7 +68,7 @@ void TextLogger::generate_signature(LogLevel level, std::uint16_t module_id)
 }
 
 
-PreciseTime get_precise_time()
+PreciseTime current_precise_time()
 {
 	namespace chrono = std::chrono;
 	auto chrono_time = chrono::system_clock::now();
@@ -98,7 +98,7 @@ void BinaryLogger::generate_signature(LogLevel level,
 									  const SourceLocation& location,
 									  StringView description)
 {
-	m_signature->set_time(get_precise_time());
+	m_signature->set_time(current_precise_time());
 	auto file_id = m_str_table_ptr->get_index(location.file());
 	m_signature->set_file_id(static_cast<std::uint32_t>(file_id));
 	auto function_id = m_str_table_ptr->get_index(location.function());
