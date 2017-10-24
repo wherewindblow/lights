@@ -798,19 +798,21 @@ inline void write(FormatSinkAdapter<Sink> out, StringView fmt)
  * @param fmt   Formats string that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
  * @return Formated string.
- * @note If args is user type, it must have a user function as
+ * @details If args is user type, it must have a user function as
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
- *         2) `StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value);`
- *         3) `void append(StringAdapter<Sink> out, const T& value);`
- *         4) `void to_string(StringAdapter<Sink> out, const T& value);`
+ *         2) `FormatSinkAdapter<Sink> operator<< (FormatSinkAdapter<Sink> out, const T& value);`
+ *         3) `void append(FormatSinkAdapter<Sink> out, const T& value);`
+ *         4) `void to_string(FormatSinkAdapter<Sink> out, const T& value);`
  *       1) General way to use with @c std::ostream to format.
  *       2), 3) and 4) is optimize way with format.
  *          The implementation can use insertion operator (<<)
- *          between @c sink and @c value. But must use
+ *          between @c sink and @c value. But must use using declare when not in lights namespace.
  *            `using lights::operator<<`.
  *          After implement the user function, it also can be use
  *          in another user function as insertion operator.
  *       If all user function are implemented, the priority is 2), 3), 4) and 1).
+ * @note 2), 3) and 4) must define in lights namespace to enable use placeholder to format
+ *          you user-defined type.
  */
 template <typename Sink, typename Arg, typename ... Args>
 void write(FormatSinkAdapter<Sink> out, StringView fmt, const Arg& value, const Args& ... args)
@@ -829,7 +831,7 @@ void write(FormatSinkAdapter<Sink> out, StringView fmt, const Arg& value, const 
 	out.append({fmt.data(), i});
 	if (i < fmt.length())
 	{
-		append(out, value);
+		out << value;
 		fmt.move_forward(i + 2);
 		write(out, fmt, args ...);
 	}
@@ -1160,19 +1162,21 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_TEXT_WRITER_TO_STRING)
  * @param fmt   Formats string that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
  * @return Formated string.
- * @note If args is user type, it must have a user function as
+ * @details If args is user type, it must have a user function as
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
- *         2) `StringAdapter<Sink> operator<< (StringAdapter<Sink> out, const T& value);`
- *         3) `void append(StringAdapter<Sink> out, const T& value);`
- *         4) `void to_string(StringAdapter<Sink> out, const T& value);`
+ *         2) `FormatSinkAdapter<Sink> operator<< (FormatSinkAdapter<Sink> out, const T& value);`
+ *         3) `void append(FormatSinkAdapter<Sink> out, const T& value);`
+ *         4) `void to_string(FormatSinkAdapter<Sink> out, const T& value);`
  *       1) General way to use with @c std::ostream to format.
  *       2), 3) and 4) is optimize way with format.
  *          The implementation can use insertion operator (<<)
- *          between @c sink and @c value. But must use
+ *          between @c sink and @c value. But must use using declare when not in lights namespace.
  *            `using lights::operator<<`.
  *          After implement the user function, it also can be use
  *          in another user function as insertion operator.
  *       If all user function are implemented, the priority is 2), 3), 4) and 1).
+ * @note 2), 3) and 4) must define in lights namespace to enable use placeholder to format
+ *          you user-defined type.
  */
 template <typename... Args>
 inline std::string format(StringView fmt, const Args& ... args)
