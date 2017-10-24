@@ -86,6 +86,11 @@ inline PreciseTime operator-(const PreciseTime& left, const PreciseTime& right)
  */
 PreciseTime current_precise_time();
 
+template <typename Sink>
+inline void to_string(FormatSinkAdapter<Sink> out, const PreciseTime& time)
+{
+	out << time.seconds << '.' << time.nanoseconds << 's';
+}
 
 /**
  * Logs message with readable text to the backend sink.
