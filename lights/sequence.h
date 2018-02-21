@@ -297,4 +297,15 @@ inline StringView make_string_view(StringView::CharType (&target)[N])
 	return StringView(target, sizeof(StringView::CharType) * N);
 };
 
+
+inline bool operator==(StringView lhs, StringView rhs)
+{
+	return lhs.length() == rhs.length() && std::strncmp(lhs.data(), rhs.data(), lhs.length()) == 0;
+}
+
+inline bool operator!=(StringView lhs, StringView rhs)
+{
+	return !(lhs == rhs);
+}
+
 } // namespace lights
