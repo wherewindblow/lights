@@ -336,6 +336,8 @@ private:
 		}
 	}
 
+	void append_log_seperator();
+
 	std::string m_name;
 	LogLevel m_level = LogLevel::INFO;
 	bool m_record_location = true;
@@ -350,10 +352,10 @@ private:
 
 template <typename ... Args>
 void TextLogger::log(LogLevel level,
-						   std::uint16_t module_id,
-						   const SourceLocation& location,
-						   const char* fmt,
-						   const Args& ... args)
+					 std::uint16_t module_id,
+					 const SourceLocation& location,
+					 const char* fmt,
+					 const Args& ... args)
 {
 	if (this->should_log(level, module_id))
 	{
@@ -361,7 +363,7 @@ void TextLogger::log(LogLevel level,
 		this->generate_signature(level, module_id);
 		m_writer.write(fmt, args ...);
 		this->recore_location(location);
-		m_writer.append(env::end_line());
+		append_log_seperator();
 		m_sink_ptr->write(m_writer.string_view());
 	}
 }
@@ -376,7 +378,7 @@ void TextLogger::log(LogLevel level, std::uint16_t module_id, const SourceLocati
 		this->generate_signature(level, module_id);
 		m_writer << value;
 		this->recore_location(location);
-		m_writer.append(env::end_line());
+		append_log_seperator();
 		m_sink_ptr->write(m_writer.string_view());
 	}
 }
@@ -636,10 +638,10 @@ private:
 
 template <typename ... Args>
 void BinaryLogger::log(LogLevel level,
-							 std::uint16_t module_id,
-							 const SourceLocation& location,
-							 const char* fmt,
-							 const Args& ... args)
+					   std::uint16_t module_id,
+					   const SourceLocation& location,
+					   const char* fmt,
+					   const Args& ... args)
 {
 	if (this->should_log(level, module_id))
 	{
@@ -655,9 +657,9 @@ void BinaryLogger::log(LogLevel level,
 
 template <typename T>
 void BinaryLogger::log(LogLevel level,
-							 std::uint16_t module_id,
-							 const SourceLocation& location,
-							 const T& value)
+					   std::uint16_t module_id,
+					   const SourceLocation& location,
+					   const T& value)
 {
 	if (this->should_log(level, module_id))
 	{
@@ -733,6 +735,7 @@ private:
 /**
  * Unified interface of logger to log message.
  * @param ... Can use format string and arguments or just a any type value.
+ * @note Cannot pass @c module_id as 0 or is ambiguous with another call function.
  */
 #define LIGHTS_DEBUG(logger, module, ...) \
 	LIGHTS_LOG(logger, lights::LogLevel::DEBUG, module, __VA_ARGS__);

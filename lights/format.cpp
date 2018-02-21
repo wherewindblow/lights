@@ -138,7 +138,7 @@ void TextWriter::handle_full(char ch)
 }
 
 
-void TextWriter::handle_not_enougth_space(StringView& str)
+void TextWriter::handle_not_enougth_space(StringView str)
 {
 	// Append to the remaining place.
 	StringView part(str.data(), max_size() - m_length);

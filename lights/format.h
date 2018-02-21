@@ -1061,7 +1061,7 @@ private:
 
 	void handle_full(char ch);
 
-	void handle_not_enougth_space(StringView& str);
+	void handle_not_enougth_space(StringView str);
 
 	void handle_full(StringView str);
 

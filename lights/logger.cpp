@@ -26,7 +26,7 @@ void TextLogger::log(LogLevel level, std::uint16_t module_id, const SourceLocati
 		this->generate_signature(level, module_id);
 		m_writer.append(str);
 		this->recore_location(location);
-		m_writer.append(env::end_line());
+		append_log_seperator();
 		m_sink_ptr->write(m_writer.string_view());
 	}
 }
@@ -68,6 +68,21 @@ void TextLogger::generate_signature(LogLevel level, std::uint16_t module_id)
 }
 
 
+void TextLogger::append_log_seperator()
+{
+	StringView end_line = env::end_line();
+	m_writer.append(end_line);
+	if (m_writer.size() == m_writer.max_size())
+	{
+		char* last_char = &m_write_target[m_writer.size() - end_line.length()];
+		if (last_char != end_line)
+		{
+			copy_array(last_char, end_line.data(), end_line.length());
+		}
+	}
+}
+
+
 PreciseTime current_precise_time()
 {
 	namespace chrono = std::chrono;
@@ -86,7 +101,7 @@ BinaryLogger::BinaryLogger(std::uint16_t log_id, LogSinkPtr sink_ptr, StringTabl
 	m_signature(reinterpret_cast<BinaryMessageSignature*>(m_write_target)),
 	m_writer(Sequence(m_write_target + sizeof(BinaryMessageSignature),
 					  sizeof(m_write_target) - sizeof(BinaryMessageSignature) - sizeof(std::uint16_t)),
-													// sizeof(std::uint16_t) is reverse for tail length.
+		// sizeof(std::uint16_t) is reverse for tail length.
 			 m_str_table_ptr)
 {
 	m_signature->set_log_id(log_id);
