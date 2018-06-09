@@ -81,6 +81,20 @@ inline PreciseTime operator-(const PreciseTime& left, const PreciseTime& right)
 	return result;
 }
 
+inline bool operator<(const PreciseTime& left, const PreciseTime& right)
+{
+	if (left.seconds < right.seconds)
+	{
+		return true;
+	}
+	return left.nanoseconds < right.nanoseconds;
+}
+
+inline bool operator>(const PreciseTime& left, const PreciseTime& right)
+{
+	return !(left < right);
+}
+
 /**
  * Returns the current time point.
  */
