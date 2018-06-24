@@ -65,11 +65,11 @@ int main(int argc, const char* argv[])
 {
 	if (argc < 2)
 	{
-		lights::stdout_stream() << "Pass a binary log file and read it.";
-		lights::stdout_stream() << "    %1: Binary log filename.";
-		lights::stdout_stream() << "    %2: Log string table filename or default is 'log_str_table'.";
-		lights::stdout_stream() << "    %3: Mode: jump to line('j') or follow file grows('f').";
-		lights::stdout_stream() << "    %4: Read at line when mode is jump to line('j').";
+		lights::stdout_stream() << "Pass a binary log file and read it.\n";
+		lights::stdout_stream() << "    %1: Binary log filename.\n";
+		lights::stdout_stream() << "    %2: Log string table filename or default is 'log_str_table'.\n";
+		lights::stdout_stream() << "    %3: Mode: jump to line('j') or follow file grows('f').\n";
+		lights::stdout_stream() << "    %4: Read at line when mode is jump to line('j').\n";
 		return EXIT_FAILURE;
 	}
 

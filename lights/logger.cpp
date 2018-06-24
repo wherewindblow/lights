@@ -18,12 +18,12 @@ TextLogger::TextLogger(StringView name, LogSinkPtr sink_ptr) :
 {}
 
 
-void TextLogger::log(LogLevel level, std::uint16_t module_id, const SourceLocation& location, const char* str)
+void TextLogger::log(LogLevel level, const SourceLocation& location, const char* str)
 {
-	if (this->should_log(level, module_id))
+	if (this->should_log(level))
 	{
 		m_writer.clear();
-		this->generate_signature(level, module_id);
+		this->generate_signature(level);
 		m_writer.append(str);
 		this->recore_location(location);
 		append_log_seperator();
@@ -45,7 +45,7 @@ void TextLogger::log(LogLevel level, std::uint16_t module_id, const SourceLocati
 //}
 
 
-void TextLogger::generate_signature(LogLevel level, std::uint16_t module_id)
+void TextLogger::generate_signature(LogLevel level)
 {
 	PreciseTime precise_time = current_precise_time();
 	m_writer << '[' << Timestamp(precise_time.seconds) << '.';
@@ -53,17 +53,6 @@ void TextLogger::generate_signature(LogLevel level, std::uint16_t module_id)
 	auto millis = precise_time.nanoseconds / 1000 / 1000;
 	m_writer << pad(static_cast<unsigned>(millis), '0', 3);
 	m_writer << "] [" << m_name << "] ";
-	if (is_record_module())
-	{
-		if (m_module_name_handler)
-		{
-			m_writer << "[" << m_module_name_handler(module_id) << "] ";
-		}
-		else
-		{
-			m_writer << "[" << module_id << "] ";
-		}
-	}
 	m_writer << "[" << to_string(level) << "] ";
 }
 
@@ -108,10 +97,7 @@ BinaryLogger::BinaryLogger(std::uint16_t log_id, LogSinkPtr sink_ptr, StringTabl
 }
 
 
-void BinaryLogger::generate_signature(LogLevel level,
-									  std::uint16_t module_id,
-									  const SourceLocation& location,
-									  StringView description)
+void BinaryLogger::generate_signature(LogLevel level, const SourceLocation& location, StringView description)
 {
 	m_signature->set_time(current_precise_time());
 	auto file_id = m_str_table_ptr->get_index(location.file());
@@ -120,19 +106,15 @@ void BinaryLogger::generate_signature(LogLevel level,
 	m_signature->set_function_id(static_cast<std::uint32_t>(function_id));
 	m_signature->set_line(location.line());
 	m_signature->set_description_id(static_cast<std::uint32_t>(m_str_table_ptr->get_index(description)));
-	m_signature->set_module_id(module_id);
 	m_signature->set_level(level);
 }
 
 
-void BinaryLogger::log(LogLevel level,
-					   std::uint16_t module_id,
-					   const SourceLocation& location,
-					   const char* str)
+void BinaryLogger::log(LogLevel level, const SourceLocation& location, const char* str)
 {
-	if (this->should_log(level, module_id))
+	if (this->should_log(level))
 	{
-		this->generate_signature(level, module_id, location, str);
+		this->generate_signature(level, location, str);
 		set_argument_length(0);
 		this->sink_msg();
 	}
@@ -161,12 +143,11 @@ StringView BinaryLogReader::read()
 	std::uint16_t tail_length;
 	m_file.read(Sequence(&tail_length, sizeof(tail_length)));
 
-	m_writer.write_text("[{}.{}] [{}] [{}.{}] ",
+	m_writer.write_text("[{}.{}] [{}] [{}] ",
 						Timestamp(m_signature.get_time().seconds),
 						pad(m_signature.get_time().nanoseconds, '0', 10),
 						to_string(m_signature.get_level()),
-						m_signature.get_log_id(),
-						m_signature.get_module_id());
+						m_signature.get_log_id());
 
 	m_writer.write_binary(m_str_table_ptr->get_str(m_signature.get_description_id()).data(),
 						  arguments.get(),

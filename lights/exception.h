@@ -9,6 +9,7 @@
 #include <cassert>
 #include <exception>
 
+#include "config.h"
 #include "sequence.h"
 #include "sink_adapter.h"
 #include "current_function.hpp"

@@ -166,59 +166,12 @@ public:
 	}
 
 	/**
-	 * Checks is open switch of record module. The default value is open.
-	 */
-	bool is_record_module() const
-	{
-		return m_record_module;
-	}
-
-	void set_record_module(bool enable_record)
-	{
-		m_record_module = enable_record;
-	}
-
-	ModuleNameHandler get_module_name_handler() const
-	{
-		return m_module_name_handler;
-	}
-
-	/**
-	 * Sets the handler to convert module id to name.
-	 */
-	void set_module_name_handler(ModuleNameHandler module_name_handler)
-	{
-		m_module_name_handler = module_name_handler;
-	}
-
-	ModuleShouldLogHandler get_module_should_log_handler() const
-	{
-		return m_module_should_log;
-	}
-
-	/**
-	 * Sets the module should log with level. It can swith a module log and control
-	 * the log of specify module.
-	 * @example
-	 *     std::vector<LogLevel> module_levels(MAX_MODULE_SIZE, LogLevel::DEBUG);
-	 *     module_levels[TEST_MODULE] = LogLevel::OFF;
-	 *     logger.set_module_should_log_handler([&module_levels](LogLevel level, std::uint16_t module_id)
-	 *     {
-	 *         return module_levels[module_id] >= level;
-	 *     });
-	 */
-	void set_module_should_log_handler(ModuleShouldLogHandler should_log_handler)
-	{
-		m_module_should_log = should_log_handler;
-	}
-
-	/**
 	 * @note Cannot pass @c fmt as nullptr or is ambiguous with another call function.
 	 */
 	template <typename ... Args>
 	void log(LogLevel level, const char* fmt, const Args& ... args)
 	{
-		log(level, 1, invalid_source_location(), fmt, args ...);
+		log(level, invalid_source_location(), fmt, args ...);
 	}
 
 	template <typename ... Args>
@@ -248,7 +201,7 @@ public:
 
 	void log(LogLevel level, const char* str)
 	{
-		log(level, 1, invalid_source_location(), str);
+		log(level, invalid_source_location(), str);
 	}
 
 	void debug(const char* str)
@@ -275,7 +228,7 @@ public:
 	template <typename T>
 	void log(LogLevel level, const T& value)
 	{
-		log(level, 1, invalid_source_location(), value);
+		log(level, invalid_source_location(), value);
 	}
 
 	template <typename T>
@@ -302,45 +255,21 @@ public:
 		this->log(LogLevel::ERROR, value);
 	}
 
-	/**
-	 * @note Cannot pass @c module_id as 0 or is ambiguous with another call function.
-	 */
 	template <typename ... Args>
-	void log(LogLevel level,
-			 std::uint16_t module_id,
-			 const SourceLocation& location,
-			 const char* fmt,
-			 const Args& ... args);
+	void log(LogLevel level, const SourceLocation& location, const char* fmt, const Args& ... args);
 
-	/**
-	 * @note Cannot pass @c module_id as 0 or is ambiguous with another call function.
-	 */
-	void log(LogLevel level,
-			 std::uint16_t module_id,
-			 const SourceLocation& location,
-			 const char* str);
+	void log(LogLevel level, const SourceLocation& location, const char* str);
 
-	/**
-	 * @note Cannot pass @c module_id as 0 or is ambiguous with another call function.
-	 */
 	template <typename T>
-	void log(LogLevel level,
-			 std::uint16_t module_id,
-			 const SourceLocation& location,
-			 const T& value);
+	void log(LogLevel level, const SourceLocation& location, const T& value);
 
 private:
-	bool should_log(LogLevel level, std::uint16_t module_id) const
+	bool should_log(LogLevel level) const
 	{
-		bool should = m_level <= level;
-		if (should && m_module_should_log)
-		{
-			return m_module_should_log(level, module_id);
-		}
-		return should;
+		return m_level <= level;
 	}
 
-	void generate_signature(LogLevel level, std::uint16_t module_id);
+	void generate_signature(LogLevel level);
 
 	void recore_location(const SourceLocation& location)
 	{
@@ -355,9 +284,6 @@ private:
 	std::string m_name;
 	LogLevel m_level = LogLevel::INFO;
 	bool m_record_location = true;
-	bool m_record_module = true;
-	ModuleNameHandler m_module_name_handler;
-	ModuleShouldLogHandler m_module_should_log;
 	LogSinkPtr m_sink_ptr;
 	char m_write_target[WRITER_BUFFER_SIZE_DEFAULT];
 	TextWriter m_writer;
@@ -365,16 +291,12 @@ private:
 
 
 template <typename ... Args>
-void TextLogger::log(LogLevel level,
-					 std::uint16_t module_id,
-					 const SourceLocation& location,
-					 const char* fmt,
-					 const Args& ... args)
+void TextLogger::log(LogLevel level, const SourceLocation& location, const char* fmt, const Args& ... args)
 {
-	if (this->should_log(level, module_id))
+	if (this->should_log(level))
 	{
 		m_writer.clear();
-		this->generate_signature(level, module_id);
+		this->generate_signature(level);
 		m_writer.write(fmt, args ...);
 		this->recore_location(location);
 		append_log_seperator();
@@ -384,12 +306,12 @@ void TextLogger::log(LogLevel level,
 
 
 template <typename T>
-void TextLogger::log(LogLevel level, std::uint16_t module_id, const SourceLocation& location, const T& value)
+void TextLogger::log(LogLevel level, const SourceLocation& location, const T& value)
 {
-	if (this->should_log(level, module_id))
+	if (this->should_log(level))
 	{
 		m_writer.clear();
-		this->generate_signature(level, module_id);
+		this->generate_signature(level);
 		m_writer << value;
 		this->recore_location(location);
 		append_log_seperator();
@@ -426,7 +348,6 @@ public:
 	struct UnalignPartInterface
 	{
 		std::uint16_t log_id;
-		std::uint16_t module_id;
 		std::uint16_t argument_length;
 		LogLevel level;
 	};
@@ -489,16 +410,6 @@ public:
 	void set_log_id(std::uint16_t log_id)
 	{
 		unalign_part_interface()->log_id = log_id;
-	}
-
-	std::uint16_t get_module_id() const
-	{
-		return unalign_part_interface()->module_id;
-	}
-
-	void set_module_id(std::uint16_t module_id)
-	{
-		unalign_part_interface()->module_id = module_id;
 	}
 
 	std::uint16_t get_argument_length() const
@@ -572,60 +483,21 @@ public:
 		m_level = level;
 	}
 
-	ModuleShouldLogHandler get_module_should_log_handler() const
-	{
-		return m_module_should_log;
-	}
-
-	/**
-	 * Sets the module should log with level. It can swith a module log and control
-	 * the log of specify module.
-	 * @example
-	 *     std::vector<LogLevel> module_levels(MAX_MODULE_SIZE, LogLevel::DEBUG);
-	 *     module_levels[TEST_MODULE] = LogLevel::OFF;
-	 *     logger.set_module_should_log_handler([&module_levels](LogLevel level, std::uint16_t module_id)
-	 *     {
-	 *         return module_levels[module_id] >= level;
-	 *     });
-	 */
-	void set_module_should_log_handler(ModuleShouldLogHandler should_log_handler)
-	{
-		m_module_should_log = should_log_handler;
-	}
-
 	template <typename ... Args>
-	void log(LogLevel level,
-			 std::uint16_t module_id,
-			 const SourceLocation& location,
-			 const char* fmt,
-			 const Args& ... args);
+	void log(LogLevel level, const SourceLocation& location, const char* fmt, const Args& ... args);
 
-	void log(LogLevel level,
-			 std::uint16_t module_id,
-			 const SourceLocation& location,
-			 const char* str);
+	void log(LogLevel level, const SourceLocation& location, const char* str);
 
 	template <typename T>
-	void log(LogLevel level,
-			 std::uint16_t module_id,
-			 const SourceLocation& location,
-			 const T& value);
+	void log(LogLevel level, const SourceLocation& location, const T& value);
 
 private:
-	bool should_log(LogLevel level, std::uint16_t module_id) const
+	bool should_log(LogLevel level) const
 	{
-		bool should = m_level <= level;
-		if (should && m_module_should_log)
-		{
-			return m_module_should_log(level, module_id);
-		}
-		return should;
+		return m_level <= level;
 	}
 
-	void generate_signature(LogLevel level,
-							std::uint16_t module_id,
-							const SourceLocation& location,
-							StringView description);
+	void generate_signature(LogLevel level, const SourceLocation& location, StringView description);
 
 	void set_argument_length(std::uint16_t length)
 	{
@@ -641,7 +513,7 @@ private:
 	}
 
 	LogLevel m_level = LogLevel::INFO;
-	ModuleShouldLogHandler m_module_should_log;
+//	ModuleShouldLogHandler m_module_should_log;
 	LogSinkPtr m_sink_ptr;
 	StringTablePtr m_str_table_ptr;
 	char m_write_target[WRITER_BUFFER_SIZE_LARGE];
@@ -651,15 +523,11 @@ private:
 
 
 template <typename ... Args>
-void BinaryLogger::log(LogLevel level,
-					   std::uint16_t module_id,
-					   const SourceLocation& location,
-					   const char* fmt,
-					   const Args& ... args)
+void BinaryLogger::log(LogLevel level, const SourceLocation& location, const char* fmt, const Args& ... args)
 {
-	if (this->should_log(level, module_id))
+	if (this->should_log(level))
 	{
-		this->generate_signature(level, module_id, location, fmt);
+		this->generate_signature(level, location, fmt);
 
 		m_writer.clear();
 		m_writer.write(fmt, args ...);
@@ -670,15 +538,12 @@ void BinaryLogger::log(LogLevel level,
 
 
 template <typename T>
-void BinaryLogger::log(LogLevel level,
-					   std::uint16_t module_id,
-					   const SourceLocation& location,
-					   const T& value)
+void BinaryLogger::log(LogLevel level, const SourceLocation& location, const T& value)
 {
-	if (this->should_log(level, module_id))
+	if (this->should_log(level))
 	{
 		const StringView description = "{}";
-		this->generate_signature(level, module_id, location, description);
+		this->generate_signature(level, location, description);
 
 		m_writer.clear();
 		m_writer.write(description, value);
@@ -740,8 +605,8 @@ private:
 
 
 #ifdef LIGHTS_OPEN_LOG
-#	define LIGHTS_LOG(logger, level, module, ...) \
-		logger.log(level, module, LIGHTS_CURRENT_SOURCE_LOCATION, __VA_ARGS__);
+#	define LIGHTS_LOG(logger, level, ...) \
+		logger.log(level, LIGHTS_CURRENT_SOURCE_LOCATION, __VA_ARGS__);
 #else
 #	define LIGHTS_LOG(logger, level, module, ...)
 #endif
@@ -751,14 +616,14 @@ private:
  * @param ... Can use format string and arguments or just a any type value.
  * @note Cannot pass @c module_id as 0 or is ambiguous with another call function.
  */
-#define LIGHTS_DEBUG(logger, module, ...) \
-	LIGHTS_LOG(logger, lights::LogLevel::DEBUG, module, __VA_ARGS__);
-#define LIGHTS_INFO(logger, module, ...) \
-	LIGHTS_LOG(logger, lights::LogLevel::INFO, module, __VA_ARGS__);
-#define LIGHTS_WARN(logger, module, ...) \
-	LIGHTS_LOG(logger, lights::LogLevel::WARN, module, __VA_ARGS__);
-#define LIGHTS_ERROR(logger, module, ...) \
-	LIGHTS_LOG(logger, lights::LogLevel::ERROR, module, __VA_ARGS__);
+#define LIGHTS_DEBUG(logger, ...) \
+	LIGHTS_LOG(logger, lights::LogLevel::DEBUG, __VA_ARGS__);
+#define LIGHTS_INFO(logger, ...) \
+	LIGHTS_LOG(logger, lights::LogLevel::INFO, __VA_ARGS__);
+#define LIGHTS_WARN(logger, ...) \
+	LIGHTS_LOG(logger, lights::LogLevel::WARN, __VA_ARGS__);
+#define LIGHTS_ERROR(logger, ...) \
+	LIGHTS_LOG(logger, lights::LogLevel::ERROR, __VA_ARGS__);
 
 
 } // namespace lights

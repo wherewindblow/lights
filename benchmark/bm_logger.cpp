@@ -40,7 +40,6 @@ void BM_logger_lights_TextLogger(benchmark::State& state)
 	int device = state.range(0);
 	auto file_sink = std::make_shared<lights::log_sinks::SimpleFileSink>(LOGGER_FILENAME(device));
 	lights::TextLogger logger("log", file_sink);
-	logger.set_record_module(false);
 //	logger.set_record_location(false);
 
 	while (state.KeepRunning())
@@ -54,15 +53,13 @@ void BM_logger_lights_TextLogger(benchmark::State& state)
 
 void BM_logger_more_lights_TextLogger(benchmark::State& state)
 {
-	const int TEST_MODULE = 1;
-
 	int device = state.range(0);
 	auto file_sink = std::make_shared<lights::log_sinks::SimpleFileSink>(LOGGER_FILENAME(device));
 	lights::TextLogger logger("log", file_sink);
 
 	while (state.KeepRunning())
 	{
-		LIGHTS_INFO(logger, TEST_MODULE, "");
+		LIGHTS_INFO(logger, "");
 	}
 }
 
@@ -70,7 +67,6 @@ void BM_logger_more_lights_TextLogger(benchmark::State& state)
 void BM_logger_more_lights_BinaryLogger(benchmark::State& state)
 {
 	const int TEST_LOGGER = 1;
-	const int TEST_MODULE = 1;
 
 	int device = state.range(0);
 	auto file_sink = std::make_shared<lights::log_sinks::SimpleFileSink>(LOGGER_FILENAME(device));
@@ -79,7 +75,7 @@ void BM_logger_more_lights_BinaryLogger(benchmark::State& state)
 
 	while (state.KeepRunning())
 	{
-		LIGHTS_INFO(logger, TEST_MODULE, "");
+		LIGHTS_INFO(logger, "");
 	}
 }
 
