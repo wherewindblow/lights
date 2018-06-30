@@ -26,15 +26,24 @@ template <typename Sink>
 class StringBuffer: public std::streambuf
 {
 public:
+	/**
+	 * Creates string buffer.
+	 */
 	explicit StringBuffer(FormatSinkAdapter<Sink>& out) :
 		m_out(out) {}
 
+	/**
+	 * Inserts a character.
+	 */
 	virtual int_type overflow(int_type ch) override
 	{
 		m_out.append(static_cast<char>(ch));
 		return ch;
 	}
 
+	/**
+	 * Inserts multiple character.
+	 */
 	virtual std::streamsize	xsputn(const char* s, std::streamsize n) override
 	{
 		m_out.append({s, static_cast<std::size_t>(n)});
@@ -64,13 +73,18 @@ inline void to_string(FormatSinkAdapter<Sink> out, const T& value)
 	ostream << value;
 }
 
-
+/**
+ * Inserts string to ostream.
+ */
 inline std::ostream& operator<< (std::ostream& out, StringView str)
 {
 	out.write(str.data(), str.length());
 	return out;
 }
 
+/**
+ * Inserts sequence to ostream.
+ */
 inline std::ostream& operator<< (std::ostream& out, SequenceView sequence)
 {
 	out << to_string_view(sequence);

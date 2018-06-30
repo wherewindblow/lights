@@ -16,14 +16,23 @@
 namespace lights {
 namespace log_sinks {
 
+/**
+ * StdoutSink is wrapper sink of stdout_stream.
+ */
 class StdoutSink: public SinkAdapter
 {
 public:
-	std::size_t write(SequenceView sequence) override
+	/**
+	 * Writes log_msg to stdout_stream.
+	 */
+	std::size_t write(SequenceView log_msg) override
 	{
-		return stdout_stream().write(sequence);
+		return stdout_stream().write(log_msg);
 	}
 
+	/**
+	 * Returns instance.
+	 */
 	static std::shared_ptr<StdoutSink> instance()
 	{
 		static auto instance = std::make_shared<StdoutSink>();
@@ -32,14 +41,23 @@ public:
 };
 
 
+/**
+ * StderrSink is wrapper sink of stderr_stream.
+ */
 class StderrSink: public SinkAdapter
 {
 public:
-	std::size_t write(SequenceView sequence) override
+	/**
+	 * Writes log_msg to stderr_stream.
+	 */
+	std::size_t write(SequenceView log_msg) override
 	{
-		return stderr_stream().write(sequence);
+		return stderr_stream().write(log_msg);
 	}
 
+	/**
+	 * Returns instance.
+	 */
 	static std::shared_ptr<StderrSink> instance()
 	{
 		static auto instance = std::make_shared<StderrSink>();

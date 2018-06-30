@@ -120,7 +120,7 @@ public:
 	}
 
 	/**
-	 * Reads a charater.
+	 * Reads a character.
 	 */
 	int get_char()
 	{
@@ -128,7 +128,7 @@ public:
 	}
 
 	/**
-	 * Writes the charater @c ch.
+	 * Writes the character @c ch.
 	 */
 	int put_char(int ch)
 	{
@@ -136,7 +136,7 @@ public:
 	}
 
 	/**
-	 * Puts the charater @c ch back.
+	 * Puts the character @c ch back.
 	 */
 	int unget_char(int ch)
 	{

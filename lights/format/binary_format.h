@@ -42,16 +42,25 @@ enum class BinaryTypeCode: std::uint8_t
 };
 
 
+/**
+ * Gets type code of boolean.
+ */
 inline BinaryTypeCode get_type_code(bool)
 {
 	return BinaryTypeCode::BOOL;
 }
 
+/**
+ * Gets type code of char.
+ */
 inline BinaryTypeCode get_type_code(char)
 {
 	return BinaryTypeCode::CHAR;
 }
 
+/**
+ * Gets type code of string.
+ */
 inline BinaryTypeCode get_type_code(const char*)
 {
 	return BinaryTypeCode::STRING;
@@ -131,8 +140,8 @@ public:
 	};
 
 	/**
-	 * Create write and specify write target. If write target is not specify,
-	 * will use default write target with default size.
+	 * Create binary store writer.
+	 * @param write_target If write target is not specify, will use default write target with default size.
 	 */
 	BinaryStoreWriter(Sequence write_target = invalid_sequence(), StringTablePtr str_table_ptr = nullptr):
 		m_use_default_buffer(!is_valid(write_target)),
@@ -143,6 +152,9 @@ public:
 		m_str_table_ptr(str_table_ptr)
 	{}
 
+	/**
+	 * Destroys binary store writer.
+	 */
 	~BinaryStoreWriter()
 	{
 		if (m_use_default_buffer)
@@ -348,7 +360,7 @@ public:
 
 private:
 	/**
-	 * Check can append @c len data.
+	 * Checks can append @c len data.
 	 */
 	bool can_append(std::size_t len)
 	{
@@ -365,17 +377,29 @@ private:
 };
 
 
+/**
+ * FormatSinkAdapter of BinaryStoreWriter.
+ */
 template <>
 class FormatSinkAdapter<BinaryStoreWriter>
 {
 public:
+	/**
+	 * Creates format sink.
+	 */
 	explicit FormatSinkAdapter(BinaryStoreWriter& sink) : m_sink(sink) {}
 
+	/**
+	 * Appends char to backend.
+	 */
 	void append(char ch)
 	{
 		m_sink.append(ch);
 	}
 
+	/**
+	 * Appends multiple same char to backend.
+	 */
 	void append(std::size_t num, char ch)
 	{
 		for (std::size_t i = 0; i < num; ++i)
@@ -384,11 +408,17 @@ public:
 		}
 	}
 
+	/**
+	 * Appends string to backend.
+	 */
 	void append(StringView str)
 	{
 		m_sink.append(str);
 	}
 
+	/**
+	 * Get internal sink.
+	 */
 	BinaryStoreWriter& get_internal_sink()
 	{
 		return m_sink;

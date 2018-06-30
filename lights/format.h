@@ -48,6 +48,9 @@ namespace lights {
 static const signed char INVALID_INDEX = -1;
 
 
+/**
+ * IntegerFormatSpec description interger how to be format.
+ */
 template <typename Value, typename Tag>
 struct IntegerFormatSpec
 {
@@ -69,10 +72,14 @@ struct ErrorNumber
 	int value;
 };
 
+/**
+ * Returns current error number.
+ */
 inline ErrorNumber current_error()
 {
 	return ErrorNumber(errno);
 }
+
 
 /**
  * A wrapper aim to identity this is a time not an integer.
@@ -85,6 +92,9 @@ struct Timestamp
 	std::time_t value;
 };
 
+/**
+ * Returns current error number.
+ */
 inline Timestamp current_timestamp()
 {
 	return Timestamp(std::time(nullptr));
@@ -102,13 +112,22 @@ template <typename Sink>
 class FormatSinkAdapter
 {
 public:
+	/**
+	 * Creates format sink.
+	 */
 	explicit FormatSinkAdapter(Sink& sink) = delete;
 
+	/**
+	 * Appends char to backend.
+	 */
 	void append(char ch)
 	{
 		m_sink.append(ch);
 	};
 
+	/**
+	 * Appends multiple same char to backend.
+	 */
 	void append(std::size_t num, char ch)
 	{
 		for (std::size_t i = 0; i < num; ++i)
@@ -117,6 +136,9 @@ public:
 		}
 	}
 
+	/**
+	 * Appends string to backend.
+	 */
 	void append(StringView str)
 	{
 		while (str.length() != 0)
@@ -146,18 +168,30 @@ template <>
 class FormatSinkAdapter<std::string>
 {
 public:
+	/**
+	 * Creates format sink.
+	 */
 	explicit FormatSinkAdapter(std::string& sink) : m_sink(sink) {}
 
+	/**
+	 * Appends char to backend.
+	 */
 	void append(char ch)
 	{
 		m_sink.push_back(ch);
 	}
 
+	/**
+	 * Appends multiple same char to backend.
+	 */
 	void append(std::size_t num, char ch)
 	{
 		m_sink.append(num, ch);
 	}
 
+	/**
+	 * Appends string to backend.
+	 */
 	void append(StringView str)
 	{
 		m_sink.append(str.data(), str.length());
@@ -200,14 +234,25 @@ template <typename Integer>
 char* format_integer(Integer n, char* output);
 
 
+/**
+ * IntegerFormater support to convert integer to string.
+ */
 class IntegerFormater
 {
 public:
+	/**
+	 * Creates integer formater.
+	 */
 	IntegerFormater()
 	{
 		m_buf[sizeof(m_buf) - 1] = '\0';
 	}
 
+	/**
+	 * Converts integer to string.
+	 * @param num  Any type of integer.
+	 * @return Returns internal string result.
+	 */
 	template <typename Integer>
 	StringView format(Integer num)
 	{
@@ -226,6 +271,9 @@ private:
 };
 
 
+/**
+ * Writes number and pad with two digit.
+ */
 template <typename Sink>
 inline FormatSinkAdapter<Sink> write_2_digit(FormatSinkAdapter<Sink> out, unsigned num)
 {
@@ -297,9 +345,15 @@ inline char to_hex_upper_case_char(char ch)
 }
 
 
+/**
+ * HexConvertHandler is general hex convert handler.
+ */
 template <typename Tag>
 struct HexConvertHandler;
 
+/**
+ * This class include handler that conver hex to lower case char.
+ */
 template <>
 struct HexConvertHandler<HexSpecLowerCaseTag>
 {
@@ -307,13 +361,15 @@ struct HexConvertHandler<HexSpecLowerCaseTag>
 	static constexpr Handler handler = to_hex_lower_case_char;
 };
 
+/**
+ * This class include handler that conver hex to upper case char.
+ */
 template <>
 struct HexConvertHandler<HexSpecUpperCaseTag>
 {
 	using Handler = char(*)(char);
 	static constexpr Handler handler = to_hex_upper_case_char;
 };
-
 
 
 template <typename Integer, bool is_signed = std::is_signed<Integer>::value>
@@ -511,12 +567,18 @@ LIGHTS_DETAILS_UNSIGNED_SPEC_FORMATER(HexFormater)
 } // namespace details
 
 
+/**
+ * Converts boolean to string and put to format sink.
+ */
 template <typename Sink>
 inline void to_string(FormatSinkAdapter<Sink> out, bool is)
 {
 	out.append(is ? "true" : "false");
 }
 
+/**
+ * Puts char to format sink.
+ */
 template <typename Sink>
 inline void to_string(FormatSinkAdapter<Sink> out, char ch)
 {
@@ -524,7 +586,7 @@ inline void to_string(FormatSinkAdapter<Sink> out, char ch)
 }
 
 /**
- * Formats all type of integer to string.
+ * Formats all type of integer to string and put to format sink.
  * @details Why must explicit specialization it? Because if not do that, SFINAE will
  *          pass user-defined type into this template function and cause compile error.
  */
@@ -541,6 +603,9 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_INTEGER_TO_STRING)
 #undef LIGHTS_INTEGER_TO_STRING
 
 
+/**
+ * Converts float to string and put to format sink.
+ */
 template <typename Sink>
 inline void to_string(FormatSinkAdapter<Sink> out, float n)
 {
@@ -550,6 +615,9 @@ inline void to_string(FormatSinkAdapter<Sink> out, float n)
 	out.append({buf, static_cast<std::size_t>(writen)});
 }
 
+/**
+ * Converts double to string and put to format sink.
+ */
 template <typename Sink>
 inline void to_string(FormatSinkAdapter<Sink> out, double n)
 {
@@ -560,6 +628,9 @@ inline void to_string(FormatSinkAdapter<Sink> out, double n)
 	out.append({buf, static_cast<std::size_t>(writen)});
 }
 
+/**
+ * Converts long double to string and put to format sink.
+ */
 template <typename Sink>
 inline void to_string(FormatSinkAdapter<Sink> out, long double n)
 {
@@ -570,6 +641,10 @@ inline void to_string(FormatSinkAdapter<Sink> out, long double n)
 	out.append({buf, static_cast<std::size_t>(writen)});
 }
 
+
+/**
+ * Converts error number to string and put to format sink.
+ */
 template <typename Sink>
 inline void to_string(FormatSinkAdapter<Sink> out, ErrorNumber error_no)
 {
@@ -578,6 +653,9 @@ inline void to_string(FormatSinkAdapter<Sink> out, ErrorNumber error_no)
 	out.append(result);
 }
 
+/**
+ * Converts timestamp to string and put to format sink.
+ */
 template <typename Sink>
 void to_string(FormatSinkAdapter<Sink> out, Timestamp timestamp)
 {
@@ -731,8 +809,8 @@ inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, de
 
 
 /**
- * Appends the @c arg to the end of @c out. It'll invoke @c to_string()
- * Aim to support append not string type to the end of @c out.
+ * Convert value to string and append to format sink. It'll invoke @c to_string()
+ * Aim to support append not string type to format sink.
  * @param out    A FormatSinkAdapter.
  * @param value  Any type value.
  */
@@ -742,24 +820,36 @@ inline void append(FormatSinkAdapter<Sink> out, const T& value)
 	to_string(out, value);
 }
 
+/**
+ * Appends string to format sink.
+ */
 template <typename Sink>
 inline void append(FormatSinkAdapter<Sink> out, char* str)
 {
 	out.append(str);
 }
 
+/**
+ * Appends string to format sink.
+ */
 template <typename Sink>
 inline void append(FormatSinkAdapter<Sink> out, const char* str)
 {
 	out.append(str);
 }
 
+/**
+ * Appends string to format sink.
+ */
 template <typename Sink>
 inline void append(FormatSinkAdapter<Sink> out, const std::string& str)
 {
 	out.append(str);
 }
 
+/**
+ * Appends string to format sink.
+ */
 template <typename Sink>
 inline void append(FormatSinkAdapter<Sink> out, StringView str)
 {
@@ -838,6 +928,9 @@ void write(FormatSinkAdapter<Sink> out, StringView fmt, const Arg& value, const 
 }
 
 
+/**
+ * WriterBufferSize is enum of writer buffer.
+ */
 enum WriterBufferSize: std::size_t
 {
 	WRITER_BUFFER_SIZE_SMALL = 100,
@@ -860,8 +953,8 @@ public:
 	using FullHandler = std::function<void(StringView)>;
 
 	/**
-	 * Create write and specify write target. If write target is not specify,
-	 * will use default write target with default size.
+	 * Create text writer.
+	 * @param write_target If write target is not specify, will use default write target with default size.
 	 */
 	TextWriter(String write_target = invalid_string()):
 		m_use_default_buffer(!is_valid(write_target)),
@@ -869,6 +962,9 @@ public:
 		m_capacity(is_valid(write_target) ? write_target.length() : WRITER_BUFFER_SIZE_DEFAULT)
 	{}
 
+	/**
+	 * Destroys text writer.
+	 */
 	~TextWriter()
 	{
 		if (m_use_default_buffer)
@@ -1042,7 +1138,7 @@ public:
 	 */
 	std::size_t max_size() const
 	{
-		return m_capacity - 1; // Remain a charater to hold null chareter.
+		return m_capacity - 1; // Remain a character to hold null chareter.
 	}
 
 	/**
@@ -1073,17 +1169,29 @@ private:
 };
 
 
+/**
+ * FormatSinkAdapter for TextWriter.
+ */
 template <>
 class FormatSinkAdapter<TextWriter>
 {
 public:
+	/**
+	 * Creates format sink.
+	 */
 	explicit FormatSinkAdapter(TextWriter& sink) : m_sink(sink) {}
 
+	/**
+	 * Appends char to backend.
+	 */
 	void append(char ch)
 	{
 		m_sink.append(ch);
 	}
 
+	/**
+	 * Appends multiple same char to backend.
+	 */
 	void append(std::size_t num, char ch)
 	{
 		for (std::size_t i = 0; i < num; ++i)
@@ -1092,11 +1200,17 @@ public:
 		}
 	}
 
+	/**
+	 * Appends string to backend.
+	 */
 	void append(StringView str)
 	{
 		m_sink.append(str);
 	}
 
+	/**
+	 * Gets internal sink.
+	 */
 	TextWriter& get_internal_sink()
 	{
 		return m_sink;

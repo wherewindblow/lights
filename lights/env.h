@@ -18,16 +18,19 @@
 namespace lights {
 namespace env {
 
+/**
+ * End line string.
+ */
 inline const char* end_line()
 {
 	return "\n";
 }
 
-// In XSI-compliant (posix) version, 100 charater is enough to put all error
+// In XSI-compliant (posix) version, 100 character is enough to put all error
 // string on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2) (Englist Version).
 // In another languague version may have to change to largger to
 // hold all message.
-// In GNU-specific version 100 charater can hold all unkown error.
+// In GNU-specific version 100 character can hold all unkown error.
 constexpr int MAX_ERROR_STR_LEN = 100;
 
 /**
@@ -59,28 +62,43 @@ inline const char* strerror(int error_no, char* buf, std::size_t len)
 
 using offset_t = std::ptrdiff_t;
 
+/**
+ * Tells file offset.
+ */
 inline offset_t ftell(std::FILE* file)
 {
 	// Return type off_t will fit into suitable type for 32 and 64 architechures.
 	return ftello(file);
 }
 
+/**
+ * Seeks file offset.
+ */
 inline void fseek(std::FILE* file, offset_t off, int whence)
 {
 	// Return type off_t will fit into suitable type for 32 and 64 architechures.
 	fseeko(file, off, whence);
 }
 
+/**
+ * Gets tm by timestamp.
+ */
 inline tm* localtime(const std::time_t* time_point, struct tm* result)
 {
 	return localtime_r(time_point, result);
 }
 
+/**
+ * Computes hash of data.
+ */
 inline std::size_t hash(const void* data, std::size_t len)
 {
 	return std::_Hash_impl::hash(data, len);
 }
 
+/**
+ * Checks file is exists.
+ */
 inline bool file_exists(const char* filename)
 {
 	return access(filename, F_OK) == 0;

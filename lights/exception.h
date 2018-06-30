@@ -54,11 +54,17 @@ private:
  */
 #define LIGHTS_CURRENT_SOURCE_LOCATION lights::SourceLocation(__FILE__, __LINE__, BOOST_CURRENT_FUNCTION)
 
+/**
+ * Returns invalid source location.
+ */
 inline SourceLocation invalid_source_location()
 {
 	return { nullptr, 0, nullptr };
 }
 
+/**
+ * Checks source location is valid.
+ */
 inline bool is_valid(const SourceLocation& location)
 {
 	return location.file() != nullptr && location.function() != nullptr;
@@ -91,15 +97,24 @@ public:
 		TYPE_MAX
 	};
 
+	/**
+	 * Creates error descriptions.
+	 */
 	ErrorCodeDescriptions(StringView without_args,
 						  StringView with_args) :
 		m_descriptions { without_args, with_args}
 	{}
 
+	/**
+	 * Creates error descriptions.
+	 */
 	ErrorCodeDescriptions(StringView without_args) :
 		ErrorCodeDescriptions(without_args, without_args)
 	{}
 
+	/**
+	 * Gets error description.
+	 */
 	StringView get_description(DescriptionType description_type) const
 	{
 		return m_descriptions[description_type];
@@ -112,7 +127,7 @@ private:
 
 /**
  * ErrorCodeCategory is a virtual base class of error category.
- * @details Why not use std::system_category() directyl. Because it use std::string as return
+ * @details Why not use std::system_category() directly. Because it use std::string as return
  *          type of get a description of error and that will waste more time.
  */
 class ErrorCodeCategory
@@ -121,7 +136,14 @@ public:
 	ErrorCodeCategory() = default;
 	virtual ~ErrorCodeCategory() = default;
 
+	/**
+	 * Returns name of category.
+	 */
 	virtual StringView name() const = 0;
+
+	/**
+	 * Returns error descriptions of error code.
+	 */
 	virtual const ErrorCodeDescriptions& descriptions(int code) const = 0;
 };
 
@@ -131,9 +153,15 @@ public:
 class LightsErrorCodeCategory: public ErrorCodeCategory
 {
 public:
-	virtual StringView name() const;
+	/**
+	 * Returns name of category.
+	 */
+	StringView name() const override;
 
-	virtual const ErrorCodeDescriptions& descriptions(int code) const;
+	/**
+	 * Returns error descriptions of error code.
+	 */
+	const ErrorCodeDescriptions& descriptions(int code) const override;
 
 	static LightsErrorCodeCategory& instance()
 	{
@@ -149,6 +177,9 @@ public:
 class Exception: public std::exception
 {
 public:
+	/**
+	 * Creates exception.
+	 */
 	Exception(const SourceLocation& occur_location, int code, const ErrorCodeCategory& code_category = LightsErrorCodeCategory::instance()):
 		m_occur_location(occur_location), m_code(code), m_code_category(code_category)
 	{
@@ -167,16 +198,25 @@ public:
 	 */
 	const char* what() const noexcept override;
 
+	/**
+	 * Returns error code.
+	 */
 	int code() const
 	{
 		return m_code;
 	}
 
+	/**
+	 * Returns error category.
+	 */
 	const ErrorCodeCategory& code_category() const
 	{
 		return m_code_category;
 	}
 
+	/**
+	 * Gets description of error code.
+	 */
 	StringView get_description(ErrorCodeDescriptions::DescriptionType description_type) const
 	{
 		return code_category().descriptions(code()).get_description(description_type);
@@ -198,6 +238,9 @@ private:
 };
 
 
+/**
+ * AssertionError is throw by assertion failure.
+ */
 class AssertionError: public Exception
 {
 public:
@@ -213,6 +256,9 @@ private:
 };
 
 
+/**
+ * InvalidArgument is throw by arguments is invalid.
+ */
 class InvalidArgument: public Exception
 {
 public:
@@ -228,6 +274,9 @@ private:
 };
 
 
+/**
+ * OpenFileError is throw by open file failure.
+ */
 class OpenFileError: public Exception
 {
 public:
@@ -299,6 +348,9 @@ private:
 } // namespace details
 
 
+/**
+ * Converts exception to string and put to format sink.
+ */
 template <typename Sink>
 inline void to_string(FormatSinkAdapter<Sink> out, const Exception& ex)
 {
@@ -309,6 +361,9 @@ inline void to_string(FormatSinkAdapter<Sink> out, const Exception& ex)
 
 class BinaryStoreWriter;
 
+/**
+ * Converts exception to string and put to format sink.
+ */
 void to_string(FormatSinkAdapter<BinaryStoreWriter> out, const Exception& ex);
 
 } // namespace lights

@@ -71,6 +71,7 @@ struct StringTableImpl
 
 } // namespace details
 
+
 StringTable::StringTable(StringView filename):
 	p_impl(std::make_unique<ImplementType>())
 {

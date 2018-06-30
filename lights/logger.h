@@ -27,16 +27,22 @@ static const StringView log_level_names[] = {
 } // namespace details
 
 
+/**
+ * Log message level.
+ */
 enum class LogLevel: std::uint8_t
 {
 	DEBUG = 0, INFO, WARN, ERROR, OFF
 };
 
-
+/**
+ * Converts log level to string.
+ */
 inline const StringView to_string(LogLevel level)
 {
 	return details::log_level_names[static_cast<std::uint8_t>(level)];
 }
+
 
 /**
  * PreciseTime use to record hight resolution time point.
@@ -100,31 +106,35 @@ inline bool operator>(const PreciseTime& left, const PreciseTime& right)
  */
 PreciseTime current_precise_time();
 
+/**
+ * Puts precise time to format sink.
+ */
 template <typename Sink>
 inline void to_string(FormatSinkAdapter<Sink> out, const PreciseTime& time)
 {
 	out << time.seconds << '.' << time.nanoseconds << 's';
 }
 
-/**
- * Logs message with readable text to the backend sink.
- *
- * Message is compose by a signature header and message body.
- * Signature is compose by time, logger name, log level, log module and source location.
- */
 
+/**
+ * General log sink pointer.
+ */
 using LogSinkPtr = std::shared_ptr<SinkAdapter>;
 
+
+/**
+ * TextLogger log message with text mode to backend sink.
+ */
 class TextLogger
 {
 public:
-	using ModuleNameHandler = std::function<StringView(std::uint16_t)>;
-	using ModuleShouldLogHandler = std::function<bool(LogLevel, std::uint16_t)>;
-
+	/**
+	 * Creates text logger.
+	 */
 	TextLogger(StringView name, LogSinkPtr sink_ptr);
 
 	/**
-	 * Returns the name of this logger.
+	 * Returns logger name.
 	 */
 	const std::string& get_name() const
 	{
@@ -132,7 +142,7 @@ public:
 	}
 
 	/**
-	 * Returns the level of this logger.
+	 * Returns logger level.
 	 */
 	LogLevel get_level() const
 	{
@@ -140,7 +150,7 @@ public:
 	}
 
 	/**
-	 * Sets the level of this logger and all log message level is greater or equal to this
+	 * Sets logger level and all log message level is greater or equal to this
 	 * level will be record to sink.
 	 */
 	void set_level(LogLevel level)
@@ -255,11 +265,30 @@ public:
 		this->log(LogLevel::ERROR, value);
 	}
 
+	/**
+	 * Formats @c fmt with @ args and log to sink.
+	 * @param level     Level of log message.
+	 * @param location  Where call this function.
+	 * @param fmt       Format string of log message.
+	 * @param args      Arguments of format.
+	 */
 	template <typename ... Args>
 	void log(LogLevel level, const SourceLocation& location, const char* fmt, const Args& ... args);
 
+	/**
+	 * Logs str to sink.
+	 * @param level     Level of log message.
+	 * @param location  Where call this function.
+	 * @param str       Log message.
+	 */
 	void log(LogLevel level, const SourceLocation& location, const char* str);
 
+	/**
+	 * Logs value to sink.
+	 * @param level     Level of log message.
+	 * @param location  Where call this function.
+	 * @param value     Any type that can be format.
+	 */
 	template <typename T>
 	void log(LogLevel level, const SourceLocation& location, const T& value);
 
@@ -321,7 +350,7 @@ void TextLogger::log(LogLevel level, const SourceLocation& location, const T& va
 
 
 /**
- * Binary log message header.
+ * BinaryMessageSignature is binary log message common header.
  */
 struct BinaryMessageSignature
 {
@@ -454,40 +483,67 @@ private:
 
 
 /**
- * Logs message with binary mode to the backend sink. Binary log message is optimized with output,
- * so can save output and record more information. On the other hand, binary log message is
- * structured and can be convenient analyse.
+ * BinaryLogger logs message with binary mode to the backend sink. Binary log message is
+ * optimized with output, so can save output and record more information. On the other hand,
+ * binary log message is structured and can be convenient analyse.
+ * Binary log message can use BinaryLogReader to read it.
  */
 class BinaryLogger
 {
 public:
-	using ModuleShouldLogHandler = std::function<bool(LogLevel, std::uint16_t)>;
-
+	/**
+	 * Creates binary logger.
+	 */
 	BinaryLogger(std::uint16_t log_id, LogSinkPtr sink_ptr, StringTablePtr str_table_ptr);
 
+	/**
+	 * Gets log id.
+	 */
 	std::uint16_t get_log_id() const
 	{
 		return m_signature->get_log_id();
 	}
 
+	/**
+	 * Gets logger level.
+	 */
 	LogLevel get_level() const
 	{
 		return m_level;
 	}
 
 	/**
-	 * Sets the level of this logger.
+	 * Sets the logger level.
 	 */
 	void set_level(LogLevel level)
 	{
 		m_level = level;
 	}
 
+	/**
+	 * Formats @c fmt with @ args and log to sink.
+	 * @param level     Level of log message.
+	 * @param location  Where call this function.
+	 * @param fmt       Format string of log message.
+	 * @param args      Arguments of format.
+	 */
 	template <typename ... Args>
 	void log(LogLevel level, const SourceLocation& location, const char* fmt, const Args& ... args);
 
+	/**
+	 * Logs str to sink.
+	 * @param level     Level of log message.
+	 * @param location  Where call this function.
+	 * @param str       Log message.
+	 */
 	void log(LogLevel level, const SourceLocation& location, const char* str);
 
+	/**
+	 * Logs value to sink.
+	 * @param level     Level of log message.
+	 * @param location  Where call this function.
+	 * @param value     Any type that can be format.
+	 */
 	template <typename T>
 	void log(LogLevel level, const SourceLocation& location, const T& value);
 
@@ -513,7 +569,6 @@ private:
 	}
 
 	LogLevel m_level = LogLevel::INFO;
-//	ModuleShouldLogHandler m_module_should_log;
 	LogSinkPtr m_sink_ptr;
 	StringTablePtr m_str_table_ptr;
 	char m_write_target[WRITER_BUFFER_SIZE_LARGE];
@@ -553,39 +608,54 @@ void BinaryLogger::log(LogLevel level, const SourceLocation& location, const T& 
 }
 
 
+/**
+ * BinaryLogReader can read the log file that write by BinaryLogger.
+ */
 class BinaryLogReader
 {
 public:
 	BinaryLogReader(StringView log_filename, StringTablePtr str_table_ptr);
 
 	/**
-	 * @note Return nullptr when have no log message to read.
+	 * @note Returns nullptr when have no log message to read.
 	 */
 	StringView read();
 
 	/**
-	 * Jump to the specify line.
+	 * Jumps to the specify line.
 	 * @param line  When line is positive will jump to the line start from head.
 	 *              When line is negative will jump to the line start from tail.
 	 */
 	void jump(std::streamoff line);
 
+	/**
+	 * Jumps to file end.
+	 */
 	void jump_to_end()
 	{
 		m_file.seek(0, FileSeekWhence::END);
 	}
 
+	/**
+	 * Returns is end of file.
+	 */
 	bool eof()
 	{
 		m_file.peek();
 		return m_file.eof();
 	}
 
+	/**
+	 * Checks have new message.
+	 */
 	bool have_new_message()
 	{
 		return static_cast<std::size_t>(m_file.tell()) < m_file.size();
 	}
 
+	/**
+	 * Clear end of file flag.
+	 */
 	void clear_eof()
 	{
 		m_file.clear_error();
@@ -611,10 +681,10 @@ private:
 #	define LIGHTS_LOG(logger, level, module, ...)
 #endif
 
+
 /**
  * Unified interface of logger to log message.
  * @param ... Can use format string and arguments or just a any type value.
- * @note Cannot pass @c module_id as 0 or is ambiguous with another call function.
  */
 #define LIGHTS_DEBUG(logger, ...) \
 	LIGHTS_LOG(logger, lights::LogLevel::DEBUG, __VA_ARGS__);
@@ -624,6 +694,5 @@ private:
 	LIGHTS_LOG(logger, lights::LogLevel::WARN, __VA_ARGS__);
 #define LIGHTS_ERROR(logger, ...) \
 	LIGHTS_LOG(logger, lights::LogLevel::ERROR, __VA_ARGS__);
-
 
 } // namespace lights

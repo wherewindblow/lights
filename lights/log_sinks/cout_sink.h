@@ -17,15 +17,24 @@
 namespace lights {
 namespace log_sinks {
 
+/**
+ * CoutSink is wrapper sink of std::cout.
+ */
 class CoutSink: public SinkAdapter
 {
 public:
-	std::size_t write(SequenceView sequence) override
+	/**
+	 * Writes log_msg to std::cout.
+	 */
+	std::size_t write(SequenceView log_msg) override
 	{
-		std::cout << sequence;
-		return sequence.length();
+		std::cout << log_msg;
+		return log_msg.length();
 	}
 
+	/**
+	 * Returns instance.
+	 */
 	static std::shared_ptr<CoutSink> instance()
 	{
 		static auto instance = std::make_shared<CoutSink>();
@@ -34,15 +43,24 @@ public:
 };
 
 
+/**
+ * CoutSink is wrapper sink of std::cerr.
+ */
 class CerrSink: public SinkAdapter
 {
 public:
-	std::size_t write(SequenceView sequence) override
+	/**
+	 * Writes log_msg to std::cerr.
+	 */
+	std::size_t write(SequenceView log_msg) override
 	{
-		std::cerr << sequence;
-		return sequence.length();
+		std::cerr << log_msg;
+		return log_msg.length();
 	}
 
+	/**
+	 * Returns instance.
+	 */
 	static std::shared_ptr<CerrSink> instance()
 	{
 		static auto instance = std::make_shared<CerrSink>();
@@ -51,15 +69,24 @@ public:
 };
 
 
+/**
+ * CoutSink is wrapper sink of std::clog.
+ */
 class ClogSink: public SinkAdapter
 {
 public:
-	std::size_t  write(SequenceView sequence) override
+	/**
+	 * Writes log_msg to std::clog.
+	 */
+	std::size_t write(SequenceView log_msg) override
 	{
-		std::clog << sequence;
-		return sequence.length();
+		std::clog << log_msg;
+		return log_msg.length();
 	}
 
+	/**
+	 * Returns instance.
+	 */
 	static std::shared_ptr<ClogSink> instance()
 	{
 		static auto instance = std::make_shared<ClogSink>();
