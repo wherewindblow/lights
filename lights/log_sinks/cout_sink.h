@@ -20,7 +20,7 @@ namespace log_sinks {
 /**
  * CoutSink is wrapper sink of std::cout.
  */
-class CoutSink: public SinkAdapter
+class CoutSink: public Sink
 {
 public:
 	/**
@@ -46,7 +46,7 @@ public:
 /**
  * CoutSink is wrapper sink of std::cerr.
  */
-class CerrSink: public SinkAdapter
+class CerrSink: public Sink
 {
 public:
 	/**
@@ -72,7 +72,7 @@ public:
 /**
  * CoutSink is wrapper sink of std::clog.
  */
-class ClogSink: public SinkAdapter
+class ClogSink: public Sink
 {
 public:
 	/**

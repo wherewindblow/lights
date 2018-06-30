@@ -8,6 +8,7 @@
 
 #include <cstring>
 #include <ctime>
+#include <string>
 
 #include "format.h"
 #include "format/binary_format.h"
@@ -109,17 +110,17 @@ PreciseTime current_precise_time();
 /**
  * Puts precise time to format sink.
  */
-template <typename Sink>
-inline void to_string(FormatSinkAdapter<Sink> out, const PreciseTime& time)
+template <typename Backend>
+inline void to_string(FormatSink<Backend> sink, const PreciseTime& time)
 {
-	out << time.seconds << '.' << time.nanoseconds << 's';
+	sink << time.seconds << '.' << time.nanoseconds << 's';
 }
 
 
 /**
  * General log sink pointer.
  */
-using LogSinkPtr = std::shared_ptr<SinkAdapter>;
+using LogSinkPtr = std::shared_ptr<Sink>;
 
 
 /**

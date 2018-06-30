@@ -14,13 +14,13 @@
 namespace lights {
 
 /**
- * SinkAdapter is virtual base class and use as backend of ouput.
+ * Sink is virtual base class and use as backend of ouput.
  */
-class SinkAdapter
+class Sink
 {
 public:
-	SinkAdapter() = default;
-	virtual ~SinkAdapter() = default;
+	Sink() = default;
+	virtual ~Sink() = default;
 
 	/**
 	 * Writes sequence to backend.
@@ -33,7 +33,7 @@ public:
 /**
  * NullSink will accept all data and do nothing.
  */
-class NullSink: public SinkAdapter
+class NullSink: public Sink
 {
 public:
 	/**
@@ -49,7 +49,7 @@ public:
 /**
  * Inserts sequence into sink.
  */
-inline SinkAdapter& operator<< (SinkAdapter& sink, SequenceView sequence)
+inline Sink& operator<< (Sink& sink, SequenceView sequence)
 {
 	sink.write(sequence);
 	return sink;
@@ -59,35 +59,35 @@ inline SinkAdapter& operator<< (SinkAdapter& sink, SequenceView sequence)
 /**
  * Inserts string into sink.
  */
-inline SinkAdapter& operator<< (SinkAdapter& sink, StringView str)
+inline Sink& operator<< (Sink& sink, StringView str)
 {
 	sink.write(str);
 	return sink;
 }
 
 
-template <typename Sink>
-class FormatSinkAdapter;
+template <typename Backend>
+class FormatSink;
 
 /**
- * Explicit template specialization for SinkAdapter.
- * Aim to allow change sink in runtime via inherit from SinkAdapter.
+ * Explicit template specialization for Sink.
+ * Aim to allow change sink in runtime via inherit from Sink.
  */
 template <>
-class FormatSinkAdapter<SinkAdapter>
+class FormatSink<Sink>
 {
 public:
 	/**
 	 * Creates format sink.
 	 */
-	explicit FormatSinkAdapter(SinkAdapter& sink) : m_sink(sink) {}
+	explicit FormatSink(Sink& sink) : m_backend(sink) {}
 
 	/**
 	 * Appends char to backend.
 	 */
 	void append(char ch)
 	{
-		m_sink.write(SequenceView(&ch, sizeof(ch)));
+		m_backend.write(SequenceView(&ch, sizeof(ch)));
 	}
 
 	/**
@@ -106,11 +106,11 @@ public:
 	 */
 	void append(StringView str)
 	{
-		m_sink.write(str);
+		m_backend.write(str);
 	}
 
 private:
-	SinkAdapter& m_sink;
+	Sink& m_backend;
 };
 
 } // namespace lights

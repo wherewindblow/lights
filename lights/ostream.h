@@ -22,22 +22,22 @@ namespace details {
  * StringBuffer that reference on a string.
  * Instead of std::stringbuf to optimize performance.
  */
-template <typename Sink>
+template <typename Backend>
 class StringBuffer: public std::streambuf
 {
 public:
 	/**
 	 * Creates string buffer.
 	 */
-	explicit StringBuffer(FormatSinkAdapter<Sink>& out) :
-		m_out(out) {}
+	explicit StringBuffer(FormatSink<Backend>& sink) :
+		m_sink(sink) {}
 
 	/**
 	 * Inserts a character.
 	 */
 	virtual int_type overflow(int_type ch) override
 	{
-		m_out.append(static_cast<char>(ch));
+		m_sink.append(static_cast<char>(ch));
 		return ch;
 	}
 
@@ -46,12 +46,12 @@ public:
 	 */
 	virtual std::streamsize	xsputn(const char* s, std::streamsize n) override
 	{
-		m_out.append({s, static_cast<std::size_t>(n)});
+		m_sink.append({s, static_cast<std::size_t>(n)});
 		return n;
 	}
 
 private:
-	FormatSinkAdapter<Sink>& m_out;
+	FormatSink<Backend>& m_sink;
 };
 
 } // namespace details
@@ -62,13 +62,13 @@ private:
  * that use insertion operator with std::ostream and T.
  * Aim to support format with
  *   `std::ostream& operator<< (std::ostream& out, const T& value)`
- * @param out    A FormatSinkAdapter.
+ * @param out    A FormatSink.
  * @param value  User-defined type value.
  */
-template <typename Sink, typename T>
-inline void to_string(FormatSinkAdapter<Sink> out, const T& value)
+template <typename Backend, typename T>
+inline void to_string(FormatSink<Backend> out, const T& value)
 {
-	details::StringBuffer<Sink> buf(out);
+	details::StringBuffer<Backend> buf(out);
 	std::ostream ostream(&buf);
 	ostream << value;
 }

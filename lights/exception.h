@@ -11,7 +11,7 @@
 
 #include "config.h"
 #include "sequence.h"
-#include "sink_adapter.h"
+#include "sink.h"
 #include "current_function.hpp"
 #include "common.h"
 
@@ -223,11 +223,11 @@ public:
 	}
 
 	/**
-	 * Dumps the error message to sink adapter @c out.
+	 * Dumps the error message to sink @c out.
 	 * Derived class can implement it via format with arguments.
 	 * @note The error message is no include occur location.
 	 */
-	virtual void dump_message(SinkAdapter& out,
+	virtual void dump_message(Sink& out,
 							  ErrorCodeDescriptions::DescriptionType description_type =
 							  		ErrorCodeDescriptions::TYPE_WITH_ARGS) const;
 
@@ -249,7 +249,7 @@ public:
 	{
 	}
 
-	void dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const override;
+	void dump_message(Sink& out, ErrorCodeDescriptions::DescriptionType description_type) const override;
 
 private:
 	StringView m_description;
@@ -267,7 +267,7 @@ public:
 	{
 	}
 
-	void dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const override;
+	void dump_message(Sink& out, ErrorCodeDescriptions::DescriptionType description_type) const override;
 
 private:
 	std::string m_description;
@@ -285,7 +285,7 @@ public:
 	{
 	}
 
-	void dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const override;
+	void dump_message(Sink& out, ErrorCodeDescriptions::DescriptionType description_type) const override;
 
 private:
 	std::string m_filename;
@@ -314,12 +314,11 @@ private:
 #endif
 
 /**
- * Dumps all message of exception to sink adapter, include error message and occur source
- * location.
+ * Dumps all message of exception to sink, include error message and occur source location.
  */
-void dump(const Exception& ex, SinkAdapter& out);
+void dump(const Exception& ex, Sink& out);
 
-inline SinkAdapter& operator<< (SinkAdapter& out, const Exception& ex)
+inline Sink& operator<< (Sink& out, const Exception& ex)
 {
 	dump(ex, out);
 	return out;
@@ -328,21 +327,21 @@ inline SinkAdapter& operator<< (SinkAdapter& out, const Exception& ex)
 
 namespace details {
 
-template <typename Sink>
-class FormatSelfSinkAdapter: public SinkAdapter
+template <typename Backend>
+class FormatSinkAdapter: public Sink
 {
 public:
-	FormatSelfSinkAdapter(FormatSinkAdapter<Sink> out):
-		m_out(out)
+	FormatSinkAdapter(FormatSink<Backend> backend):
+		m_backend(backend)
 	{}
 
 	std::size_t write(SequenceView sequence) override
 	{
-		m_out.append(to_string_view(sequence));
+		m_backend.append(to_string_view(sequence));
 		return sequence.length();
 	};
 private:
-	FormatSinkAdapter<Sink> m_out;
+	FormatSink<Backend> m_backend;
 };
 
 } // namespace details
@@ -351,11 +350,11 @@ private:
 /**
  * Converts exception to string and put to format sink.
  */
-template <typename Sink>
-inline void to_string(FormatSinkAdapter<Sink> out, const Exception& ex)
+template <typename Backend>
+inline void to_string(FormatSink<Backend> sink, const Exception& ex)
 {
-	details::FormatSelfSinkAdapter<Sink> adapter(out);
-	adapter << ex;
+	details::FormatSinkAdapter<Backend> sink_adapter(sink);
+	sink_adapter << ex;
 }
 
 
@@ -364,6 +363,6 @@ class BinaryStoreWriter;
 /**
  * Converts exception to string and put to format sink.
  */
-void to_string(FormatSinkAdapter<BinaryStoreWriter> out, const Exception& ex);
+void to_string(FormatSink<BinaryStoreWriter> sink, const Exception& ex);
 
 } // namespace lights

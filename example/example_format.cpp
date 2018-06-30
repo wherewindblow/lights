@@ -13,17 +13,17 @@
 namespace lights {
 
 template <>
-class FormatSinkAdapter<char*>
+class FormatSink<char*>
 {
 public:
-	explicit FormatSinkAdapter(char* sink, std::size_t max_size) :
-		m_sink(sink), m_max_size(max_size) {}
+	explicit FormatSink(char* sink, std::size_t max_size) :
+		m_backend(sink), m_max_size(max_size) {}
 
 	void append(char ch)
 	{
 		if (m_current_size + 1 <= m_max_size)
 		{
-			m_sink[m_current_size] = ch;
+			m_backend[m_current_size] = ch;
 			++m_current_size;
 		}
 	}
@@ -40,13 +40,13 @@ public:
 	{
 		if (m_current_size + str.length() <= m_max_size)
 		{
-			lights::copy_array(m_sink + m_current_size, str.data(), str.length());
+			lights::copy_array(m_backend + m_current_size, str.data(), str.length());
 			m_current_size += str.length();
 		}
 	}
 
 private:
-	char* m_sink;
+	char* m_backend;
 	std::size_t m_max_size;
 	std::size_t m_current_size = 0;
 };
@@ -69,7 +69,7 @@ void example_format()
 	// Costom user-defined sink target.
 	char external_buffer[500];
 	lights::zero_array(external_buffer);
-	lights::FormatSinkAdapter<char*> format_sink(external_buffer, lights::size_of_array(external_buffer));
+	lights::FormatSink<char*> format_sink(external_buffer, lights::size_of_array(external_buffer));
 	lights::write(format_sink, "buffer size is {}", lights::size_of_array(external_buffer));
 	lights::stdout_stream().write_line(external_buffer);
 

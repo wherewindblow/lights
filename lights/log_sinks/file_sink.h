@@ -65,7 +65,7 @@ private:
 /**
  * SimpleFileSink write all log message into one file.
  */
-class SimpleFileSink: public SinkAdapter
+class SimpleFileSink: public Sink
 {
 public:
 	/**
@@ -94,7 +94,7 @@ private:
 /**
  * SizeRotatingFileSink write log message into file. If file is achieve size limit will rotate to next file.
  */
-class SizeRotatingFileSink: public SinkAdapter
+class SizeRotatingFileSink: public Sink
 {
 public:
 	SizeRotatingFileSink() = default;
@@ -182,7 +182,7 @@ private:
 /**
  * TimeRotatingFileSink write log message into file. If time is achieve limit will rotate to next file.
  */
-class TimeRotatingFileSink: public SinkAdapter
+class TimeRotatingFileSink: public Sink
 {
 public:
 	static constexpr std::time_t ONE_DAY_SECONDS = 3600 * 24;

@@ -13,7 +13,8 @@
 #include <fmt/ostream.h>
 #include <lights/format.h>
 #include <lights/ostream.h>
-#include <lights/sink_adapter.h>
+#include <lights/sink.h>
+#include <lights/format/binary_format.h>
 
 
 #define BUFFER_SIZE 500
@@ -80,6 +81,28 @@ void BM_format_int_lights_TextWriter_write(benchmark::State& state)
 void BM_format_int_lights_TextWriter_insert(benchmark::State& state)
 {
 	LIGHTS_DEFAULT_TEXT_WRITER(writer);
+	while (state.KeepRunning())
+	{
+		writer.clear();
+		writer << FORMAT_INTEGER;
+		writer.c_str();
+	}
+}
+
+void BM_format_int_lights_BinaryStoreWriter_write(benchmark::State& state)
+{
+	lights::BinaryStoreWriter writer;
+	while (state.KeepRunning())
+	{
+		writer.clear();
+		writer.write("{}", FORMAT_INTEGER);
+		writer.c_str();
+	}
+}
+
+void BM_format_int_lights_BinaryStoreWriter_insert(benchmark::State& state)
+{
+	lights::BinaryStoreWriter writer;
 	while (state.KeepRunning())
 	{
 		writer.clear();
@@ -335,6 +358,17 @@ void BM_format_float_lights_TextWriter_insert(benchmark::State& state)
 	}
 }
 
+void BM_format_float_lights_BinaryStoreWriter_write(benchmark::State& state)
+{
+	lights::BinaryStoreWriter writer;
+	while (state.KeepRunning())
+	{
+		writer.clear();
+		writer.write("{}", FORMAT_FLOAT);
+		writer.c_str();
+	}
+}
+
 
 // ------------------- Format string. -----------------------
 
@@ -405,6 +439,28 @@ void BM_format_string_lights_TextWriter_insert(benchmark::State& state)
 	}
 }
 
+void BM_format_string_lights_BinaryStoreWriter_write(benchmark::State& state)
+{
+	lights::BinaryStoreWriter writer;
+	while (state.KeepRunning())
+	{
+		writer.clear();
+		writer.write("{}", FORMAT_STRING);
+		writer.c_str();
+	}
+}
+
+void BM_format_string_lights_BinaryStoreWriter_insert(benchmark::State& state)
+{
+	lights::BinaryStoreWriter writer;
+	while (state.KeepRunning())
+	{
+		writer.clear();
+		writer.append(FORMAT_STRING);
+		writer.c_str();
+	}
+}
+
 
 // ----------------------- Format mix. --------------------------
 
@@ -468,6 +524,17 @@ void BM_format_mix_lights_TextWriter_insert(benchmark::State& state)
 	{
 		writer.clear();
 		writer << FORMAT_INTEGER << FORMAT_FLOAT << FORMAT_STRING;
+		writer.c_str();
+	}
+}
+
+void BM_format_mix_lights_BinaryStoreWriter_write(benchmark::State& state)
+{
+	lights::BinaryStoreWriter writer;
+	while (state.KeepRunning())
+	{
+		writer.clear();
+		writer.write("{}{}{}", FORMAT_INTEGER, FORMAT_FLOAT, FORMAT_STRING);
 		writer.c_str();
 	}
 }
@@ -578,7 +645,7 @@ void BM_format_time_lights_to_string(benchmark::State& state)
 	while (state.KeepRunning())
 	{
 		writer.clear();
-		lights::to_string(lights::make_format_sink_adapter(writer), timestamp);
+		lights::to_string(lights::make_format_sink(writer), timestamp);
 	}
 }
 
@@ -600,7 +667,7 @@ inline std::ostream& operator<<(std::ostream& ostream, const Coordinate& coordin
 
 
 template <typename Sink>
-inline void append(lights::FormatSinkAdapter<Sink> out, const Coordinate& coordinate)
+inline void append(lights::FormatSink<Sink> out, const Coordinate& coordinate)
 {
 	using lights::operator<<;
 	out << coordinate.coordinate_x << ':' << coordinate.coordinate_y;
@@ -615,11 +682,11 @@ struct CoordinateEx
 };
 
 
-template <typename Sink>
-void append(lights::FormatSinkAdapter<Sink> out, const CoordinateEx& coordinate_ex)
+template <typename Backend>
+void append(lights::FormatSink<Backend> sink, const CoordinateEx& coordinate_ex)
 {
 	using lights::operator<<;
-	out << coordinate_ex.coordinate << ':' << coordinate_ex.coordinate_z;
+	sink << coordinate_ex.coordinate << ':' << coordinate_ex.coordinate_z;
 }
 
 
@@ -648,7 +715,7 @@ void BM_format_custom_fmt_MemoryWriter(benchmark::State& state)
 }
 
 /**
- * Use `void append(lights::FormatSinkAdapter<Sink> out, const Coordinate& coordinate)`
+ * Use `void append(lights::FormatSink<Backend> out, const Coordinate& coordinate)`
  * is more faster than `std::ostream& operator<<(std::ostream& ostream, const Coordinate& coordinate)`
  */
 void BM_format_custom_lights_TextWriter(benchmark::State& state)
@@ -669,17 +736,17 @@ void BM_format_custom_lights_TextWriter(benchmark::State& state)
 namespace lights {
 
 template <>
-class FormatSinkAdapter<char*>
+class FormatSink<char*>
 {
 public:
-	explicit FormatSinkAdapter(char* sink, std::size_t max_size) :
-		m_sink(sink), m_max_size(max_size) {}
+	explicit FormatSink(char* sink, std::size_t max_size) :
+		m_backend(sink), m_max_size(max_size) {}
 
 	void append(char ch)
 	{
 		if (m_current_size + 1 <= m_max_size)
 		{
-			m_sink[m_current_size] = ch;
+			m_backend[m_current_size] = ch;
 			++m_current_size;
 		}
 	}
@@ -696,7 +763,7 @@ public:
 	{
 		if (m_current_size + str.length() <= m_max_size)
 		{
-			lights::copy_array(m_sink + m_current_size, str.data(), str.length());
+			lights::copy_array(m_backend + m_current_size, str.data(), str.length());
 			m_current_size += str.length();
 		}
 	}
@@ -707,7 +774,7 @@ public:
 	}
 
 private:
-	char* m_sink;
+	char* m_backend;
 	std::size_t m_max_size;
 	std::size_t m_current_size = 0;
 };
@@ -722,7 +789,7 @@ void BM_format_lights_insert_template(benchmark::State& state)
 	// Why not use TextWriter directly, because TextWriter have itself own
 	// optimization way of insert integer. And may not fair for using virtual
 	// function implementation version.
-	lights::FormatSinkAdapter<char*> format_sink_adapter(buf, lights::size_of_array(buf));
+	lights::FormatSink<char*> format_sink_adapter(buf, lights::size_of_array(buf));
 
 	while (state.KeepRunning())
 	{
@@ -732,10 +799,10 @@ void BM_format_lights_insert_template(benchmark::State& state)
 }
 
 
-class CharArrayAdapter: public lights::SinkAdapter
+class CharArraySink: public lights::Sink
 {
 public:
-	CharArrayAdapter(char* sink, std::size_t max_size) :
+	CharArraySink(char* sink, std::size_t max_size) :
 		m_sink(sink), m_max_size(max_size) {}
 
 	virtual std::size_t write(lights::SequenceView buffer)
@@ -766,13 +833,13 @@ void BM_format_lights_insert_virtual(benchmark::State& state)
 {
 	char buf[lights::WRITER_BUFFER_SIZE_DEFAULT];
 	lights::zero_array(buf);
-	CharArrayAdapter array_adapter(buf, lights::size_of_array(buf));
-	lights::SinkAdapter& adapter = array_adapter;
+	CharArraySink array_sink(buf, lights::size_of_array(buf));
+	lights::Sink& adapter = array_sink;
 
 	while (state.KeepRunning())
 	{
-		array_adapter.reset();
-		lights::make_format_sink_adapter(adapter) << FORMAT_INTEGER;
+		array_sink.reset();
+		lights::make_format_sink(adapter) << FORMAT_INTEGER;
 	}
 }
 
@@ -785,6 +852,8 @@ void BM_format()
 	BENCHMARK(BM_format_int_fmt_MemoryWriter_insert);
 	BENCHMARK(BM_format_int_lights_TextWriter_write);
 	BENCHMARK(BM_format_int_lights_TextWriter_insert);
+	BENCHMARK(BM_format_int_lights_BinaryStoreWriter_write);
+	BENCHMARK(BM_format_int_lights_BinaryStoreWriter_insert);
 
 	BENCHMARK(BM_format_int_not_reuse_std_sprintf);
 	BENCHMARK(BM_format_int_not_reuse_std_sstream);
@@ -814,6 +883,7 @@ void BM_format()
 	BENCHMARK(BM_format_float_fmt_MemoryWriter_insert);
 	BENCHMARK(BM_format_float_lights_TextWriter_write);
 	BENCHMARK(BM_format_float_lights_TextWriter_insert);
+	BENCHMARK(BM_format_float_lights_BinaryStoreWriter_write);
 
 	BENCHMARK(BM_format_string_std_sprintf);
 	BENCHMARK(BM_format_string_std_sstream);
@@ -821,6 +891,8 @@ void BM_format()
 	BENCHMARK(BM_format_string_fmt_MemoryWriter_insert);
 	BENCHMARK(BM_format_string_lights_TextWriter_write);
 	BENCHMARK(BM_format_string_lights_TextWriter_insert);
+	BENCHMARK(BM_format_string_lights_BinaryStoreWriter_write);
+	BENCHMARK(BM_format_string_lights_BinaryStoreWriter_insert);
 
 	BENCHMARK(BM_format_mix_std_sprintf);
 	BENCHMARK(BM_format_mix_std_sstream);
@@ -828,6 +900,7 @@ void BM_format()
 	BENCHMARK(BM_format_mix_fmt_MemoryWriter_insert);
 	BENCHMARK(BM_format_mix_lights_TextWriter_write);
 	BENCHMARK(BM_format_mix_lights_TextWriter_insert);
+	BENCHMARK(BM_format_mix_lights_BinaryStoreWriter_write);
 
 	BENCHMARK(BM_format_time_std_strftime);
 	BENCHMARK(BM_format_time_fmt_MemoryWriter_write);

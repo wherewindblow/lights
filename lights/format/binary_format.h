@@ -378,23 +378,23 @@ private:
 
 
 /**
- * FormatSinkAdapter of BinaryStoreWriter.
+ * FormatSink of BinaryStoreWriter.
  */
 template <>
-class FormatSinkAdapter<BinaryStoreWriter>
+class FormatSink<BinaryStoreWriter>
 {
 public:
 	/**
 	 * Creates format sink.
 	 */
-	explicit FormatSinkAdapter(BinaryStoreWriter& sink) : m_sink(sink) {}
+	explicit FormatSink(BinaryStoreWriter& backend) : m_backend(backend) {}
 
 	/**
 	 * Appends char to backend.
 	 */
 	void append(char ch)
 	{
-		m_sink.append(ch);
+		m_backend.append(ch);
 	}
 
 	/**
@@ -413,26 +413,26 @@ public:
 	 */
 	void append(StringView str)
 	{
-		m_sink.append(str);
+		m_backend.append(str);
 	}
 
 	/**
-	 * Get internal sink.
+	 * Get internal backend.
 	 */
-	BinaryStoreWriter& get_internal_sink()
+	BinaryStoreWriter& get_internal_backend()
 	{
-		return m_sink;
+		return m_backend;
 	}
 
 private:
-	BinaryStoreWriter& m_sink;
+	BinaryStoreWriter& m_backend;
 };
 
 
 /**
  * Empty function.
  */
-inline void write(FormatSinkAdapter<BinaryStoreWriter> /* out */, StringView /* fmt */)
+inline void write(FormatSink<BinaryStoreWriter> /* out */, StringView /* fmt */)
 {
 }
 
@@ -441,7 +441,7 @@ inline void write(FormatSinkAdapter<BinaryStoreWriter> /* out */, StringView /* 
  *       into this function and into general write function.
  */
 template <typename Arg, typename ... Args>
-void write(FormatSinkAdapter<BinaryStoreWriter> out,
+void write(FormatSink<BinaryStoreWriter> sink,
 		   StringView fmt, const Arg& value, const Args& ... args)
 {
 	std::size_t i = 0;
@@ -457,9 +457,9 @@ void write(FormatSinkAdapter<BinaryStoreWriter> out,
 
 	if (i < fmt.length())
 	{
-		out.get_internal_sink().add_composed_type(value);
+		sink.get_internal_backend().add_composed_type(value);
 		fmt.move_forward(i + 2);
-		write(out, fmt, args ...);
+		write(sink, fmt, args ...);
 	}
 }
 
@@ -467,15 +467,15 @@ void write(FormatSinkAdapter<BinaryStoreWriter> out,
 template <typename Arg, typename ... Args>
 inline void BinaryStoreWriter::write(StringView fmt, const Arg& value, const Args& ... args)
 {
-	lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
+	lights::write(make_format_sink(*this), fmt, value, args ...);
 }
 
 /**
- * @note Must ensure the specialization of FormatSinkAdapter is declere before use.
+ * @note Must ensure the specialization of FormatSink is declere before use.
  */
 inline void BinaryStoreWriter::write(StringView fmt)
 {
-	lights::write(make_format_sink_adapter(*this), fmt);
+	lights::write(make_format_sink(*this), fmt);
 }
 
 
@@ -484,7 +484,7 @@ void BinaryStoreWriter::add_composed_type(const T& value)
 {
 	if (m_state == FormatComposedTypeState::STARTED) // Reduce recursion.
 	{
-		make_format_sink_adapter(*this) << value;
+		make_format_sink(*this) << value;
 	}
 	else
 	{
@@ -494,7 +494,7 @@ void BinaryStoreWriter::add_composed_type(const T& value)
 		const auto composed_header_len = sizeof(BinaryTypeCode) + sizeof(std::uint16_t) / sizeof(std::uint8_t);
 		m_length += composed_header_len;
 		m_state = FormatComposedTypeState::STARTED;
-		make_format_sink_adapter(*this) << value;
+		make_format_sink(*this) << value;
 		m_state = FormatComposedTypeState::ENDED;
 
 		if (m_composed_member_num > 1)
@@ -520,9 +520,9 @@ void BinaryStoreWriter::add_composed_type(const T& value)
  * Use @c BinaryStoreWriter member function to format integer to speed up.
  */
 #define LIGHTS_BINARY_STORE_WRITER_TO_STRING(Type) \
-inline void to_string(FormatSinkAdapter<BinaryStoreWriter> out, Type n) \
+inline void to_string(FormatSink<BinaryStoreWriter> sink, Type n) \
 { \
-	out.get_internal_sink() << n; \
+	sink.get_internal_backend() << n; \
 }
 
 LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_TO_STRING)
@@ -564,7 +564,7 @@ public:
 	void write_text(StringView fmt, const Arg& value, const Args& ... args)
 	{
 		// Must add namespace scope limit or cannot find suitable function.
-		lights::write(make_format_sink_adapter(m_writer), fmt, value, args ...);
+		lights::write(make_format_sink(m_writer), fmt, value, args ...);
 	}
 
 	/**
@@ -573,7 +573,7 @@ public:
 	 */
 	void write_text(StringView fmt)
 	{
-		lights::write(make_format_sink_adapter(m_writer), fmt);
+		lights::write(make_format_sink(m_writer), fmt);
 	}
 
 	/**
@@ -590,7 +590,7 @@ public:
 	template <typename T>
 	BinaryRestoreWriter& operator<< (const T& value)
 	{
-		make_format_sink_adapter(m_writer) << value;
+		make_format_sink(m_writer) << value;
 		return *this;
 	}
 

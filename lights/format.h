@@ -102,27 +102,27 @@ inline Timestamp current_timestamp()
 
 
 /**
- * Adapter Sink to provide same interface.
+ * Format sink to provide same interface.
  * It's light weight and can be use as pass by value.
- * @tparam Sink  To be write backend.
+ * @tparam Backend  Store all append data.
  * @note This class template cannot to be use, and must to be
  *       explicit specialization and implement the method by user.
  */
-template <typename Sink>
-class FormatSinkAdapter
+template <typename Backend>
+class FormatSink
 {
 public:
 	/**
 	 * Creates format sink.
 	 */
-	explicit FormatSinkAdapter(Sink& sink) = delete;
+	explicit FormatSink(Backend& backend) = delete;
 
 	/**
 	 * Appends char to backend.
 	 */
 	void append(char ch)
 	{
-		m_sink.append(ch);
+		m_backend.append(ch);
 	};
 
 	/**
@@ -149,36 +149,36 @@ public:
 	}
 
 private:
-	Sink& m_sink;
+	Backend& m_backend;
 };
 
 /**
- * Helper function to create adapter.
+ * Helper function to create format sink.
  */
-template <typename T>
-inline FormatSinkAdapter<T> make_format_sink_adapter(T& value)
+template <typename Backend>
+inline FormatSink<Backend> make_format_sink(Backend& backend)
 {
-	return FormatSinkAdapter<T>(value);
+	return FormatSink<Backend>(backend);
 }
 
 /**
- * Explicit tempate specialization of std::string
+ * Explicit tempate specialization of std::string.
  */
 template <>
-class FormatSinkAdapter<std::string>
+class FormatSink<std::string>
 {
 public:
 	/**
 	 * Creates format sink.
 	 */
-	explicit FormatSinkAdapter(std::string& sink) : m_sink(sink) {}
+	explicit FormatSink(std::string& backend) : m_backend(backend) {}
 
 	/**
 	 * Appends char to backend.
 	 */
 	void append(char ch)
 	{
-		m_sink.push_back(ch);
+		m_backend.push_back(ch);
 	}
 
 	/**
@@ -186,7 +186,7 @@ public:
 	 */
 	void append(std::size_t num, char ch)
 	{
-		m_sink.append(num, ch);
+		m_backend.append(num, ch);
 	}
 
 	/**
@@ -194,11 +194,11 @@ public:
 	 */
 	void append(StringView str)
 	{
-		m_sink.append(str.data(), str.length());
+		m_backend.append(str.data(), str.length());
 	}
 
 private:
-	std::string& m_sink;
+	std::string& m_backend;
 };
 
 
@@ -274,18 +274,18 @@ private:
 /**
  * Writes number and pad with two digit.
  */
-template <typename Sink>
-inline FormatSinkAdapter<Sink> write_2_digit(FormatSinkAdapter<Sink> out, unsigned num)
+template <typename Backend>
+inline FormatSink<Backend> write_2_digit(FormatSink<Backend> sink, unsigned num)
 {
 	if (num >= 10)
 	{
-		out << num;
+		sink << num;
 	}
 	else
 	{
-		out << '0' << num;
+		sink << '0' << num;
 	}
-	return out;
+	return sink;
 }
 
 
@@ -382,15 +382,15 @@ template <typename UnsignedInteger>
 class BinaryFormater<UnsignedInteger, false>
 {
 public:
-	template <typename Sink>
-	static void format(FormatSinkAdapter<Sink> out,
+	template <typename Backend>
+	static void format(FormatSink<Backend> sink,
 					   IntegerFormatSpec<UnsignedInteger, details::BinarySpecTag> spec,
 					   bool negative = false);
 };
 
 template <typename UnsignedInteger>
-template <typename Sink>
-void BinaryFormater<UnsignedInteger, false>::format(FormatSinkAdapter<Sink> out,
+template <typename Backend>
+void BinaryFormater<UnsignedInteger, false>::format(FormatSink<Backend> sink,
 													IntegerFormatSpec<UnsignedInteger, details::BinarySpecTag> spec,
 													bool negative)
 {
@@ -404,19 +404,19 @@ void BinaryFormater<UnsignedInteger, false>::format(FormatSinkAdapter<Sink> out,
 	int width = negative ? num + 1 : num;
 	if (spec.width != INVALID_INDEX && width < spec.width)
 	{
-		out.append(spec.width - width, spec.fill);
+		sink.append(spec.width - width, spec.fill);
 	}
 
 	if (negative)
 	{
-		out.append('-');
+		sink.append('-');
 	}
 
 	UnsignedInteger mask = 1ul << (num - 1);
 	while (mask != 0)
 	{
 		char ch = to_binary_char(spec.value & mask);
-		out.append(ch);
+		sink.append(ch);
 		mask >>= 1;
 	}
 }
@@ -432,15 +432,15 @@ template <typename UnsignedInteger>
 class OctalFormater<UnsignedInteger, false>
 {
 public:
-	template <typename Sink>
-	static void format(FormatSinkAdapter<Sink> out,
+	template <typename Backend>
+	static void format(FormatSink<Backend> sink,
 					   IntegerFormatSpec<UnsignedInteger, details::OctalSpecTag> spec,
 					   bool negative = false);
 };
 
 template <typename UnsignedInteger>
-template <typename Sink>
-void OctalFormater<UnsignedInteger, false>::format(FormatSinkAdapter<Sink> out,
+template <typename Backend>
+void OctalFormater<UnsignedInteger, false>::format(FormatSink<Backend> sink,
 												   IntegerFormatSpec<UnsignedInteger, details::OctalSpecTag> spec,
 												   bool negative)
 {
@@ -466,14 +466,14 @@ void OctalFormater<UnsignedInteger, false>::format(FormatSinkAdapter<Sink> out,
 	int width = static_cast<int>(negative ? num + 1 : num);
 	if (spec.width != INVALID_INDEX && width < spec.width)
 	{
-		out.append(spec.width - width, spec.fill);
+		sink.append(spec.width - width, spec.fill);
 	}
 
 	if (negative)
 	{
-		out.append('-');
+		sink.append('-');
 	}
-	out.append({ptr, num});
+	sink.append({ptr, num});
 }
 
 
@@ -487,15 +487,15 @@ template <typename UnsignedInteger>
 class HexFormater<UnsignedInteger, false>
 {
 public:
-	template <typename Sink, typename Tag>
-	static void format(FormatSinkAdapter<Sink> out,
+	template <typename Backend, typename Tag>
+	static void format(FormatSink<Backend> sink,
 					   IntegerFormatSpec<UnsignedInteger, Tag> spec,
 					   bool negative = false);
 };
 
 template <typename UnsignedInteger>
-template <typename Sink, typename Tag>
-void HexFormater<UnsignedInteger, false>::format(FormatSinkAdapter<Sink> out,
+template <typename Backend, typename Tag>
+void HexFormater<UnsignedInteger, false>::format(FormatSink<Backend> sink,
 												 IntegerFormatSpec<UnsignedInteger, Tag> spec,
 												 bool negative)
 {
@@ -522,14 +522,14 @@ void HexFormater<UnsignedInteger, false>::format(FormatSinkAdapter<Sink> out,
 	int width = static_cast<int>(negative ? num + 1 : num);
 	if (spec.width != INVALID_INDEX && width < spec.width)
 	{
-		out.append(spec.width - width, spec.fill);
+		sink.append(spec.width - width, spec.fill);
 	}
 
 	if (negative)
 	{
-		out.append('-');
+		sink.append('-');
 	}
-	out.append({ptr, num});
+	sink.append({ptr, num});
 }
 
 
@@ -541,8 +541,8 @@ template <typename SignedInteger>                                               
 class formater_name<SignedInteger, true>                                              \
 {                                                                                     \
 public:                                                                               \
-	template <typename Sink, typename Tag>                                            \
-	static void format(FormatSinkAdapter<Sink> out, IntegerFormatSpec<SignedInteger, Tag> spec) \
+	template <typename Backend, typename Tag>                                         \
+	static void format(FormatSink<Backend> sink, IntegerFormatSpec<SignedInteger, Tag> spec) \
 	{                                                                                 \
 		using UnsignedInteger = std::make_unsigned_t<SignedInteger>;                  \
 		UnsignedInteger absolute = static_cast<UnsignedInteger>(spec.value);          \
@@ -554,7 +554,7 @@ public:                                                                         
 		}                                                                             \
                                                                                       \
 		IntegerFormatSpec<UnsignedInteger, Tag> new_spec = { absolute, Tag(), spec.width, spec.fill }; \
-		formater_name<UnsignedInteger>::format(out, new_spec, negative);              \
+		formater_name<UnsignedInteger>::format(sink, new_spec, negative);             \
 	}                                                                                 \
 };
 
@@ -570,19 +570,19 @@ LIGHTS_DETAILS_UNSIGNED_SPEC_FORMATER(HexFormater)
 /**
  * Converts boolean to string and put to format sink.
  */
-template <typename Sink>
-inline void to_string(FormatSinkAdapter<Sink> out, bool is)
+template <typename Backend>
+inline void to_string(FormatSink<Backend> sink, bool is)
 {
-	out.append(is ? "true" : "false");
+	sink.append(is ? "true" : "false");
 }
 
 /**
  * Puts char to format sink.
  */
-template <typename Sink>
-inline void to_string(FormatSinkAdapter<Sink> out, char ch)
+template <typename Backend>
+inline void to_string(FormatSink<Backend> sink, char ch)
 {
-	out.append(ch);
+	sink.append(ch);
 }
 
 /**
@@ -591,11 +591,11 @@ inline void to_string(FormatSinkAdapter<Sink> out, char ch)
  *          pass user-defined type into this template function and cause compile error.
  */
 #define LIGHTS_INTEGER_TO_STRING(Type)            \
-template <typename Sink>                          \
-inline void to_string(FormatSinkAdapter<Sink> out, Type n) \
+template <typename Backend>                       \
+inline void to_string(FormatSink<Backend> sink, Type n) \
 {                                                 \
 	details::IntegerFormater formater;            \
-	out.append(formater.format(n));               \
+	sink.append(formater.format(n));              \
 }
 
 LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_INTEGER_TO_STRING)
@@ -606,69 +606,69 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_INTEGER_TO_STRING)
 /**
  * Converts float to string and put to format sink.
  */
-template <typename Sink>
-inline void to_string(FormatSinkAdapter<Sink> out, float n)
+template <typename Backend>
+inline void to_string(FormatSink<Backend> sink, float n)
 {
 	char buf[std::numeric_limits<float>::max_exponent10 + 1 +
 		std::numeric_limits<float>::digits10 + 1];
 	int writen = std::sprintf(buf, "%f", n);
-	out.append({buf, static_cast<std::size_t>(writen)});
+	sink.append({buf, static_cast<std::size_t>(writen)});
 }
 
 /**
  * Converts double to string and put to format sink.
  */
-template <typename Sink>
-inline void to_string(FormatSinkAdapter<Sink> out, double n)
+template <typename Backend>
+inline void to_string(FormatSink<Backend> sink, double n)
 {
 	// 100 is the max exponent10 of double that can format in
 	// sprintf on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2).
 	char buf[100 + 1 + std::numeric_limits<double>::digits10 + 1];
 	int writen = std::snprintf(buf, sizeof(buf), "%f", n);
-	out.append({buf, static_cast<std::size_t>(writen)});
+	sink.append({buf, static_cast<std::size_t>(writen)});
 }
 
 /**
  * Converts long double to string and put to format sink.
  */
-template <typename Sink>
-inline void to_string(FormatSinkAdapter<Sink> out, long double n)
+template <typename Backend>
+inline void to_string(FormatSink<Backend> sink, long double n)
 {
 	// 100 is the max exponent10 of long double that can format in
 	// sprintf on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2).
 	char buf[100 + 1 + std::numeric_limits<long double>::digits10 + 1];
 	int writen = std::snprintf(buf, sizeof(buf), "%Lf", n);
-	out.append({buf, static_cast<std::size_t>(writen)});
+	sink.append({buf, static_cast<std::size_t>(writen)});
 }
 
 
 /**
  * Converts error number to string and put to format sink.
  */
-template <typename Sink>
-inline void to_string(FormatSinkAdapter<Sink> out, ErrorNumber error_no)
+template <typename Backend>
+inline void to_string(FormatSink<Backend> sink, ErrorNumber error_no)
 {
 	char buf[env::MAX_ERROR_STR_LEN];
 	const char* result = env::strerror(error_no.value, buf, env::MAX_ERROR_STR_LEN);
-	out.append(result);
+	sink.append(result);
 }
 
 /**
  * Converts timestamp to string and put to format sink.
  */
-template <typename Sink>
-void to_string(FormatSinkAdapter<Sink> out, Timestamp timestamp)
+template <typename Backend>
+void to_string(FormatSink<Backend> sink, Timestamp timestamp)
 {
 	std::tm tm;
 	env::localtime(&timestamp.value, &tm);
 
-	out << static_cast<unsigned>(tm.tm_year + 1900) << '-';
+	sink << static_cast<unsigned>(tm.tm_year + 1900) << '-';
 	// Why not use pad, because pad will it more complex and slow.
-	details::write_2_digit(out, static_cast<unsigned>(tm.tm_mon + 1)) << '-';
-	details::write_2_digit(out, static_cast<unsigned>(tm.tm_mday)) << ' ';
-	details::write_2_digit(out, static_cast<unsigned>(tm.tm_hour)) << ':';
-	details::write_2_digit(out, static_cast<unsigned>(tm.tm_min)) << ':';
-	details::write_2_digit(out, static_cast<unsigned>(tm.tm_sec));
+	details::write_2_digit(sink, static_cast<unsigned>(tm.tm_mon + 1)) << '-';
+	details::write_2_digit(sink, static_cast<unsigned>(tm.tm_mday)) << ' ';
+	details::write_2_digit(sink, static_cast<unsigned>(tm.tm_hour)) << ':';
+	details::write_2_digit(sink, static_cast<unsigned>(tm.tm_min)) << ':';
+	details::write_2_digit(sink, static_cast<unsigned>(tm.tm_sec));
 }
 
 /**
@@ -712,13 +712,13 @@ inline IntegerFormatSpec<Integer, details::BinarySpecTag> binary(Integer n)
 
 /**
  * Converts integer to binary string.
- * @param out   The output place to hold the converted string.
+ * @param sink  The output place to hold the converted string.
  * @param spec  A spec of format integer.
  */
-template <typename Sink, typename Integer>
-inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, details::BinarySpecTag> spec)
+template <typename Backend, typename Integer>
+inline void to_string(FormatSink<Backend> sink, IntegerFormatSpec<Integer, details::BinarySpecTag> spec)
 {
-	details::BinaryFormater<Integer>::format(out, spec);
+	details::BinaryFormater<Integer>::format(sink, spec);
 }
 
 
@@ -735,13 +735,13 @@ inline IntegerFormatSpec<Integer, details::OctalSpecTag> octal(Integer n)
 
 /**
  * Converts integer to binary string.
- * @param out   The output place to hold the converted string.
+ * @param sink  The output place to hold the converted string.
  * @param spec  A spec of format integer.
  */
-template <typename Sink, typename Integer>
-inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, details::OctalSpecTag> spec)
+template <typename Backend, typename Integer>
+inline void to_string(FormatSink<Backend> sink, IntegerFormatSpec<Integer, details::OctalSpecTag> spec)
 {
-	details::OctalFormater<Integer>::format(out, spec);
+	details::OctalFormater<Integer>::format(sink, spec);
 }
 
 
@@ -758,13 +758,13 @@ inline IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> hex_lower_case(I
 
 /**
  * Converts integer to hex lower case string.
- * @param out   The output place to hold the converted string.
+ * @param sink  The output place to hold the converted string.
  * @param spec  A spec of format integer.
  */
-template <typename Sink, typename Integer>
-inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> spec)
+template <typename Backend, typename Integer>
+inline void to_string(FormatSink<Backend> sink, IntegerFormatSpec<Integer, details::HexSpecLowerCaseTag> spec)
 {
-	details::HexFormater<Integer>::format(out, spec);
+	details::HexFormater<Integer>::format(sink, spec);
 }
 
 /**
@@ -780,106 +780,106 @@ inline IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> hex_upper_case(I
 
 /**
  * Converts integer to hex upper case string.
- * @param out   The output place to hold the converted string.
+ * @param sink  The output place to hold the converted string.
  * @param spec  A spec of format integer.
  */
-template <typename Sink, typename Integer>
-inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> spec)
+template <typename Backend, typename Integer>
+inline void to_string(FormatSink<Backend> sink, IntegerFormatSpec<Integer, details::HexSpecUpperCaseTag> spec)
 {
-	details::HexFormater<Integer>::format(out, spec);
+	details::HexFormater<Integer>::format(sink, spec);
 }
 
 /**
  * Converts integer to decimal string.
- * @param out   The output place to hold the converted string.
+ * @param sink  The output place to hold the converted string.
  * @param spec  A spec of format integer.
  */
-template <typename Sink, typename Integer>
-inline void to_string(FormatSinkAdapter<Sink> out, IntegerFormatSpec<Integer, details::DecimalSpecTag> spec)
+template <typename Backend, typename Integer>
+inline void to_string(FormatSink<Backend> sink, IntegerFormatSpec<Integer, details::DecimalSpecTag> spec)
 {
 	details::IntegerFormater formater;
 	StringView str = formater.format(spec.value);
 
 	if (spec.width != INVALID_INDEX && str.length() < static_cast<std::size_t>(spec.width))
 	{
-		out.append(static_cast<std::size_t>(spec.width) - str.length(), spec.fill);
+		sink.append(static_cast<std::size_t>(spec.width) - str.length(), spec.fill);
 	}
-	out.append(str);
+	sink.append(str);
 }
 
 
 /**
  * Convert value to string and append to format sink. It'll invoke @c to_string()
  * Aim to support append not string type to format sink.
- * @param out    A FormatSinkAdapter.
+ * @param sink   A FormatSink.
  * @param value  Any type value.
  */
-template <typename Sink, typename T>
-inline void append(FormatSinkAdapter<Sink> out, const T& value)
+template <typename Backend, typename T>
+inline void append(FormatSink<Backend> sink, const T& value)
 {
-	to_string(out, value);
+	to_string(sink, value);
 }
 
 /**
  * Appends string to format sink.
  */
-template <typename Sink>
-inline void append(FormatSinkAdapter<Sink> out, char* str)
+template <typename Backend>
+inline void append(FormatSink<Backend> sink, char* str)
 {
-	out.append(str);
+	sink.append(str);
 }
 
 /**
  * Appends string to format sink.
  */
-template <typename Sink>
-inline void append(FormatSinkAdapter<Sink> out, const char* str)
+template <typename Backend>
+inline void append(FormatSink<Backend> sink, const char* str)
 {
-	out.append(str);
+	sink.append(str);
 }
 
 /**
  * Appends string to format sink.
  */
-template <typename Sink>
-inline void append(FormatSinkAdapter<Sink> out, const std::string& str)
+template <typename Backend>
+inline void append(FormatSink<Backend> sink, const std::string& str)
 {
-	out.append(str);
+	sink.append(str);
 }
 
 /**
  * Appends string to format sink.
  */
-template <typename Sink>
-inline void append(FormatSinkAdapter<Sink> out, StringView str)
+template <typename Backend>
+inline void append(FormatSink<Backend> sink, StringView str)
 {
-	out.append(str);
+	sink.append(str);
 }
 
 
 /**
  * Inserts value into the sink. It'll invoke @c append()
  * Aim to support user can define
- *   `FormatSinkAdapter<Sink> operator<< (FormatSinkAdapter<Sink> out, const T& value)`
+ *   `FormatSink<Backend> operator<< (FormatSink<Backend> out, const T& value)`
  * to format with user type.
- * @param out    A FormatSinkAdapter.
+ * @param sink   A FormatSink.
  * @param value  Built-in type or user-defined type value.
- * @return FormatSinkAdapter.
+ * @return FormatSink.
  */
-template <typename Sink, typename T>
-inline FormatSinkAdapter<Sink> operator<< (FormatSinkAdapter<Sink> out, const T& value)
+template <typename Backend, typename T>
+inline FormatSink<Backend> operator<< (FormatSink<Backend> sink, const T& value)
 {
-	append(out, value);
-	return out;
+	append(sink, value);
+	return sink;
 }
 
 /**
  * Uses for recursion of unpack arguments of @c write() when have not argument.
  */
-template <typename Sink>
-inline void write(FormatSinkAdapter<Sink> out, StringView fmt)
+template <typename Backend>
+inline void write(FormatSink<Backend> sink, StringView fmt)
 {
-	out.append(fmt);
+	sink.append(fmt);
 }
 
 /**
@@ -890,9 +890,9 @@ inline void write(FormatSinkAdapter<Sink> out, StringView fmt)
  * @return Formated string.
  * @details If args is user type, it must have a user function as
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
- *         2) `FormatSinkAdapter<Sink> operator<< (FormatSinkAdapter<Sink> out, const T& value);`
- *         3) `void append(FormatSinkAdapter<Sink> out, const T& value);`
- *         4) `void to_string(FormatSinkAdapter<Sink> out, const T& value);`
+ *         2) `FormatSink<Backend> operator<< (FormatSink<Backend> sink, const T& value);`
+ *         3) `void append(FormatSink<Backend> sink, const T& value);`
+ *         4) `void to_string(FormatSink<Backend> sink, const T& value);`
  *       1) General way to use with @c std::ostream to format.
  *       2), 3) and 4) is optimize way with format.
  *          The implementation can use insertion operator (<<)
@@ -904,8 +904,8 @@ inline void write(FormatSinkAdapter<Sink> out, StringView fmt)
  * @note 2), 3) and 4) must define in lights namespace to enable use placeholder to format
  *          you user-defined type.
  */
-template <typename Sink, typename Arg, typename ... Args>
-void write(FormatSinkAdapter<Sink> out, StringView fmt, const Arg& value, const Args& ... args)
+template <typename Backend, typename Arg, typename ... Args>
+void write(FormatSink<Backend> sink, StringView fmt, const Arg& value, const Args& ... args)
 {
 	std::size_t i = 0;
 	for (; i < fmt.length(); ++i)
@@ -918,12 +918,12 @@ void write(FormatSinkAdapter<Sink> out, StringView fmt, const Arg& value, const 
 		}
 	}
 
-	out.append({fmt.data(), i});
+	sink.append({fmt.data(), i});
 	if (i < fmt.length())
 	{
-		out << value;
+		sink << value;
 		fmt.move_forward(i + 2);
-		write(out, fmt, args ...);
+		write(sink, fmt, args ...);
 	}
 }
 
@@ -1061,7 +1061,7 @@ public:
 	template <typename T>
 	TextWriter& operator<< (const T& value)
 	{
-		make_format_sink_adapter(*this) << value;
+		make_format_sink(*this) << value;
 		return *this;
 	}
 
@@ -1170,23 +1170,23 @@ private:
 
 
 /**
- * FormatSinkAdapter for TextWriter.
+ * FormatSink for TextWriter.
  */
 template <>
-class FormatSinkAdapter<TextWriter>
+class FormatSink<TextWriter>
 {
 public:
 	/**
 	 * Creates format sink.
 	 */
-	explicit FormatSinkAdapter(TextWriter& sink) : m_sink(sink) {}
+	explicit FormatSink(TextWriter& backend) : m_backend(backend) {}
 
 	/**
 	 * Appends char to backend.
 	 */
 	void append(char ch)
 	{
-		m_sink.append(ch);
+		m_backend.append(ch);
 	}
 
 	/**
@@ -1205,19 +1205,19 @@ public:
 	 */
 	void append(StringView str)
 	{
-		m_sink.append(str);
+		m_backend.append(str);
 	}
 
 	/**
-	 * Gets internal sink.
+	 * Gets internal backend.
 	 */
-	TextWriter& get_internal_sink()
+	TextWriter& get_internal_backend()
 	{
-		return m_sink;
+		return m_backend;
 	}
 
 private:
-	TextWriter& m_sink;
+	TextWriter& m_backend;
 };
 
 
@@ -1225,15 +1225,15 @@ template <typename Arg, typename ... Args>
 inline void TextWriter::write(StringView fmt, const Arg& value, const Args& ... args)
 {
 	// Must add namespace scope limit or cannot find suitable function.
-	lights::write(make_format_sink_adapter(*this), fmt, value, args ...);
+	lights::write(make_format_sink(*this), fmt, value, args ...);
 }
 
 /**
- * @note Must ensure the specialization of FormatSinkAdapter is declere before use.
+ * @note Must ensure the specialization of FormatSink is declere before use.
  */
 inline void TextWriter::write(StringView fmt)
 {
-	lights::write(make_format_sink_adapter(*this), fmt);
+	lights::write(make_format_sink(*this), fmt);
 }
 
 
@@ -1241,9 +1241,9 @@ inline void TextWriter::write(StringView fmt)
  * Uses @c TextWriter member function to format integer to speed up.
  */
 #define LIGHTS_TEXT_WRITER_TO_STRING(Type) \
-inline void to_string(FormatSinkAdapter<TextWriter> out, Type n) \
+inline void to_string(FormatSink<TextWriter> sink, Type n) \
 { \
-	out.get_internal_sink() << n; \
+	sink.get_internal_backend() << n; \
 }
 
 LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_TEXT_WRITER_TO_STRING)
@@ -1278,9 +1278,9 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_TEXT_WRITER_TO_STRING)
  * @return Formated string.
  * @details If args is user type, it must have a user function as
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
- *         2) `FormatSinkAdapter<Sink> operator<< (FormatSinkAdapter<Sink> out, const T& value);`
- *         3) `void append(FormatSinkAdapter<Sink> out, const T& value);`
- *         4) `void to_string(FormatSinkAdapter<Sink> out, const T& value);`
+ *         2) `FormatSink<Backend> operator<< (FormatSink<Backend> sink, const T& value);`
+ *         3) `void append(FormatSink<Backend> sink, const T& value);`
+ *         4) `void to_string(FormatSink<Backend> sink, const T& value);`
  *       1) General way to use with @c std::ostream to format.
  *       2), 3) and 4) is optimize way with format.
  *          The implementation can use insertion operator (<<)
@@ -1295,9 +1295,9 @@ LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_TEXT_WRITER_TO_STRING)
 template <typename... Args>
 inline std::string format(StringView fmt, const Args& ... args)
 {
-	std::string out;
-	write(make_format_sink_adapter(out), fmt, args ...);
-	return out;
+	std::string backend;
+	write(make_format_sink(backend), fmt, args ...);
+	return backend;
 }
 
 } // namespace lights

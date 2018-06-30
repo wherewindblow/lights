@@ -290,7 +290,7 @@ inline FileStream& stderr_stream()
 /**
  * Sink adapter of file stream.
  */
-class FileSink: public SinkAdapter
+class FileSink: public Sink
 {
 public:
 	explicit FileSink(FileStream& stream):

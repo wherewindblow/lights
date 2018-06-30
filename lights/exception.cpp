@@ -45,55 +45,55 @@ const char* Exception::what() const noexcept
 }
 
 
-void Exception::dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType /* description_type */) const
+void Exception::dump_message(Sink& out, ErrorCodeDescriptions::DescriptionType /* description_type */) const
 {
 	StringView str = get_description(ErrorCodeDescriptions::TYPE_WITHOUT_ARGS);
 	out.write(str);
 }
 
-void AssertionError::dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const
+void AssertionError::dump_message(Sink& out, ErrorCodeDescriptions::DescriptionType description_type) const
 {
-	write(make_format_sink_adapter(out),
+	write(make_format_sink(out),
 		  get_description(description_type),
 		  m_description);
 }
 
-void InvalidArgument::dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const
+void InvalidArgument::dump_message(Sink& out, ErrorCodeDescriptions::DescriptionType description_type) const
 {
-	write(make_format_sink_adapter(out),
+	write(make_format_sink(out),
 		  get_description(description_type),
 		  m_description);
 }
 
-void OpenFileError::dump_message(SinkAdapter& out, ErrorCodeDescriptions::DescriptionType description_type) const
+void OpenFileError::dump_message(Sink& out, ErrorCodeDescriptions::DescriptionType description_type) const
 {
-	write(make_format_sink_adapter(out),
+	write(make_format_sink(out),
 		  get_description(description_type),
 		  m_filename,
 		  current_error());
 }
 
 
-void dump(const Exception& ex, SinkAdapter& out)
+void dump(const Exception& ex, Sink& out)
 {
 	ex.dump_message(out);
 	out << " <-- ";
 	auto& loc = ex.occur_location();
 	out << loc.file() << ":";
-	to_string(make_format_sink_adapter(out), loc.line());
+	to_string(make_format_sink(out), loc.line());
 	out << "##" << loc.function();
 }
 
 
-void to_string(FormatSinkAdapter<BinaryStoreWriter> out, const Exception& ex)
+void to_string(FormatSink<BinaryStoreWriter> sink, const Exception& ex)
 {
-	details::FormatSelfSinkAdapter<BinaryStoreWriter> adapter(out);
-	ex.dump_message(adapter);
-	out << " <-- ";
+	details::FormatSinkAdapter<BinaryStoreWriter> sink_adapter(sink);
+	ex.dump_message(sink_adapter);
+	sink << " <-- ";
 	auto& loc = ex.occur_location();
-	out.get_internal_sink().append(loc.file(), true);
-	out << ":" << loc.line() << "##";
-	out.get_internal_sink().append(loc.function(), true);
+	sink.get_internal_backend().append(loc.file(), true);
+	sink << ":" << loc.line() << "##";
+	sink.get_internal_backend().append(loc.function(), true);
 }
 
 } // namespace lights

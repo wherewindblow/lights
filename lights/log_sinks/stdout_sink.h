@@ -19,7 +19,7 @@ namespace log_sinks {
 /**
  * StdoutSink is wrapper sink of stdout_stream.
  */
-class StdoutSink: public SinkAdapter
+class StdoutSink: public Sink
 {
 public:
 	/**
@@ -44,7 +44,7 @@ public:
 /**
  * StderrSink is wrapper sink of stderr_stream.
  */
-class StderrSink: public SinkAdapter
+class StderrSink: public Sink
 {
 public:
 	/**
