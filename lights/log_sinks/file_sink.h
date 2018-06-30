@@ -10,6 +10,7 @@
 #include <cstring>
 #include <string>
 #include <memory>
+#include <mutex>
 
 #include "../sequence.h"
 #include "../file.h"
@@ -20,20 +21,30 @@ namespace lights {
 namespace log_sinks {
 
 /**
- * Ensure every log message is write to backend completely.
+ * LogMessageWriter ensure every log message is write to backend completely.
+ * And support difference policy to flush log message to backend.
  */
 class LogMessageWriter
 {
 public:
+	/**
+	 * Creates writer.
+	 */
 	LogMessageWriter(FileStream* file = nullptr) :
 		m_file(file) {}
 
+	/**
+	 * Sets log message write target.
+	 */
 	void set_write_target(FileStream* file)
 	{
 		m_file = file;
 		m_buffer_length = 0;
 	}
 
+	/**
+	 * Writes log message into backend.
+	 */
 	std::size_t write(SequenceView log_msg)
 	{
 		if (m_buffer_length + log_msg.length() > FILE_DEFAULT_BUFFER_SIZE)
@@ -51,23 +62,38 @@ private:
 };
 
 
+/**
+ * SimpleFileSink write all log message into one file.
+ */
 class SimpleFileSink: public SinkAdapter
 {
 public:
+	/**
+	 * Creates sink.
+	 */
 	SimpleFileSink(StringView filename) :
 		m_file(filename.data(), "ab+"), m_msg_writer(&m_file) {}
 
+	/**
+	 * Writes log message into backend.
+	 * @details Write is atomic.
+	 */
 	std::size_t write(SequenceView log_msg) override
 	{
+		std::lock_guard<std::mutex> lock(m_mutex);
 		return m_msg_writer.write(log_msg);
 	}
 
 private:
 	FileStream m_file;
 	LogMessageWriter m_msg_writer;
+	std::mutex m_mutex;
 };
 
 
+/**
+ * SizeRotatingFileSink write log message into file. If file is achieve size limit will rotate to next file.
+ */
 class SizeRotatingFileSink: public SinkAdapter
 {
 public:
@@ -111,14 +137,22 @@ public:
 
 #undef LIGHTS_SINKS_INIT_MEMBER
 
+	/**
+	 * Ends initialization.
+	 */
 	void end_init()
 	{
 		can_init = false;
 		this->rotate(0);
 	}
 
+	/**
+	 * Writes log message into backend.
+	 * @details Write is atomic.
+	 */
 	std::size_t write(SequenceView log_msg) override
 	{
+		std::lock_guard<std::mutex> lock(m_mutex);
 		while (m_current_size + log_msg.length() > m_max_size)
 		{
 			this->rotate(log_msg.length());
@@ -141,9 +175,13 @@ private:
 	LogMessageWriter m_msg_writer;
 	std::size_t m_index = static_cast<std::size_t>(-1);
 	std::size_t m_current_size;
+	std::mutex m_mutex;
 };
 
 
+/**
+ * TimeRotatingFileSink write log message into file. If time is achieve limit will rotate to next file.
+ */
 class TimeRotatingFileSink: public SinkAdapter
 {
 public:
@@ -158,8 +196,13 @@ public:
 						 std::time_t duration = ONE_DAY_SECONDS,
 						 std::time_t day_point = 0);
 
+	/**
+	 * Writes log message into backend.
+	 * @details Write is atomic.
+	 */
 	std::size_t write(SequenceView log_msg) override
 	{
+		std::lock_guard<std::mutex> lock(m_mutex);
 		std::time_t now = std::time(nullptr);
 		if (now >= m_next_rotating_time)
 		{
@@ -168,15 +211,16 @@ public:
 		return m_msg_writer.write(log_msg);
 	}
 
+private:
 	void rotate();
 
-private:
 	std::string m_name_format;
 	std::time_t m_duration;
 	std::time_t m_day_point;
 	std::time_t m_next_rotating_time;
 	FileStream m_file;
 	LogMessageWriter m_msg_writer;
+	std::mutex m_mutex;
 };
 
 } // namespace log_sinks
