@@ -19,6 +19,12 @@ namespace lights {
 namespace env {
 
 /**
+ * Sets pod type do not memory alignment.
+ */
+#define LIGHTS_NOT_MEMEORY_ALIGNMENT __attribute__((packed))
+
+
+/**
  * End line string.
  */
 inline const char* end_line()

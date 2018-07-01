@@ -13,6 +13,23 @@
 namespace lights {
 
 /**
+ * Uses for internal debug (for format and log).
+ */
+#define LIGHTS_INTERNAL_DEBUG(format, ...) \
+	std::printf("file: %s, line: %d, func: %s > " format "\n", __FILE__, __LINE__, __func__, __VA_ARGS__);
+
+/**
+ * Adds static instance function of class.
+ */
+#define LIGHTS_SINGLETON_INSTANCE(class_name) \
+static class_name* instance() \
+{ \
+	static class_name inst; \
+	return &inst; \
+}
+
+
+/**
  * Copys array elements to destination.
  */
 template <typename T>
