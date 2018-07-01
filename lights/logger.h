@@ -10,6 +10,7 @@
 #include <ctime>
 #include <string>
 
+#include "config.h"
 #include "format.h"
 #include "format/binary_format.h"
 #include "file.h"
@@ -356,132 +357,16 @@ void TextLogger::log(LogLevel level, const SourceLocation& location, const T& va
 struct BinaryMessageSignature
 {
 public:
-	struct AlignPart
-	{
-		PreciseTime time;
-		std::uint32_t file_id;
-		std::uint32_t function_id;
-		std::uint32_t line;
-		std::uint32_t description_id;
-	};
-
-	/**
-	 * To avoid memory alignment to save ouput content.
-	 * @note And must ensure this have enought memory to hold all memeber in UnalignPartInterface.
-	 *       So all change in UnalignPartInterface should consider change this.
-	 */
-	struct UnalignPartStorage
-	{
-		std::uint8_t entity[7];
-	};
-
-	struct UnalignPartInterface
-	{
-		std::uint16_t log_id;
-		std::uint16_t argument_length;
-		LogLevel level;
-	};
-
-	PreciseTime get_time() const
-	{
-		return m_align_part.time;
-	}
-
-	void set_time(const PreciseTime& time)
-	{
-		m_align_part.time = time;
-	}
-
-	std::uint32_t get_file_id() const
-	{
-		return m_align_part.file_id;
-	}
-
-	void set_file_id(std::uint32_t file_id)
-	{
-		m_align_part.file_id = file_id;
-	}
-
-	std::uint32_t get_function_id() const
-	{
-		return m_align_part.function_id;
-	}
-
-	void set_function_id(std::uint32_t function_id)
-	{
-		m_align_part.function_id = function_id;
-	}
-
-	std::uint32_t get_line() const
-	{
-		return m_align_part.line;
-	}
-
-	void set_line(std::uint32_t line)
-	{
-		m_align_part.line = line;
-	}
-
-	std::uint32_t get_description_id() const
-	{
-		return m_align_part.description_id;
-	}
-
-	void set_description_id(std::uint32_t description_id)
-	{
-		m_align_part.description_id = description_id;
-	}
-
-	std::uint16_t get_log_id() const
-	{
-		return unalign_part_interface()->log_id;
-	}
-
-	void set_log_id(std::uint16_t log_id)
-	{
-		unalign_part_interface()->log_id = log_id;
-	}
-
-	std::uint16_t get_argument_length() const
-	{
-		return unalign_part_interface()->argument_length;
-	}
-
-	void set_argument_length(std::uint16_t argument_length)
-	{
-		unalign_part_interface()->argument_length = argument_length;
-	}
-
-	LogLevel get_level() const
-	{
-		return unalign_part_interface()->level;
-	}
-
-	void set_level(LogLevel level)
-	{
-		unalign_part_interface()->level = level;
-	}
-
-	static constexpr std::size_t memory_size()
-	{
-		return sizeof(AlignPart) + sizeof(UnalignPartStorage);
-	}
-
-private:
-	UnalignPartInterface* unalign_part_interface()
-	{
-		return reinterpret_cast<UnalignPartInterface*>(&m_unalign_part);
-	}
-
-	const UnalignPartInterface* unalign_part_interface() const
-	{
-		return reinterpret_cast<const UnalignPartInterface*>(&m_unalign_part);
-	}
-
-	AlignPart m_align_part;
-	UnalignPartStorage m_unalign_part;
-};
-
+	std::int64_t time_seconds;
+	std::int64_t time_nanoseconds;
+	std::uint32_t file_id;
+	std::uint32_t function_id;
+	std::uint32_t source_line;
+	std::uint32_t description_id;
+	std::uint16_t logger_id;
+	std::uint16_t argument_length;
+	LogLevel level;
+} LIGHTS_NOT_MEMEORY_ALIGNMENT;
 
 /**
  * BinaryLogger logs message with binary mode to the backend sink. Binary log message is
@@ -495,14 +380,14 @@ public:
 	/**
 	 * Creates binary logger.
 	 */
-	BinaryLogger(std::uint16_t log_id, LogSinkPtr sink_ptr, StringTablePtr str_table_ptr);
+	BinaryLogger(std::uint16_t logger_id, LogSinkPtr sink_ptr, StringTablePtr str_table_ptr);
 
 	/**
-	 * Gets log id.
+	 * Gets logger id.
 	 */
-	std::uint16_t get_log_id() const
+	std::uint16_t get_logger_id() const
 	{
-		return m_signature->get_log_id();
+		return m_signature->logger_id;
 	}
 
 	/**
@@ -558,14 +443,15 @@ private:
 
 	void set_argument_length(std::uint16_t length)
 	{
-		m_signature->set_argument_length(length);
-		char* tail_length = m_write_target + BinaryMessageSignature::memory_size() + m_writer.length();
-		*reinterpret_cast<std::uint16_t*>(tail_length) = m_signature->get_argument_length();
+		m_signature->argument_length = length;
+		char* tail_length = m_write_target + sizeof(BinaryMessageSignature) + m_writer.length();
+		*reinterpret_cast<std::uint16_t*>(tail_length) = m_signature->argument_length;
 	}
 
 	void sink_msg()
 	{
-		SequenceView view(m_write_target, BinaryMessageSignature::memory_size() + m_writer.size() + sizeof(std::uint16_t));
+		// signature + content + tail length.
+		SequenceView view(m_write_target, sizeof(BinaryMessageSignature) + m_writer.size() + sizeof(std::uint16_t));
 		m_sink_ptr->write(view);
 	}
 

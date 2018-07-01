@@ -84,7 +84,7 @@ PreciseTime current_precise_time()
 }
 
 
-BinaryLogger::BinaryLogger(std::uint16_t log_id, LogSinkPtr sink_ptr, StringTablePtr str_table_ptr) :
+BinaryLogger::BinaryLogger(std::uint16_t logger_id, LogSinkPtr sink_ptr, StringTablePtr str_table_ptr) :
 	m_sink_ptr(sink_ptr),
 	m_str_table_ptr(str_table_ptr),
 	m_signature(reinterpret_cast<BinaryMessageSignature*>(m_write_target)),
@@ -93,20 +93,22 @@ BinaryLogger::BinaryLogger(std::uint16_t log_id, LogSinkPtr sink_ptr, StringTabl
 		// sizeof(std::uint16_t) is reverse for tail length.
 			 m_str_table_ptr)
 {
-	m_signature->set_log_id(log_id);
+	m_signature->logger_id = logger_id;
 }
 
 
 void BinaryLogger::generate_signature(LogLevel level, const SourceLocation& location, StringView description)
 {
-	m_signature->set_time(current_precise_time());
+	auto time = current_precise_time();
+	m_signature->time_seconds = time.seconds;
+	m_signature->time_nanoseconds = time.nanoseconds;
 	auto file_id = m_str_table_ptr->get_index(location.file());
-	m_signature->set_file_id(static_cast<std::uint32_t>(file_id));
+	m_signature->file_id = static_cast<std::uint32_t>(file_id);
 	auto function_id = m_str_table_ptr->get_index(location.function());
-	m_signature->set_function_id(static_cast<std::uint32_t>(function_id));
-	m_signature->set_line(location.line());
-	m_signature->set_description_id(static_cast<std::uint32_t>(m_str_table_ptr->get_index(description)));
-	m_signature->set_level(level);
+	m_signature->function_id = static_cast<std::uint32_t>(function_id);
+	m_signature->source_line = location.line();
+	m_signature->description_id = static_cast<std::uint32_t>(m_str_table_ptr->get_index(description));
+	m_signature->level = level;
 }
 
 
@@ -132,31 +134,31 @@ BinaryLogReader::BinaryLogReader(StringView log_filename, StringTablePtr str_tab
 StringView BinaryLogReader::read()
 {
 	m_writer.clear();
-	auto len = m_file.read(Sequence(&m_signature, BinaryMessageSignature::memory_size()));
-	if (len != BinaryMessageSignature::memory_size())
+	auto len = m_file.read(Sequence(&m_signature, sizeof(BinaryMessageSignature)));
+	if (len != sizeof(BinaryMessageSignature))
 	{
 		return invalid_string_view();
 	}
 
-	std::unique_ptr<std::uint8_t[]> arguments(new std::uint8_t[m_signature.get_argument_length()]);
-	m_file.read(Sequence(arguments.get(), m_signature.get_argument_length()));
+	std::unique_ptr<std::uint8_t[]> arguments(new std::uint8_t[m_signature.argument_length]);
+	m_file.read(Sequence(arguments.get(), m_signature.argument_length));
 	std::uint16_t tail_length;
 	m_file.read(Sequence(&tail_length, sizeof(tail_length)));
 
 	m_writer.write_text("[{}.{}] [{}] [{}] ",
-						Timestamp(m_signature.get_time().seconds),
-						pad(m_signature.get_time().nanoseconds, '0', 10),
-						to_string(m_signature.get_level()),
-						m_signature.get_log_id());
+						Timestamp(m_signature.time_seconds),
+						pad(m_signature.time_nanoseconds, '0', 10),
+						to_string(m_signature.level),
+						m_signature.logger_id);
 
-	m_writer.write_binary(m_str_table_ptr->get_str(m_signature.get_description_id()).data(),
+	m_writer.write_binary(m_str_table_ptr->get_str(m_signature.description_id).data(),
 						  arguments.get(),
-						  m_signature.get_argument_length());
+						  m_signature.argument_length);
 
 	m_writer.write_text("  [{}:{}] [{}]",
-						m_str_table_ptr->get_str(m_signature.get_file_id()),
-						m_signature.get_line(),
-						m_str_table_ptr->get_str(m_signature.get_function_id()));
+						m_str_table_ptr->get_str(m_signature.file_id),
+						m_signature.source_line,
+						m_str_table_ptr->get_str(m_signature.function_id));
 
 	return m_writer.string_view();
 }
@@ -183,9 +185,9 @@ void BinaryLogReader::jump_from_head(std::size_t line)
 {
 	for (std::size_t i = 0; i < line; ++i)
 	{
-		m_file.read({&m_signature, BinaryMessageSignature::memory_size()});
+		m_file.read({&m_signature, sizeof(BinaryMessageSignature)});
 		auto pos = m_file.tell();
-		pos += m_signature.get_argument_length() + sizeof(std::uint16_t);
+		pos += m_signature.argument_length + sizeof(std::uint16_t);
 		m_file.seek(pos, FileSeekWhence::BEGIN);
 	}
 }
@@ -200,7 +202,7 @@ void BinaryLogReader::jump_from_tail(std::size_t line)
 		std::streamoff tail_length_pos = m_file.tell() - sizeof(tail_length);
 		m_file.seek(tail_length_pos, FileSeekWhence::BEGIN);
 		m_file.read(Sequence(&tail_length, sizeof(tail_length)));
-		std::streamoff previous_pos = m_file.tell() - (BinaryMessageSignature::memory_size() + tail_length + sizeof(tail_length));
+		std::streamoff previous_pos = m_file.tell() - (sizeof(BinaryMessageSignature) + tail_length + sizeof(tail_length));
 		m_file.seek(previous_pos, FileSeekWhence::BEGIN);
 	}
 }

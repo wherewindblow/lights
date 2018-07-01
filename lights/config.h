@@ -28,3 +28,18 @@
  * others value, assertion have no effect.
  */
 #define LIGHTS_OPEN_ASSERTION 1
+
+/**
+ * Adds static instance function of class.
+ */
+#define LIGHTS_SINGLETON_INSTANCE(class_name) \
+static class_name* instance() \
+{ \
+	static class_name inst; \
+	return &inst; \
+}
+
+/**
+ * Sets pod type do not memory alignment.
+ */
+#define LIGHTS_NOT_MEMEORY_ALIGNMENT __attribute__((packed))
