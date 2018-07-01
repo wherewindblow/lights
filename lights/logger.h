@@ -178,96 +178,6 @@ public:
 	}
 
 	/**
-	 * @note Cannot pass @c fmt as nullptr or is ambiguous with another call function.
-	 */
-	template <typename ... Args>
-	void log(LogLevel level, const char* fmt, const Args& ... args)
-	{
-		log(level, invalid_source_location(), fmt, args ...);
-	}
-
-	template <typename ... Args>
-	void debug(const char* fmt, const Args& ... args)
-	{
-		this->log(LogLevel::DEBUG, fmt, args ...);
-	}
-
-	template <typename ... Args>
-	void info(const char* fmt, const Args& ... args)
-	{
-		this->log(LogLevel::INFO, fmt, args ...);
-	}
-
-	template <typename ... Args>
-	void warn(const char* fmt, const Args& ... args)
-	{
-		this->log(LogLevel::WARN, fmt, args ...);
-	}
-
-	template <typename ... Args>
-	void error(const char* fmt, const Args& ... args)
-	{
-		this->log(LogLevel::ERROR, fmt, args ...);
-	}
-
-
-	void log(LogLevel level, const char* str)
-	{
-		log(level, invalid_source_location(), str);
-	}
-
-	void debug(const char* str)
-	{
-		this->log(LogLevel::DEBUG, str);
-	}
-
-	void info(const char* str)
-	{
-		this->log(LogLevel::INFO, str);
-	}
-
-	void warn(const char* str)
-	{
-		this->log(LogLevel::WARN, str);
-	}
-
-	void error(const char* str)
-	{
-		this->log(LogLevel::ERROR, str);
-	}
-
-
-	template <typename T>
-	void log(LogLevel level, const T& value)
-	{
-		log(level, invalid_source_location(), value);
-	}
-
-	template <typename T>
-	void debug(const T& value)
-	{
-		this->log(LogLevel::DEBUG, value);
-	}
-
-	template <typename T>
-	void info(const T& value)
-	{
-		this->log(LogLevel::INFO, value);
-	}
-
-	template <typename T>
-	void warn(const T& value)
-	{
-		this->log(LogLevel::WARN, value);
-	}
-
-	template <typename T>
-	void error(const T& value)
-	{
-		this->log(LogLevel::ERROR, value);
-	}
-
-	/**
 	 * Formats @c fmt with @ args and log to sink.
 	 * @param level     Level of log message.
 	 * @param location  Where call this function.
@@ -367,6 +277,7 @@ public:
 	std::uint16_t argument_length;
 	LogLevel level;
 } LIGHTS_NOT_MEMEORY_ALIGNMENT;
+
 
 /**
  * BinaryLogger logs message with binary mode to the backend sink. Binary log message is
