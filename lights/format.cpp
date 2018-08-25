@@ -49,10 +49,10 @@ std::size_t format_need_space(Integer n)
 	return count;
 }
 
-#define LIGHTS_DETAILS_FORMAT_NEED_SPACE(Integer) \
+#define LIGHTSIMPL_FORMAT_NEED_SPACE(Integer) \
 template std::size_t format_need_space(Integer n);
-LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTS_DETAILS_FORMAT_NEED_SPACE);
-#undef LIGHTS_DETAILS_FORMAT_NEED_SPACE
+LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_FORMAT_NEED_SPACE);
+#undef LIGHTSIMPL_FORMAT_NEED_SPACE
 
 
 template <typename Integer>
@@ -116,10 +116,10 @@ char* format_integer(Integer n, char* output)
 	return output;
 }
 
-#define LIGHTS_DETAILS_FORMAT_INTEGER(Integer) \
+#define LIGHTSIMPL_FORMAT_INTEGER(Integer) \
 template char* format_integer(Integer n, char* output);
-LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTS_DETAILS_FORMAT_INTEGER);
-#undef LIGHTS_DETAILS_FORMAT_INTEGER
+LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_FORMAT_INTEGER);
+#undef LIGHTSIMPL_FORMAT_INTEGER
 
 } // namespace details
 
