@@ -1300,8 +1300,4 @@ inline std::string format(StringView fmt, const Args& ... args)
 	return backend;
 }
 
-#undef LIGHTSIMPL_SIGNED_INTEGER_FUNCTION
-#undef LIGHTSIMPL_UNSIGNED_INTEGER_FUNCTION
-#undef LIGHTSIMPL_ALL_INTEGER_FUNCTION
-
 } // namespace lights
