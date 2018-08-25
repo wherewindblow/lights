@@ -355,17 +355,18 @@ inline StringView to_string_view(SequenceView sequence)
 /**
  * Checks sequence is valid.
  */
-#define LIGHTS_IS_INVALID_SEQUENCE(Type) \
+#define LIGHTSIMPL_IS_INVALID_SEQUENCE(Type) \
 inline bool is_valid(Type sequence) \
 { \
 	return sequence.data() != nullptr; \
 }
 
-LIGHTS_IS_INVALID_SEQUENCE(String);
-LIGHTS_IS_INVALID_SEQUENCE(StringView);
-LIGHTS_IS_INVALID_SEQUENCE(Sequence);
-LIGHTS_IS_INVALID_SEQUENCE(SequenceView);
+LIGHTSIMPL_IS_INVALID_SEQUENCE(String);
+LIGHTSIMPL_IS_INVALID_SEQUENCE(StringView);
+LIGHTSIMPL_IS_INVALID_SEQUENCE(Sequence);
+LIGHTSIMPL_IS_INVALID_SEQUENCE(SequenceView);
 
+#undef LIGHTSIMPL_IS_INVALID_SEQUENCE
 
 /**
  * Returns invalid string.

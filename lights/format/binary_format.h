@@ -185,7 +185,7 @@ public:
 	 */
 	void append(StringView str, bool store_in_table = false);
 
-#define LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type) \
+#define LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type) \
 	{ \
 		BinaryTypeCode type_code = get_type_code(n); \
 		if (can_append(sizeof(BinaryTypeCode) + get_type_width(type_code))) \
@@ -204,23 +204,23 @@ public:
 
 	BinaryStoreWriter& operator<< (std::int8_t n) \
 	{
-		LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(std::int8_t);
+		LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(std::int8_t);
 	}
 
 	BinaryStoreWriter& operator<< (std::uint8_t n) \
 	{
-		LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(std::uint8_t);
+		LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(std::uint8_t);
 	}
 
 	/**
 	 * Inserts a integer and convert to small integer type when can convert.
 	 */
-#define LIGHTS_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(Type, FitSmallType) \
+#define LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(Type, FitSmallType) \
 	BinaryStoreWriter& operator<< (Type n) \
 	{ \
 		if (n > std::numeric_limits<FitSmallType>::max() || n < std::numeric_limits<FitSmallType>::min()) \
 		{ \
-			LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type); \
+			LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type); \
 		} \
 		else \
 		{ \
@@ -228,31 +228,31 @@ public:
 		} \
 	}
 
-	LIGHTS_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(std::int16_t, std::int8_t);
-	LIGHTS_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(std::int32_t, std::int16_t);
-	LIGHTS_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(std::int64_t, std::int32_t);
+	LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(std::int16_t, std::int8_t);
+	LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(std::int32_t, std::int16_t);
+	LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(std::int64_t, std::int32_t);
 
-#undef LIGHTS_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER
+#undef LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER
 
-#define LIGHTS_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(Type, FitSmallType) \
+#define LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(Type, FitSmallType) \
 	BinaryStoreWriter& operator<< (Type n) \
 	{ \
 		if (n > std::numeric_limits<FitSmallType>::max()) \
 		{ \
-			LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type); \
+			LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type); \
 		} \
 		else \
 		{ \
 			return *this << static_cast<FitSmallType>(n); \
 		} \
 	}
-	LIGHTS_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(std::uint16_t, std::uint8_t);
-	LIGHTS_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(std::uint32_t, std::uint16_t);
-	LIGHTS_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(std::uint64_t, std::uint32_t);
+	LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(std::uint16_t, std::uint8_t);
+	LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(std::uint32_t, std::uint16_t);
+	LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(std::uint64_t, std::uint32_t);
 
-#undef LIGHTS_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER
+#undef LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER
 
-#undef LIGHTS_BINARY_STORE_WRITER_APPEND_INTEGER_BODY
+#undef LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_INTEGER_BODY
 
 	/**
 	 * It's only for write format to call and easy to restore.
@@ -519,15 +519,15 @@ void BinaryStoreWriter::add_composed_type(const T& value)
 /**
  * Use @c BinaryStoreWriter member function to format integer to speed up.
  */
-#define LIGHTS_BINARY_STORE_WRITER_TO_STRING(Type) \
+#define LIGHTSIMPL_BINARY_STORE_WRITER_TO_STRING(Type) \
 inline void to_string(FormatSink<BinaryStoreWriter> sink, Type n) \
 { \
 	sink.get_internal_backend() << n; \
 }
 
-LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_BINARY_STORE_WRITER_TO_STRING)
+LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_BINARY_STORE_WRITER_TO_STRING)
 
-#undef LIGHTS_BINARY_STORE_WRITER_TO_STRING
+#undef LIGHTSIMPL_BINARY_STORE_WRITER_TO_STRING
 
 
 /**

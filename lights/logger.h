@@ -476,7 +476,7 @@ private:
 #	define LIGHTS_LOG(logger, level, ...) \
 		logger.log(level, LIGHTS_CURRENT_SOURCE_LOCATION, __VA_ARGS__);
 #else
-#	define LIGHTS_LOG(logger, level, module, ...)
+#	define LIGHTS_LOG(logger, level, ...)
 #endif
 
 

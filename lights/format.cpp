@@ -51,7 +51,7 @@ std::size_t format_need_space(Integer n)
 
 #define LIGHTS_DETAILS_FORMAT_NEED_SPACE(Integer) \
 template std::size_t format_need_space(Integer n);
-LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_DETAILS_FORMAT_NEED_SPACE);
+LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTS_DETAILS_FORMAT_NEED_SPACE);
 #undef LIGHTS_DETAILS_FORMAT_NEED_SPACE
 
 
@@ -74,7 +74,7 @@ char* format_integer(Integer n, char* output)
 	}
 	else
 	{
-#ifndef LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE
+#ifndef LIGHTS_OPTIMIZE_INTEGER_FORMATER
 		while (n != 0)
 			{
 				--output;
@@ -118,7 +118,7 @@ char* format_integer(Integer n, char* output)
 
 #define LIGHTS_DETAILS_FORMAT_INTEGER(Integer) \
 template char* format_integer(Integer n, char* output);
-LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_DETAILS_FORMAT_INTEGER);
+LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTS_DETAILS_FORMAT_INTEGER);
 #undef LIGHTS_DETAILS_FORMAT_INTEGER
 
 } // namespace details

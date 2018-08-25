@@ -20,21 +20,21 @@
 
 namespace lights {
 
-#define LIGHTS_IMPLEMENT_SIGNED_INTEGER_FUNCTION(macro) \
+#define LIGHTSIMPL_SIGNED_INTEGER_FUNCTION(macro) \
 	macro(std::int8_t)        \
 	macro(std::int16_t)       \
 	macro(std::int32_t)       \
 	macro(std::int64_t)
 
-#define LIGHTS_IMPLEMENT_UNSIGNED_INTEGER_FUNCTION(macro) \
+#define LIGHTSIMPL_UNSIGNED_INTEGER_FUNCTION(macro) \
 	macro(std::uint8_t)       \
 	macro(std::uint16_t)      \
 	macro(std::uint32_t)      \
 	macro(std::uint64_t)
 
-#define LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(macro) \
-	LIGHTS_IMPLEMENT_SIGNED_INTEGER_FUNCTION(macro) \
-	LIGHTS_IMPLEMENT_UNSIGNED_INTEGER_FUNCTION(macro)
+#define LIGHTSIMPL_ALL_INTEGER_FUNCTION(macro) \
+	LIGHTSIMPL_SIGNED_INTEGER_FUNCTION(macro) \
+	LIGHTSIMPL_UNSIGNED_INTEGER_FUNCTION(macro)
 
 
 /**
@@ -204,7 +204,7 @@ private:
 
 namespace details {
 
-#ifdef LIGHTS_DETAILS_INTEGER_FORMATER_OPTIMIZE
+#ifdef LIGHTS_OPTIMIZE_INTEGER_FORMATER
 static constexpr char digists[] =
 	"0001020304050607080910111213141516171819"
 	"2021222324252627282930313233343536373839"
@@ -536,7 +536,7 @@ void HexFormater<UnsignedInteger, false>::format(FormatSink<Backend> sink,
 /**
  * Formater with signed integer.
  */
-#define LIGHTS_DETAILS_UNSIGNED_SPEC_FORMATER(formater_name)                          \
+#define LIGHTSIMPL_UNSIGNED_SPEC_FORMATER(formater_name)                          \
 template <typename SignedInteger>                                                     \
 class formater_name<SignedInteger, true>                                              \
 {                                                                                     \
@@ -558,11 +558,11 @@ public:                                                                         
 	}                                                                                 \
 };
 
-LIGHTS_DETAILS_UNSIGNED_SPEC_FORMATER(BinaryFormater)
-LIGHTS_DETAILS_UNSIGNED_SPEC_FORMATER(OctalFormater)
-LIGHTS_DETAILS_UNSIGNED_SPEC_FORMATER(HexFormater)
+LIGHTSIMPL_UNSIGNED_SPEC_FORMATER(BinaryFormater)
+LIGHTSIMPL_UNSIGNED_SPEC_FORMATER(OctalFormater)
+LIGHTSIMPL_UNSIGNED_SPEC_FORMATER(HexFormater)
 
-#undef LIGHTS_DETAILS_UNSIGNED_SPEC_FORMATER
+#undef LIGHTSIMPL_UNSIGNED_SPEC_FORMATER
 
 } // namespace details
 
@@ -590,7 +590,7 @@ inline void to_string(FormatSink<Backend> sink, char ch)
  * @details Why must explicit specialization it? Because if not do that, SFINAE will
  *          pass user-defined type into this template function and cause compile error.
  */
-#define LIGHTS_INTEGER_TO_STRING(Type)            \
+#define LIGHTSIMPL_INTEGER_TO_STRING(Type)            \
 template <typename Backend>                       \
 inline void to_string(FormatSink<Backend> sink, Type n) \
 {                                                 \
@@ -598,9 +598,9 @@ inline void to_string(FormatSink<Backend> sink, Type n) \
 	sink.append(formater.format(n));              \
 }
 
-LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_INTEGER_TO_STRING)
+LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_INTEGER_TO_STRING)
 
-#undef LIGHTS_INTEGER_TO_STRING
+#undef LIGHTSIMPL_INTEGER_TO_STRING
 
 
 /**
@@ -1035,7 +1035,7 @@ public:
 	 * @note If the internal buffer is full will have no effect, unless have already
 	 *       set full handler.
 	 */
-#define LIGHTS_TEXT_WRITER_APPEND_INTEGER(Type)           \
+#define LIGHTSIMPL_TEXT_WRITER_APPEND_INTEGER(Type)           \
 	TextWriter& operator<< (Type n)                       \
 	{                                                       \
 		auto len = details::format_need_space(n);           \
@@ -1047,9 +1047,9 @@ public:
 		return *this;                                       \
 	}
 
-	LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_TEXT_WRITER_APPEND_INTEGER)
+	LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_APPEND_INTEGER)
 
-#undef LIGHTS_TEXT_WRITER_APPEND_INTEGER
+#undef LIGHTSIMPL_TEXT_WRITER_APPEND_INTEGER
 
 	/**
 	 * Forwards to lights::operater<<() function.
@@ -1240,22 +1240,22 @@ inline void TextWriter::write(StringView fmt)
 /**
  * Uses @c TextWriter member function to format integer to speed up.
  */
-#define LIGHTS_TEXT_WRITER_TO_STRING(Type) \
+#define LIGHTSIMPL_TEXT_WRITER_TO_STRING(Type) \
 inline void to_string(FormatSink<TextWriter> sink, Type n) \
 { \
 	sink.get_internal_backend() << n; \
 }
 
-LIGHTS_IMPLEMENT_ALL_INTEGER_FUNCTION(LIGHTS_TEXT_WRITER_TO_STRING)
+LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_TO_STRING)
 
-#undef LIGHTS_TEXT_WRITER_TO_STRING
+#undef LIGHTSIMPL_TEXT_WRITER_TO_STRING
 
 
 /**
  * It's workaroud way of make sure arguments are expanded.
  */
-#define LIGHTS_CONCAT_IMPL(a, b) a##b
-#define LIGHTS_CONCAT(a, b) LIGHTS_CONCAT_IMPL(a, b)
+#define LIGHTSIMPL_CONCAT(a, b) a##b
+#define LIGHTS_CONCAT(a, b) LIGHTSIMPL_CONCAT(a, b)
 
 /**
  * Create a text writer with a buffer that in statck.
