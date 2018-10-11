@@ -91,9 +91,9 @@ inline PreciseTime operator-(const PreciseTime& left, const PreciseTime& right)
 
 inline bool operator<(const PreciseTime& left, const PreciseTime& right)
 {
-	if (left.seconds < right.seconds)
+	if (left.seconds != right.seconds)
 	{
-		return true;
+		return left.seconds < right.seconds;
 	}
 	return left.nanoseconds < right.nanoseconds;
 }

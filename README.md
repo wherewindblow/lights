@@ -1,4 +1,4 @@
-# Lights Libaray
+# Lights Library
 Light weight and light speed library set.
 
 ## Library List
@@ -26,7 +26,15 @@ Light weight and light speed library set.
 	- Binary logger with save io and record more infomation with less space.
 
 ## Install
-- Copy the source folder to your build tree and use a C++14 compiler.
+- Copy the source folder tLibarayo your build tree and use a C++14 compiler.
+
+## Dependency
+- Library have not dependency.
+- Benchmark and example have the following dependency.
+	- Google benchmark
+	- boost
+	- fmt
+	- spdlog
 
 ## Platform
 - Only support linux now.
