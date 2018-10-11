@@ -44,7 +44,7 @@ void BM_logger_lights_TextLogger(benchmark::State& state)
 
 	while (state.KeepRunning())
 	{
-		logger.info("{}:{}", __func__, __LINE__);
+		logger.log(lights::LogLevel::INFO, lights::invalid_source_location(), "{}:{}", __func__, __LINE__);
 	}
 }
 
@@ -66,12 +66,10 @@ void BM_logger_more_lights_TextLogger(benchmark::State& state)
 
 void BM_logger_more_lights_BinaryLogger(benchmark::State& state)
 {
-	const int TEST_LOGGER = 1;
-
 	int device = state.range(0);
 	auto file_sink = std::make_shared<lights::log_sinks::SimpleFileSink>(LOGGER_FILENAME(device));
 	auto str_table_ptr = lights::StringTable::create("log_str_table");
-	lights::BinaryLogger logger(TEST_LOGGER, file_sink, str_table_ptr);
+	lights::BinaryLogger logger("bin-log", file_sink, str_table_ptr);
 
 	while (state.KeepRunning())
 	{

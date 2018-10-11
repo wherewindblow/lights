@@ -458,7 +458,7 @@ void write(FormatSink<BinaryStoreWriter> sink,
 	if (i < fmt.length())
 	{
 		sink.get_internal_backend().add_composed_type(value);
-		fmt.move_forward(i + 2);
+		fmt.move_forward(i + 2); // Skip "{}".
 		write(sink, fmt, args ...);
 	}
 }

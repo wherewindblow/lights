@@ -84,7 +84,8 @@ PreciseTime current_precise_time()
 }
 
 
-BinaryLogger::BinaryLogger(std::uint16_t logger_id, LogSinkPtr sink_ptr, StringTablePtr str_table_ptr) :
+BinaryLogger::BinaryLogger(const std::string& name, LogSinkPtr sink_ptr, StringTablePtr str_table_ptr) :
+	m_name(name),
 	m_sink_ptr(sink_ptr),
 	m_str_table_ptr(str_table_ptr),
 	m_signature(reinterpret_cast<BinaryMessageSignature*>(m_write_target)),
@@ -93,7 +94,7 @@ BinaryLogger::BinaryLogger(std::uint16_t logger_id, LogSinkPtr sink_ptr, StringT
 		// sizeof(std::uint16_t) is reverse for tail length.
 			 m_str_table_ptr)
 {
-	m_signature->logger_id = logger_id;
+	m_signature->logger_id = static_cast<std::uint32_t>(str_table_ptr->get_index(name));
 }
 
 
@@ -149,9 +150,9 @@ StringView BinaryLogReader::read()
 						Timestamp(m_signature.time_seconds),
 						pad(m_signature.time_nanoseconds, '0', 10),
 						to_string(m_signature.level),
-						m_signature.logger_id);
+						m_str_table_ptr->get_str(m_signature.logger_id));
 
-	m_writer.write_binary(m_str_table_ptr->get_str(m_signature.description_id).data(),
+	m_writer.write_binary(m_str_table_ptr->get_str(m_signature.description_id),
 						  arguments.get(),
 						  m_signature.argument_length);
 

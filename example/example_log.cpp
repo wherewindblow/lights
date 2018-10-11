@@ -58,7 +58,7 @@ void example_BinaryLogger()
 	auto str_table_ptr = lights::StringTable::create("log_str_table");
 	lights::StringView log_filename = "example_log.log";
 	auto file_sink = std::make_shared<lights::log_sinks::SimpleFileSink>(log_filename);
-	lights::BinaryLogger logger(LogId::MAIN_LOG, file_sink, str_table_ptr);
+	lights::BinaryLogger logger("bin_log", file_sink, str_table_ptr);
 
 	logger.set_level(lights::LogLevel::DEBUG);
 

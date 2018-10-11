@@ -922,7 +922,7 @@ void write(FormatSink<Backend> sink, StringView fmt, const Arg& value, const Arg
 	if (i < fmt.length())
 	{
 		sink << value;
-		fmt.move_forward(i + 2);
+		fmt.move_forward(i + 2); // Skip "{}".
 		write(sink, fmt, args ...);
 	}
 }

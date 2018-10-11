@@ -75,7 +75,7 @@ void BinaryRestoreWriter::write_binary(StringView fmt, const std::uint8_t* binar
 	if (i < fmt.length())
 	{
 		auto width = write_argument(binary_store_args);
-		fmt.move_forward(i + 2);
+		fmt.move_forward(i + 2); // Skip "{}".
 		write_binary(fmt, binary_store_args + width, args_length - width);
 	}
 }
