@@ -19,7 +19,13 @@ namespace lights {
  */
 struct PreciseTime
 {
-	PreciseTime() = default;
+	PreciseTime() :
+		PreciseTime(0, 0)
+	{}
+
+	PreciseTime(std::int64_t seconds):
+		PreciseTime(seconds, 0)
+	{}
 
 	PreciseTime(std::int64_t seconds, std::int64_t nanoseconds):
 		seconds(seconds), nanoseconds(nanoseconds)
