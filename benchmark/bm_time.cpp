@@ -12,7 +12,7 @@
 
 #include <sys/time.h>
 #include <benchmark/benchmark.h>
-#include <lights/logger.h>
+#include <lights/precise_time.h>
 
 
 void BM_time_std_time(benchmark::State& state)

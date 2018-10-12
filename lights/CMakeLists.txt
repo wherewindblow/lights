@@ -11,6 +11,7 @@ set(LIGHTS_SOURCE_FILES
         common.h
         current_function.hpp
         exception.h exception.cpp
+        precise_time.h precise_time.cpp
 
         format/binary_format.h format/binary_format.cpp
         log_sinks/stdout_sink.h

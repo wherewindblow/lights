@@ -8,6 +8,8 @@
 
 #include <chrono>
 
+#include "precise_time.h"
+
 
 namespace lights {
 
@@ -69,18 +71,6 @@ void TextLogger::append_log_seperator()
 			copy_array(last_char, end_line.data(), end_line.length());
 		}
 	}
-}
-
-
-PreciseTime current_precise_time()
-{
-	namespace chrono = std::chrono;
-	auto chrono_time = chrono::system_clock::now();
-	std::time_t seconds = chrono::system_clock::to_time_t(chrono_time);
-	auto duration = chrono_time.time_since_epoch();
-	using target_time_type = chrono::nanoseconds;
-	auto nano = chrono::duration_cast<target_time_type>(duration).count() % target_time_type::period::den;
-	return PreciseTime { seconds, nano };
 }
 
 
