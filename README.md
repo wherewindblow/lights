@@ -1,9 +1,11 @@
 # Lights Library
 Light weight and light speed library set.
+To provide feature and can use by the way that user want. So don't to do more management.
+If user want to manage logger and etc, must manage manually.
 
 ## Library List
 - **format**  Type-safe format and similar to the one used by str.format in Python.
-- **log**     Logging library with use format library to format messag.
+- **log**     Logging library with use format library to format message.
 
 ## Features
 - **format**
@@ -26,7 +28,7 @@ Light weight and light speed library set.
 	- Binary logger with save io and record more infomation with less space.
 
 ## Install
-- Copy the source folder tLibarayo your build tree and use a C++14 compiler.
+- Copy the source folder to your build tree and use a C++14 compiler.
 
 ## Dependency
 - Library have not dependency.
