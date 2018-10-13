@@ -166,7 +166,7 @@ private:
 
 	bool can_init = true;
 	std::string m_name_format;
-	std::size_t m_max_size;
+	std::size_t m_max_size = static_cast<std::size_t>(-1);
 	std::size_t m_max_files = static_cast<std::size_t>(-1);
 	FileStream m_file;
 	LogMessageWriter m_msg_writer;
