@@ -1,6 +1,6 @@
 # Lights Library
 Light weight and light speed library set.
-To provide feature and can use by the way that user want. So don't to do more management.
+To ensure user can use feature by the way that user want. So don't to do more management.
 If user want to manage logger and etc, must manage manually.
 
 ## Library List

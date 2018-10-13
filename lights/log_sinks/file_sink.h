@@ -47,18 +47,37 @@ public:
 	 */
 	std::size_t write(SequenceView log_msg)
 	{
-		if (m_buffer_length + log_msg.length() > FILE_DEFAULT_BUFFER_SIZE)
+		std::size_t writed = m_file->write(log_msg);
+		m_buffer_length += writed;
+
+		if (m_buffer_length > FILE_DEFAULT_BUFFER_SIZE)
 		{
-			m_file->flush();
-			m_buffer_length = 0;
+			m_buffer_length -= FILE_DEFAULT_BUFFER_SIZE;
+			m_last_flush_time = std::time(nullptr);
 		}
 
-		return m_file->write(log_msg);
+		return writed;
+	}
+
+	/**
+	 * Flushes underlying buffer if it's been long time no flush.
+	 * Use to ensure log message to be write to file.
+	 */
+	void flush_by_timeout(std::time_t timeout)
+	{
+		std::time_t cur_time = std::time(nullptr);
+		if (m_last_flush_time - cur_time >= timeout)
+		{
+			m_file->flush();
+			m_last_flush_time = cur_time;
+			m_buffer_length = 0;
+		}
 	}
 
 private:
 	std::size_t m_buffer_length = 0;
 	FileStream* m_file = nullptr;
+	std::time_t m_last_flush_time = 0;
 };
 
 
@@ -71,17 +90,21 @@ public:
 	/**
 	 * Creates sink.
 	 */
-	SimpleFileSink(StringView filename) :
-		m_file(filename.data(), "ab+"), m_msg_writer(&m_file) {}
+	SimpleFileSink(StringView filename);
 
 	/**
 	 * Writes log message into backend.
 	 * @details Write is atomic.
 	 */
-	std::size_t write(SequenceView log_msg) override
+	std::size_t write(SequenceView log_msg) override;
+
+	/**
+	 * Flushes underlying buffer if it's been long time no flush.
+	 * Use to ensure log message to be write to file.
+	 */
+	void flush_by_timeout(std::time_t timeout)
 	{
-		std::lock_guard<std::mutex> lock(m_mutex);
-		return m_msg_writer.write(log_msg);
+		m_msg_writer.flush_by_timeout(timeout);
 	}
 
 private:
@@ -99,67 +122,41 @@ class SizeRotatingFileSink: public Sink
 public:
 	SizeRotatingFileSink() = default;
 
-#define LIGHTS_SINKS_INIT_MEMBER(exp) \
-	if (can_init) \
-	{             \
-		exp;      \
-	}             \
-	else          \
-	{             \
-		LIGHTS_ASSERT(false && "SizeRotatingFileSink: Cannot initialize when have been end initialization"); \
-	}
-
 	/**
 	 * Init file name format.
 	 * @param name_format  Format string that use "{}" as a placehalder.
 	 * @note This init is necessary.
 	 */
-	void init_name_format(const std::string& name_format)
-	{
-		LIGHTS_SINKS_INIT_MEMBER(m_name_format = name_format);
-	}
+	void init_name_format(const std::string& name_format);
 
 	/**
 	 * @note If not init max size, the biggest of std::size_t value is use.
 	 */
-	void init_max_size(std::size_t max_size)
-	{
-		LIGHTS_SINKS_INIT_MEMBER(m_max_size = max_size);
-	}
+	void init_max_size(std::size_t max_size);
 
 	/**
 	 * @note If not int max files, it'll not cycle to use file name.
 	 */
-	void init_max_files(std::size_t max_files)
-	{
-		LIGHTS_SINKS_INIT_MEMBER(m_max_files = max_files);
-	}
-
-#undef LIGHTS_SINKS_INIT_MEMBER
+	void init_max_files(std::size_t max_files);
 
 	/**
 	 * Ends initialization.
 	 */
-	void end_init()
-	{
-		can_init = false;
-		this->rotate(0);
-	}
+	void end_init();
 
 	/**
 	 * Writes log message into backend.
 	 * @details Write is atomic.
 	 */
-	std::size_t write(SequenceView log_msg) override
+	std::size_t write(SequenceView log_msg) override;
+
+	/**
+	 * Flushes underlying buffer if it's been long time no flush.
+	 * Use to ensure log message to be write to file.
+	 */
+	void flush_by_timeout(std::time_t timeout)
 	{
-		std::lock_guard<std::mutex> lock(m_mutex);
-		while (m_current_size + log_msg.length() > m_max_size)
-		{
-			this->rotate(log_msg.length());
-		}
-		std::size_t writed_length = m_msg_writer.write(log_msg);
-		m_current_size += writed_length;
-		return writed_length;
+		m_msg_writer.flush_by_timeout(timeout);
 	}
 
 private:
@@ -200,15 +197,15 @@ public:
 	 * Writes log message into backend.
 	 * @details Write is atomic.
 	 */
-	std::size_t write(SequenceView log_msg) override
+	std::size_t write(SequenceView log_msg) override;
+
+	/**
+	 * Flushes underlying buffer if it's been long time no flush.
+	 * Use to ensure log message to be write to file.
+	 */
+	void flush_by_timeout(std::time_t timeout)
 	{
-		std::lock_guard<std::mutex> lock(m_mutex);
-		std::time_t now = std::time(nullptr);
-		if (now >= m_next_rotating_time)
-		{
-			rotate();
-		}
-		return m_msg_writer.write(log_msg);
+		m_msg_writer.flush_by_timeout(timeout);
 	}
 
 private:

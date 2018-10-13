@@ -12,6 +12,65 @@
 namespace lights {
 namespace log_sinks {
 
+SimpleFileSink::SimpleFileSink(StringView filename) :
+	m_file(filename.data(), "ab+"), m_msg_writer(&m_file) {}
+
+
+std::size_t SimpleFileSink::write(SequenceView log_msg)
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	return m_msg_writer.write(log_msg);
+}
+
+
+#define LIGHTS_SINKS_INIT_MEMBER(exp) \
+	if (can_init) \
+	{             \
+		exp;      \
+	}             \
+	else          \
+	{             \
+		LIGHTS_ASSERT(false && "SizeRotatingFileSink: Cannot initialize when have been end initialization"); \
+	}
+
+void SizeRotatingFileSink::init_name_format(const std::string& name_format)
+{
+	LIGHTS_SINKS_INIT_MEMBER(m_name_format = name_format);
+}
+
+void SizeRotatingFileSink::init_max_size(std::size_t max_size)
+{
+	LIGHTS_SINKS_INIT_MEMBER(m_max_size = max_size);
+}
+
+void SizeRotatingFileSink::init_max_files(std::size_t max_files)
+{
+	LIGHTS_SINKS_INIT_MEMBER(m_max_files = max_files);
+}
+
+#undef LIGHTS_SINKS_INIT_MEMBER
+
+
+void SizeRotatingFileSink::end_init()
+{
+	can_init = false;
+	this->rotate(0);
+}
+
+
+std::size_t SizeRotatingFileSink::write(SequenceView log_msg)
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	while (m_current_size + log_msg.length() > m_max_size)
+	{
+		this->rotate(log_msg.length());
+	}
+	std::size_t writed_length = m_msg_writer.write(log_msg);
+	m_current_size += writed_length;
+	return writed_length;
+}
+
+
 void SizeRotatingFileSink::fill_remain()
 {
 	if (m_current_size < m_max_size)
@@ -132,6 +191,18 @@ TimeRotatingFileSink::TimeRotatingFileSink(std::string name_format, time_t durat
 }
 
 
+std::size_t TimeRotatingFileSink::write(SequenceView log_msg)
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	std::time_t now = std::time(nullptr);
+	if (now >= m_next_rotating_time)
+	{
+		rotate();
+	}
+	return m_msg_writer.write(log_msg);
+}
+
+
 void TimeRotatingFileSink::rotate()
 {
 	std::time_t time = std::time(nullptr);
@@ -151,6 +222,7 @@ void TimeRotatingFileSink::rotate()
 	m_next_rotating_time += m_duration;
 	m_msg_writer.set_write_target(&m_file);
 }
+
 
 } // namespace log_sinks
 } // namespace lights
