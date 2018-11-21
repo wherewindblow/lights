@@ -19,6 +19,10 @@ namespace lights {
  */
 struct PreciseTime
 {
+	static const int NANOSECONDS_RATIO = 1000000000;
+	static const int MICROSECONDS_RATIO = 1000000;
+	static const int MILLISECONDS_RATIO = 1000;
+
 	PreciseTime() :
 		PreciseTime(0, 0)
 	{}
@@ -46,8 +50,9 @@ inline bool is_over_flow(std::int64_t a, std::int64_t b)
 inline PreciseTime operator+(const PreciseTime& left, const PreciseTime& right)
 {
 	PreciseTime result(left.seconds + right.seconds, left.nanoseconds + right.nanoseconds);
-	if (is_over_flow(left.nanoseconds, right.nanoseconds))
+	if (result.nanoseconds >= PreciseTime::NANOSECONDS_RATIO)
 	{
+		result.nanoseconds -= PreciseTime::NANOSECONDS_RATIO;
 		++result.seconds;
 	}
 	return result;
