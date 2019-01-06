@@ -19,9 +19,7 @@ namespace lights {
  */
 struct PreciseTime
 {
-	static const int NANOSECONDS_RATIO = 1000000000;
-	static const int MICROSECONDS_RATIO = 1000000;
-	static const int MILLISECONDS_RATIO = 1000;
+	static const int NANOSECONDS_OF_SECOND = 1000000000;
 
 	PreciseTime() :
 		PreciseTime(0, 0)
@@ -50,9 +48,9 @@ inline bool is_over_flow(std::int64_t a, std::int64_t b)
 inline PreciseTime operator+(const PreciseTime& left, const PreciseTime& right)
 {
 	PreciseTime result(left.seconds + right.seconds, left.nanoseconds + right.nanoseconds);
-	if (result.nanoseconds >= PreciseTime::NANOSECONDS_RATIO)
+	if (result.nanoseconds >= PreciseTime::NANOSECONDS_OF_SECOND)
 	{
-		result.nanoseconds -= PreciseTime::NANOSECONDS_RATIO;
+		result.nanoseconds -= PreciseTime::NANOSECONDS_OF_SECOND;
 		++result.seconds;
 	}
 	return result;
@@ -97,13 +95,43 @@ inline bool operator>(const PreciseTime& left, const PreciseTime& right)
 PreciseTime current_precise_time();
 
 
+inline std::int64_t nanasecond_to_microsecond(std::int64_t nanasecond)
+{
+	return nanasecond / 1000;
+}
+
+inline std::int64_t microsecond_to_nanasecond(std::int64_t microsecond)
+{
+	return microsecond * 1000;
+}
+
+inline std::int64_t nanasecond_to_millisecond(std::int64_t nanasecond)
+{
+	return nanasecond / 1000000;
+}
+
+inline std::int64_t millisecond_to_nanasecond(std::int64_t millisecond)
+{
+	return millisecond * 1000000;
+}
+
+inline std::int64_t microsecond_to_millisecond(std::int64_t microsecond)
+{
+	return microsecond / 1000;
+}
+
+inline std::int64_t millisecond_to_microsecond(std::int64_t millisecond)
+{
+	return millisecond * 1000;
+}
+
 /**
  * Puts precise time to format sink.
  */
 template <typename Backend>
 inline void to_string(FormatSink<Backend> sink, const PreciseTime& time)
 {
-	sink << time.seconds << '.' << time.nanoseconds << 's';
+	sink << time.seconds << '.' << pad(time.nanoseconds, '0', 9) << 's';
 }
 
 } // namespace lights
