@@ -69,6 +69,28 @@ inline PreciseTime operator-(const PreciseTime& left, const PreciseTime& right)
 }
 
 
+inline PreciseTime operator*(const PreciseTime& time, int n)
+{
+	PreciseTime result(time.seconds * n, time.nanoseconds * n);
+	if (result.nanoseconds >= PreciseTime::NANOSECONDS_OF_SECOND)
+	{
+		result.seconds += result.nanoseconds / PreciseTime::NANOSECONDS_OF_SECOND;
+		result.nanoseconds %= PreciseTime::NANOSECONDS_OF_SECOND;
+	}
+	return result;
+}
+
+
+inline PreciseTime operator/(const PreciseTime& time, int n)
+{
+	PreciseTime result(time.seconds / n, time.nanoseconds / n);
+	double sec = time.seconds / static_cast<double>(n);
+	double nansecond = (sec - result.seconds) * PreciseTime::NANOSECONDS_OF_SECOND;
+	result.nanoseconds += static_cast<std::int64_t>(nansecond);
+	return result;
+}
+
+
 inline bool operator<(const PreciseTime& left, const PreciseTime& right)
 {
 	if (left.seconds != right.seconds)
