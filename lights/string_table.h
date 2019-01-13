@@ -77,7 +77,7 @@ private:
 	using ImplementType = details::StringTableImpl;
 	/**
 	 * It's same as use @c p_impl directly. It's the workaround way with Clion and give
-	 * type sugguestion to code completion.
+	 * type suggestion to code completion.
 	 */
 	ImplementType* impl()
 	{

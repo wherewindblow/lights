@@ -49,7 +49,7 @@ static const signed char INVALID_INDEX = -1;
 
 
 /**
- * IntegerFormatSpec description interger how to be format.
+ * IntegerFormatSpec description integer how to be format.
  */
 template <typename Value, typename Tag>
 struct IntegerFormatSpec
@@ -162,7 +162,7 @@ inline FormatSink<Backend> make_format_sink(Backend& backend)
 }
 
 /**
- * Explicit tempate specialization of std::string.
+ * Explicit template specialization of std::string.
  */
 template <>
 class FormatSink<std::string>
@@ -226,7 +226,7 @@ std::size_t format_need_space(Integer n);
  * Formats a integer @c n to @c output.
  * @tparam Integer  Any integer type.
  * @param n         A integer that type of Integer.
- * @param output    Point to that last place of ouput.
+ * @param output    Point to that last place of output.
  * @return  The result that point to first digit.
  * @note Formats character backwards to @c output and @c *output this pos is not use.
  */
@@ -352,7 +352,7 @@ template <typename Tag>
 struct HexConvertHandler;
 
 /**
- * This class include handler that conver hex to lower case char.
+ * This class include handler that convert hex to lower case char.
  */
 template <>
 struct HexConvertHandler<HexSpecLowerCaseTag>
@@ -362,7 +362,7 @@ struct HexConvertHandler<HexSpecLowerCaseTag>
 };
 
 /**
- * This class include handler that conver hex to upper case char.
+ * This class include handler that convert hex to upper case char.
  */
 template <>
 struct HexConvertHandler<HexSpecUpperCaseTag>
@@ -700,7 +700,7 @@ inline IntegerFormatSpec<Integer, details::DecimalSpecTag> pad(Integer n, char f
 }
 
 /**
- * Creates a binary spec of formate integer.
+ * Creates a binary spec of integer format.
  * @note Integer only can use integer type.
  */
 template <typename Integer>
@@ -723,7 +723,7 @@ inline void to_string(FormatSink<Backend> sink, IntegerFormatSpec<Integer, detai
 
 
 /**
- * Creates a octal spec of formate integer.
+ * Creates a octal spec of integer format.
  * @note Integer only can use integer type.
  */
 template <typename Integer>
@@ -746,7 +746,7 @@ inline void to_string(FormatSink<Backend> sink, IntegerFormatSpec<Integer, detai
 
 
 /**
- * Creates a hex lower case spec of formate integer.
+ * Creates a hex lower case spec of integer format.
  * @note Integer only can use integer type.
  */
 template <typename Integer>
@@ -768,7 +768,7 @@ inline void to_string(FormatSink<Backend> sink, IntegerFormatSpec<Integer, detai
 }
 
 /**
- * Creates a hex upper case spec of formate integer.
+ * Creates a hex upper case spec of integer format.
  * @note Integer only can use integer type.
  */
 template <typename Integer>
@@ -887,7 +887,7 @@ inline void write(FormatSink<Backend> sink, StringView fmt)
  * @param sink  Output holder.
  * @param fmt   Formats string that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
- * @return Formated string.
+ * @return Formatted string.
  * @details If args is user type, it must have a user function as
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
  *         2) `FormatSink<Backend> operator<< (FormatSink<Backend> sink, const T& value);`
@@ -1008,9 +1008,9 @@ public:
 			copy_array(m_buffer + m_length, str.data(), str.length());
 			m_length += str.length();
 		}
-		else // Have not enought space to hold all.
+		else // Have not enough space to hold all.
 		{
-			handle_not_enougth_space(str);
+			handle_not_enough_space(str);
 		}
 	}
 
@@ -1035,8 +1035,8 @@ public:
 	 * @note If the internal buffer is full will have no effect, unless have already
 	 *       set full handler.
 	 */
-#define LIGHTSIMPL_TEXT_WRITER_APPEND_INTEGER(Type)           \
-	TextWriter& operator<< (Type n)                       \
+#define LIGHTSIMPL_TEXT_WRITER_APPEND_INTEGER(Type)         \
+	TextWriter& operator<< (Type n)                         \
 	{                                                       \
 		auto len = details::format_need_space(n);           \
 		if (can_append(len))                                \
@@ -1076,7 +1076,7 @@ public:
 
 	/**
 	 * Returns a @c std::string that convert from internal buffer.
-	 * @note This convertion will generate a data copy.
+	 * @note This conversion will generate a data copy.
 	 */
 	std::string std_string() const
 	{
@@ -1126,7 +1126,7 @@ public:
 	/**
 	 * Sets full handler to listen for internal buffer is full.
 	 * @details After set full handler, this handler will be call when internal buffer
-	 *          is full. And reset interal buffer and try to append argument.
+	 *          is full. And reset internal buffer and try to append argument.
 	 */
 	void set_full_handler(const FullHandler& full_handler)
 	{
@@ -1138,7 +1138,7 @@ public:
 	 */
 	std::size_t max_size() const
 	{
-		return m_capacity - 1; // Remain a character to hold null chareter.
+		return m_capacity - 1; // Remain a character to hold null character.
 	}
 
 	/**
@@ -1157,7 +1157,7 @@ private:
 
 	void handle_full(char ch);
 
-	void handle_not_enougth_space(StringView str);
+	void handle_not_enough_space(StringView str);
 
 	void handle_full(StringView str);
 
@@ -1229,7 +1229,7 @@ inline void TextWriter::write(StringView fmt, const Arg& value, const Args& ... 
 }
 
 /**
- * @note Must ensure the specialization of FormatSink is declere before use.
+ * @note Must ensure the specialization of FormatSink is declare before use.
  */
 inline void TextWriter::write(StringView fmt)
 {
@@ -1252,13 +1252,13 @@ LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_TO_STRING)
 
 
 /**
- * It's workaroud way of make sure arguments are expanded.
+ * It's workaround way of make sure arguments are expanded.
  */
 #define LIGHTSIMPL_CONCAT(a, b) a##b
 #define LIGHTS_CONCAT(a, b) LIGHTSIMPL_CONCAT(a, b)
 
 /**
- * Create a text writer with a buffer that in statck.
+ * Create a text writer with a buffer that in stack.
  */
 #define LIGHTS_TEXT_WRITER(name, buffer_size) \
 	char LIGHTS_CONCAT(name##_write_target_, __LINE__)[buffer_size]; \
@@ -1275,7 +1275,7 @@ LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_TO_STRING)
  * Formats string that use @c fmt and @c args ...
  * @param fmt   Formats string that use '{}' as placeholder.
  * @param args  Variadic arguments that can be any type.
- * @return Formated string.
+ * @return Formatted string.
  * @details If args is user type, it must have a user function as
  *         1) `std::ostream& operator<< (std::ostream& out, const T& value);`
  *         2) `FormatSink<Backend> operator<< (FormatSink<Backend> sink, const T& value);`

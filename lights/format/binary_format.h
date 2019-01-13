@@ -471,7 +471,7 @@ inline void BinaryStoreWriter::write(StringView fmt, const Arg& value, const Arg
 }
 
 /**
- * @note Must ensure the specialization of FormatSink is declere before use.
+ * @note Must ensure the specialization of FormatSink is declare before use.
  */
 inline void BinaryStoreWriter::write(StringView fmt)
 {

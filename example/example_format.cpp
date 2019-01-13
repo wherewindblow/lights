@@ -66,7 +66,7 @@ void example_format()
 	lights::stdout_stream().write_line(writer.string_view()); // Avoid create std::string and only return the internal string.
 	lights::stdout_stream().write_line(writer.std_string()); // Return std::string.
 
-	// Costom user-defined sink target.
+	// Custom user-defined sink target.
 	char external_buffer[500];
 	lights::zero_array(external_buffer);
 	lights::FormatSink<char*> format_sink(external_buffer, lights::size_of_array(external_buffer));

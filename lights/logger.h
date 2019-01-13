@@ -23,7 +23,7 @@ namespace lights {
 namespace details {
 
 static const StringView log_level_names[] = {
-	"debug", "info", "warnning", "error", "off"
+	"debug", "info", "warning", "error", "off"
 };
 
 } // namespace details
@@ -148,7 +148,7 @@ private:
 		}
 	}
 
-	void append_log_seperator();
+	void append_log_separator();
 
 	std::string m_name;
 	LogLevel m_level = LogLevel::INFO;
@@ -168,7 +168,7 @@ void TextLogger::log(LogLevel level, const SourceLocation& location, const char*
 		this->generate_signature(level);
 		m_writer.write(fmt, args ...);
 		this->recore_location(location);
-		append_log_seperator();
+		append_log_separator();
 		m_sink_ptr->write(m_writer.string_view());
 	}
 }
@@ -183,7 +183,7 @@ void TextLogger::log(LogLevel level, const SourceLocation& location, const T& va
 		this->generate_signature(level);
 		m_writer << value;
 		this->recore_location(location);
-		append_log_seperator();
+		append_log_separator();
 		m_sink_ptr->write(m_writer.string_view());
 	}
 }
@@ -204,7 +204,7 @@ public:
 	std::uint32_t logger_id;
 	std::uint16_t argument_length;
 	LogLevel level;
-} LIGHTS_NOT_MEMEORY_ALIGNMENT;
+} LIGHTS_NOT_MEMORY_ALIGNMENT;
 
 
 /**

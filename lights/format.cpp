@@ -138,7 +138,7 @@ void TextWriter::handle_full(char ch)
 }
 
 
-void TextWriter::handle_not_enougth_space(StringView str)
+void TextWriter::handle_not_enough_space(StringView str)
 {
 	// Append to the remaining place.
 	StringView part(str.data(), max_size() - m_length);
@@ -158,7 +158,7 @@ void TextWriter::handle_full(StringView str)
 		{
 			append(str);
 		}
-		else // Have not enought space to hold all.
+		else // Have not enough space to hold all.
 		{
 			while (str.length())
 			{

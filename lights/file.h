@@ -239,7 +239,7 @@ public:
 	}
 
 	/**
-	 * Writes @c str and append line ender.
+	 * Writes @c str and append line end symbol.
 	 */
 	void write_line(StringView str)
 	{
@@ -307,7 +307,7 @@ private:
 };
 
 /**
- * Dumps a excetion @c ex message to file stream @c out.
+ * Dumps a exception @c ex message to file stream @c out.
  */
 inline void dump(const Exception& ex, FileStream& out)
 {

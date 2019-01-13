@@ -47,8 +47,8 @@ public:
 	 */
 	std::size_t write(SequenceView log_msg)
 	{
-		std::size_t writed = m_file->write(log_msg);
-		m_buffer_length += writed;
+		std::size_t len = m_file->write(log_msg);
+		m_buffer_length += len;
 
 		if (m_buffer_length > FILE_DEFAULT_BUFFER_SIZE)
 		{
@@ -56,7 +56,7 @@ public:
 			m_last_flush_time = std::time(nullptr);
 		}
 
-		return writed;
+		return len;
 	}
 
 	/**
@@ -124,7 +124,7 @@ public:
 
 	/**
 	 * Init file name format.
-	 * @param name_format  Format string that use "{}" as a placehalder.
+	 * @param name_format  Format string that use "{}" as a placeholder.
 	 * @note This init is necessary.
 	 */
 	void init_name_format(const std::string& name_format);

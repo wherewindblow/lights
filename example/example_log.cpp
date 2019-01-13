@@ -34,7 +34,7 @@ void example_TextLogger()
 
 	try
 	{
-		lights::FileStream file("unexists_file", "r");
+		lights::FileStream file("not_exists_file", "r");
 	}
 	catch (const lights::Exception& ex)
 	{
@@ -64,7 +64,7 @@ void example_BinaryLogger()
 
 	try
 	{
-		lights::FileStream file("unexists_file", "r");
+		lights::FileStream file("not_exists_file", "r");
 	}
 	catch (const lights::Exception& ex)
 	{

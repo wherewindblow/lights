@@ -14,7 +14,7 @@
 namespace lights {
 
 /**
- * Sink is virtual base class and use as backend of ouput.
+ * Sink is virtual base class and use as backend of output.
  */
 class Sink
 {
@@ -24,7 +24,7 @@ public:
 
 	/**
 	 * Writes sequence to backend.
-	 * @note It's pure virtual function and must implementaion by derived class.
+	 * @note It's pure virtual function and must implementation by derived class.
 	 */
 	virtual std::size_t write(SequenceView sequence) = 0;
 };

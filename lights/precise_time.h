@@ -15,7 +15,7 @@
 namespace lights {
 
 /**
- * PreciseTime use to record hight resolution time point.
+ * PreciseTime use to record high resolution time point.
  */
 struct PreciseTime
 {
@@ -85,8 +85,8 @@ inline PreciseTime operator/(const PreciseTime& time, int n)
 {
 	PreciseTime result(time.seconds / n, time.nanoseconds / n);
 	double sec = time.seconds / static_cast<double>(n);
-	double nansecond = (sec - result.seconds) * PreciseTime::NANOSECONDS_OF_SECOND;
-	result.nanoseconds += static_cast<std::int64_t>(nansecond);
+	double nanosecond = (sec - result.seconds) * PreciseTime::NANOSECONDS_OF_SECOND;
+	result.nanoseconds += static_cast<std::int64_t>(nanosecond);
 	return result;
 }
 
@@ -117,22 +117,22 @@ inline bool operator>(const PreciseTime& left, const PreciseTime& right)
 PreciseTime current_precise_time();
 
 
-inline std::int64_t nanasecond_to_microsecond(std::int64_t nanasecond)
+inline std::int64_t nanosecond_to_microsecond(std::int64_t nanosecond)
 {
-	return nanasecond / 1000;
+	return nanosecond / 1000;
 }
 
-inline std::int64_t microsecond_to_nanasecond(std::int64_t microsecond)
+inline std::int64_t microsecond_to_nanosecond(std::int64_t microsecond)
 {
 	return microsecond * 1000;
 }
 
-inline std::int64_t nanasecond_to_millisecond(std::int64_t nanasecond)
+inline std::int64_t nanosecond_to_millisecond(std::int64_t nanosecond)
 {
-	return nanasecond / 1000000;
+	return nanosecond / 1000000;
 }
 
-inline std::int64_t millisecond_to_nanasecond(std::int64_t millisecond)
+inline std::int64_t millisecond_to_nanosecond(std::int64_t millisecond)
 {
 	return millisecond * 1000000;
 }

@@ -28,7 +28,7 @@ void TextLogger::log(LogLevel level, const SourceLocation& location, const char*
 		this->generate_signature(level);
 		m_writer.append(str);
 		this->recore_location(location);
-		append_log_seperator();
+		append_log_separator();
 		m_sink_ptr->write(m_writer.string_view());
 	}
 }
@@ -36,7 +36,7 @@ void TextLogger::log(LogLevel level, const SourceLocation& location, const char*
 
 /**
  * Use second as a tick to record timestamp.
- * It's faster than use chrono, but precision is not enought.
+ * It's faster than use chrono, but precision is not enough.
  */
 
 //void TextLogger::generate_signature()
@@ -59,7 +59,7 @@ void TextLogger::generate_signature(LogLevel level)
 }
 
 
-void TextLogger::append_log_seperator()
+void TextLogger::append_log_separator()
 {
 	StringView end_line = env::end_line();
 	m_writer.append(end_line);

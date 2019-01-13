@@ -417,7 +417,7 @@ void BM_format_string_fmt_MemoryWriter_insert(benchmark::State& state)
 void BM_format_string_lights_TextWriter_write(benchmark::State& state)
 {
 	LIGHTS_DEFAULT_TEXT_WRITER(writer);
-	// An optimize way to avoid calculate the lenght of string again and again.
+	// An optimize way to avoid calculate the length of string again and again.
 //	lights::StringView str = FORMAT_STRING;
 	while (state.KeepRunning())
 	{

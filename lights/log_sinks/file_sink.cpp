@@ -106,7 +106,7 @@ void SizeRotatingFileSink::rotate(std::size_t expect_size)
 		bool cannot_use_previous = false;
 		if (m_index != 0) // Have none previous file, because 0 is the first index.
 		{
-			// Try to use previous file if it have enought space to write a message.
+			// Try to use previous file if it have enough space to write a message.
 			auto previous_name = format(m_name_format, m_index - 1);
 			if (!env::file_exists(previous_name.c_str()))
 			{

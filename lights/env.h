@@ -21,7 +21,7 @@ namespace env {
 /**
  * Sets pod type do not memory alignment.
  */
-#define LIGHTS_NOT_MEMEORY_ALIGNMENT __attribute__((packed))
+#define LIGHTS_NOT_MEMORY_ALIGNMENT __attribute__((packed))
 
 
 /**
@@ -73,7 +73,7 @@ using offset_t = std::ptrdiff_t;
  */
 inline offset_t ftell(std::FILE* file)
 {
-	// Return type off_t will fit into suitable type for 32 and 64 architechures.
+	// Return type off_t will fit into suitable type for 32 and 64 architecture.
 	return ftello(file);
 }
 
@@ -82,7 +82,7 @@ inline offset_t ftell(std::FILE* file)
  */
 inline void fseek(std::FILE* file, offset_t off, int whence)
 {
-	// Return type off_t will fit into suitable type for 32 and 64 architechures.
+	// Return type off_t will fit into suitable type for 32 and 64 architecture.
 	fseeko(file, off, whence);
 }
 

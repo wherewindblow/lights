@@ -24,8 +24,8 @@ If user want to manage logger and etc, must manage manually.
 	- Various log target
 		- Size rotating log files.
 		- Time rotating log files.
-	- Text logger with more reable.
-	- Binary logger with save io and record more infomation with less space.
+	- Text logger with more readable.
+	- Binary logger with save io and record more information with less space.
 
 ## Install
 - Copy the source folder to your build tree and use a C++14 compiler.

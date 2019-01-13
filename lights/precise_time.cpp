@@ -18,8 +18,8 @@ PreciseTime current_precise_time()
 	std::time_t seconds = chrono::system_clock::to_time_t(chrono_time);
 	auto duration = chrono_time.time_since_epoch();
 	using target_time_type = chrono::nanoseconds;
-	auto nano = chrono::duration_cast<target_time_type>(duration).count() % target_time_type::period::den;
-	return PreciseTime { seconds, nano };
+	auto nanosecond = chrono::duration_cast<target_time_type>(duration).count() % target_time_type::period::den;
+	return PreciseTime { seconds, nanosecond };
 }
 
 } // namespace lights

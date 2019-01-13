@@ -19,7 +19,7 @@
 #define LIGHTS_OPEN_LOG
 
 /**
- * Define accsertion failure behavior by level.
+ * Define assertion failure behavior by level.
  * 1, failure will lead to core dump.
  * 2, failure will lead to throw a assertion error exception.
  * others value, assertion have no effect.

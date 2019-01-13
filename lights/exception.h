@@ -148,7 +148,7 @@ public:
 };
 
 /**
- * LightsErrorCodeCategory is a implementation of error category that use in this lights libraray.
+ * LightsErrorCodeCategory is a implementation of error category that use in this lights library.
  */
 class LightsErrorCodeCategory: public ErrorCodeCategory
 {

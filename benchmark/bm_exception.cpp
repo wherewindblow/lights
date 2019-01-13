@@ -152,7 +152,7 @@ private:
 
 void BM_exception_int(benchmark::State& state)
 {
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	while (state.KeepRunning())
 	{
 		try
@@ -162,7 +162,7 @@ void BM_exception_int(benchmark::State& state)
 		}
 		catch (const int& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				benchmark::DoNotOptimize(ex);
 			}
@@ -173,7 +173,7 @@ void BM_exception_int(benchmark::State& state)
 
 void BM_exception_std_error_code(benchmark::State& state)
 {
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	while (state.KeepRunning())
 	{
 		try
@@ -183,7 +183,7 @@ void BM_exception_std_error_code(benchmark::State& state)
 		}
 		catch (const std::error_code& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				benchmark::DoNotOptimize(ex.message());
 			}
@@ -195,7 +195,7 @@ void BM_exception_std_error_code(benchmark::State& state)
 void BM_exception_lights_Exception(benchmark::State& state)
 {
 	lights::NullSink null;
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	while (state.KeepRunning())
 	{
 		try
@@ -204,7 +204,7 @@ void BM_exception_lights_Exception(benchmark::State& state)
 		}
 		catch (const lights::Exception& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				ex.dump_message(null);
 			}
@@ -215,7 +215,7 @@ void BM_exception_lights_Exception(benchmark::State& state)
 
 void BM_exception_str_std_exception(benchmark::State& state)
 {
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	while (state.KeepRunning())
 	{
 		try
@@ -226,7 +226,7 @@ void BM_exception_str_std_exception(benchmark::State& state)
 		}
 		catch (const std::runtime_error& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				benchmark::DoNotOptimize(ex.what());
 			}
@@ -238,7 +238,7 @@ void BM_exception_str_std_exception(benchmark::State& state)
 void BM_exception_str_lights_Exception(benchmark::State& state)
 {
 	lights::NullSink null;
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	while (state.KeepRunning())
 	{
 		try
@@ -247,7 +247,7 @@ void BM_exception_str_lights_Exception(benchmark::State& state)
 		}
 		catch (const lights::Exception& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				ex.dump_message(null);
 			}
@@ -260,7 +260,7 @@ void BM_exception_str_lights_Exception(benchmark::State& state)
 
 void BM_exception_pad_lights_ExceptionBinary(benchmark::State& state)
 {
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	auto str_len = static_cast<std::size_t>(state.range(1));
 	std::string padding_str(str_len, '1');
 
@@ -274,7 +274,7 @@ void BM_exception_pad_lights_ExceptionBinary(benchmark::State& state)
 		}
 		catch (const lights::benchmark::ExceptionBinary& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				benchmark::DoNotOptimize(ex.what());
 			}
@@ -285,7 +285,7 @@ void BM_exception_pad_lights_ExceptionBinary(benchmark::State& state)
 
 void BM_exception_pad_lights_ExceptionBinary_ptr(benchmark::State& state)
 {
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	auto str_len = static_cast<std::size_t>(state.range(1));
 	std::string padding_str(str_len, '1');
 
@@ -299,7 +299,7 @@ void BM_exception_pad_lights_ExceptionBinary_ptr(benchmark::State& state)
 		}
 		catch (const std::shared_ptr<lights::benchmark::ExceptionBinary>& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				benchmark::DoNotOptimize(ex->what());
 			}
@@ -310,7 +310,7 @@ void BM_exception_pad_lights_ExceptionBinary_ptr(benchmark::State& state)
 
 void BM_exception_pad_lights_ExceptionText(benchmark::State& state)
 {
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	auto str_len = static_cast<std::size_t>(state.range(1));
 	std::string padding_str(str_len, '1');
 
@@ -324,7 +324,7 @@ void BM_exception_pad_lights_ExceptionText(benchmark::State& state)
 		}
 		catch (const lights::benchmark::ExceptionText& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				benchmark::DoNotOptimize(ex.what());
 			}
@@ -335,7 +335,7 @@ void BM_exception_pad_lights_ExceptionText(benchmark::State& state)
 
 void BM_exception_pad_lights_ExceptionText_ptr(benchmark::State& state)
 {
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	auto str_len = static_cast<std::size_t>(state.range(1));
 	std::string padding_str(str_len, '1');
 
@@ -349,7 +349,7 @@ void BM_exception_pad_lights_ExceptionText_ptr(benchmark::State& state)
 		}
 		catch (const std::shared_ptr<lights::benchmark::ExceptionText>& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				benchmark::DoNotOptimize(ex->what());
 			}
@@ -360,7 +360,7 @@ void BM_exception_pad_lights_ExceptionText_ptr(benchmark::State& state)
 
 void BM_exception_pad_std_exception(benchmark::State& state)
 {
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	auto str_len = static_cast<std::size_t>(state.range(1));
 	std::string padding_str(str_len, '1');
 
@@ -374,7 +374,7 @@ void BM_exception_pad_std_exception(benchmark::State& state)
 		}
 		catch (const std::runtime_error& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				benchmark::DoNotOptimize(ex.what());
 			}
@@ -385,7 +385,7 @@ void BM_exception_pad_std_exception(benchmark::State& state)
 
 void BM_exception_pad_std_exception_ptr(benchmark::State& state)
 {
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	auto str_len = static_cast<std::size_t>(state.range(1));
 	std::string padding_str(str_len, '1');
 
@@ -399,7 +399,7 @@ void BM_exception_pad_std_exception_ptr(benchmark::State& state)
 		}
 		catch (const std::shared_ptr<std::runtime_error>& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				benchmark::DoNotOptimize(ex->what());
 			}
@@ -410,7 +410,7 @@ void BM_exception_pad_std_exception_ptr(benchmark::State& state)
 
 void BM_exception_pad_std_exception_format(benchmark::State& state)
 {
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	auto str_len = static_cast<std::size_t>(state.range(1));
 	std::string padding_str(str_len, '1');
 
@@ -422,7 +422,7 @@ void BM_exception_pad_std_exception_format(benchmark::State& state)
 		}
 		catch (const std::runtime_error& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				benchmark::DoNotOptimize(ex.what());
 			}
@@ -433,7 +433,7 @@ void BM_exception_pad_std_exception_format(benchmark::State& state)
 
 void BM_exception_pad_boost_exception(benchmark::State& state)
 {
-	int performat_what = state.range(0);
+	int perform_what = state.range(0);
 	auto str_len = static_cast<std::size_t>(state.range(1));
 	std::string padding_str(str_len, '1');
 
@@ -447,7 +447,7 @@ void BM_exception_pad_boost_exception(benchmark::State& state)
 		}
 		catch (const boost::exception& ex)
 		{
-			if (performat_what)
+			if (perform_what)
 			{
 				benchmark::DoNotOptimize(boost::diagnostic_information(ex));
 			}
