@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <memory>
-
 #include "sequence.h"
 
 
@@ -19,9 +17,6 @@ struct StringTableImpl;
 
 } // namespace details
 
-class StringTable;
-using StringTablePtr = std::shared_ptr<StringTable>;
-
 
 /**
  * StringTable record string with index.
@@ -29,14 +24,6 @@ using StringTablePtr = std::shared_ptr<StringTable>;
 class StringTable
 {
 public:
-	/**
-	 * Creates string table.
-	 */
-	static StringTablePtr create(StringView filename)
-	{
-		return std::make_shared<StringTable>(filename);
-	}
-
 	/**
 	 * Creates string table.
 	 */
@@ -75,21 +62,7 @@ public:
 
 private:
 	using ImplementType = details::StringTableImpl;
-	/**
-	 * It's same as use @c p_impl directly. It's the workaround way with Clion and give
-	 * type suggestion to code completion.
-	 */
-	ImplementType* impl()
-	{
-		return p_impl.get();
-	}
-
-	const ImplementType* impl() const
-	{
-		return p_impl.get();
-	}
-
-	std::unique_ptr<ImplementType> p_impl;
+	ImplementType* p_impl;
 };
 
 } // namespace lights

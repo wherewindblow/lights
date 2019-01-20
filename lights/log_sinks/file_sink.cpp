@@ -7,13 +7,17 @@
 #include "file_sink.h"
 
 #include "../format.h"
+#include "../exception.h"
 
 
 namespace lights {
 namespace log_sinks {
 
 SimpleFileSink::SimpleFileSink(StringView filename) :
-	m_file(filename.data(), "ab+"), m_msg_writer(&m_file) {}
+	m_file(filename.data(), "ab+"),
+	m_msg_writer(&m_file),
+	m_mutex()
+{}
 
 
 std::size_t SimpleFileSink::write(SequenceView log_msg)
@@ -21,6 +25,19 @@ std::size_t SimpleFileSink::write(SequenceView log_msg)
 	std::lock_guard<std::mutex> lock(m_mutex);
 	return m_msg_writer.write(log_msg);
 }
+
+
+SizeRotatingFileSink::SizeRotatingFileSink() :
+	can_init(true),
+	m_name_format(),
+	m_max_size(static_cast<std::size_t>(-1)),
+	m_max_files(static_cast<std::size_t>(-1)),
+	m_file(),
+	m_msg_writer(),
+	m_index(static_cast<std::size_t>(-1)),
+	m_current_size(0),
+	m_mutex()
+{}
 
 
 #define LIGHTS_SINKS_INIT_MEMBER(exp) \
@@ -65,9 +82,9 @@ std::size_t SizeRotatingFileSink::write(SequenceView log_msg)
 	{
 		this->rotate(log_msg.length());
 	}
-	std::size_t writed_length = m_msg_writer.write(log_msg);
-	m_current_size += writed_length;
-	return writed_length;
+	std::size_t length = m_msg_writer.write(log_msg);
+	m_current_size += length;
+	return length;
 }
 
 
@@ -171,7 +188,11 @@ void SizeRotatingFileSink::rotate(std::size_t expect_size)
 TimeRotatingFileSink::TimeRotatingFileSink(std::string name_format, time_t duration, time_t day_point) :
 	m_name_format(name_format),
 	m_duration(duration),
-	m_day_point(day_point)
+	m_day_point(day_point),
+	m_next_rotating_time(),
+	m_file(),
+	m_msg_writer(),
+	m_mutex()
 {
 	if (day_point > ONE_DAY_SECONDS)
 	{

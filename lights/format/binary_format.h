@@ -143,7 +143,7 @@ public:
 	 * Create binary store writer.
 	 * @param write_target If write target is not specify, will use default write target with default size.
 	 */
-	BinaryStoreWriter(Sequence write_target = invalid_sequence(), StringTablePtr str_table_ptr = nullptr):
+	BinaryStoreWriter(Sequence write_target = invalid_sequence(), StringTable* str_table_ptr = nullptr):
 		m_use_default_buffer(!is_valid(write_target)),
 		m_buffer(is_valid(write_target) ?
 				 static_cast<std::uint8_t*>(write_target.data()) :
@@ -373,7 +373,7 @@ private:
 	std::size_t m_capacity;
 	FormatComposedTypeState m_state = FormatComposedTypeState::NO_INIT;
 	std::uint16_t m_composed_member_num = 0;
-	StringTablePtr m_str_table_ptr;
+	StringTable* m_str_table_ptr;
 };
 
 
@@ -537,7 +537,7 @@ LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_BINARY_STORE_WRITER_TO_STRING)
 class BinaryRestoreWriter
 {
 public:
-	BinaryRestoreWriter(String write_target = invalid_string(), StringTablePtr str_table_ptr = nullptr) :
+	BinaryRestoreWriter(String write_target = invalid_string(), StringTable* str_table_ptr = nullptr) :
 		m_writer(write_target), m_str_table_ptr(str_table_ptr) {}
 
 	/**
@@ -604,7 +604,7 @@ public:
 
 	/**
 	 * Return a @c std::string that convert from internal buffer.
-	 * @note This convertion will generate a data copy.
+	 * @note This conversion will generate a data copy.
 	 */
 	std::string std_string() const
 	{
@@ -669,7 +669,7 @@ private:
 	std::uint8_t write_argument(const uint8_t* binary_store_args);
 
 	TextWriter m_writer;
-	StringTablePtr m_str_table_ptr;
+	StringTable* m_str_table_ptr;
 };
 
 } // namespace lights

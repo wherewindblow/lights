@@ -14,57 +14,41 @@
 #include "env.h"
 #include "exception.h"
 
-
+#include <memory>
 namespace lights {
 
 namespace details {
 
 struct StringTableImpl
 {
-	using StringViewPtr = std::shared_ptr<const StringView>;
-
 	struct StringHash
 	{
-		size_t operator()(const StringViewPtr& str) const noexcept
+		size_t operator()(StringView str) const noexcept
 		{
-			return env::hash(str->data(), str->length());
+			return env::hash(str.data(), str.length());
 		}
 	};
 
 	struct StringEqualTo
 	{
-		bool operator()(const StringViewPtr& lhs, const StringViewPtr& rhs) const noexcept
+		bool operator()(StringView lhs, StringView rhs) const noexcept
 		{
-			if (lhs->length() != rhs->length())
+			if (lhs.length() != rhs.length())
 			{
 				return false;
 			}
 			else
 			{
-				return std::memcmp(lhs->data(), rhs->data(), rhs->length()) == 0;
+				return std::memcmp(lhs.data(), rhs.data(), rhs.length()) == 0;
 			}
-		}
-	};
-
-	struct EmptyDeleter
-	{
-		void operator()(const StringView*) const noexcept {}
-	};
-
-	struct StringDeleter
-	{
-		void operator()(const StringView* str) const noexcept
-		{
-			delete[] str->data();
-			delete str;
 		}
 	};
 
 	std::fstream storage_file;
 	std::size_t last_index = static_cast<std::size_t>(-1);
-	std::vector<StringViewPtr> str_array; // To generate index
-	std::unordered_map<StringViewPtr,
-					   std::uint32_t,
+	std::vector<StringView> str_array; // To generate index.
+	std::unordered_map<StringView,
+					   std::uint32_t, // index of str_array.
 					   StringHash,
 					   StringEqualTo> str_hash; // To find faster.
 };
@@ -73,22 +57,22 @@ struct StringTableImpl
 
 
 StringTable::StringTable(StringView filename):
-	p_impl(std::make_unique<ImplementType>())
+	p_impl(new ImplementType())
 {
-	impl()->storage_file.open(filename.data());
-	if (impl()->storage_file.is_open())
+	p_impl->storage_file.open(filename.data());
+	if (p_impl->storage_file.is_open())
 	{
 		std::string line;
-		while (std::getline(impl()->storage_file, line))
+		while (std::getline(p_impl->storage_file, line))
 		{
 			add_str(StringView(line.c_str(), line.length()));
 		}
-		impl()->last_index = impl()->str_array.size() - 1;
+		p_impl->last_index = p_impl->str_array.size() - 1;
 	}
 	else
 	{
-		impl()->storage_file.open(filename.data(), std::ios_base::out); // Create file.
-		if (!impl()->storage_file.is_open())
+		p_impl->storage_file.open(filename.data(), std::ios_base::out); // Create file.
+		if (!p_impl->storage_file.is_open())
 		{
 			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
 		}
@@ -98,25 +82,32 @@ StringTable::StringTable(StringView filename):
 
 StringTable::~StringTable()
 {
-	if (impl()->storage_file.is_open())
+	if (p_impl->storage_file.is_open())
 	{
-		impl()->storage_file.seekp(0, std::ios_base::end);
-		impl()->storage_file.clear();
-		for (std::size_t i = impl()->last_index + 1; impl()->storage_file && i < impl()->str_array.size(); ++i)
+		p_impl->storage_file.seekp(0, std::ios_base::end);
+		p_impl->storage_file.clear();
+		for (std::size_t i = p_impl->last_index + 1; p_impl->storage_file && i < p_impl->str_array.size(); ++i)
 		{
-			impl()->storage_file.write(impl()->str_array[i]->data(), impl()->str_array[i]->length());
-			impl()->storage_file << env::end_line();
+			StringView str = p_impl->str_array[i];
+			p_impl->storage_file.write(str.data(), str.length());
+			p_impl->storage_file << env::end_line();
 		}
-		impl()->storage_file.close();
+		p_impl->storage_file.close();
 	}
+
+	for (auto& str : p_impl->str_array)
+	{
+		delete[] str.data();
+	}
+
+	delete p_impl;
 }
 
 
 std::size_t StringTable::get_index(StringView str)
 {
-	ImplementType::StringViewPtr str_ptr(&str, ImplementType::EmptyDeleter());
-	auto itr = impl()->str_hash.find(str_ptr);
-	if (itr == impl()->str_hash.end())
+	auto itr = p_impl->str_hash.find(str);
+	if (itr == p_impl->str_hash.end())
 	{
 		return add_str(str);
 	}
@@ -131,21 +122,20 @@ std::size_t StringTable::add_str(StringView str)
 {
 	char* storage = new char[str.length()];
 	copy_array(storage, str.data(), str.length());
-	StringView* new_view = new StringView(storage, str.length());
-	ImplementType::StringViewPtr str_ptr(new_view, ImplementType::StringDeleter());
+	StringView new_str(storage, str.length());
 
-	impl()->str_array.push_back(str_ptr);
-	auto pair = std::make_pair(str_ptr, impl()->str_array.size() - 1);
-	impl()->str_hash.insert(pair);
+	p_impl->str_array.push_back(new_str);
+	auto pair = std::make_pair(new_str, p_impl->str_array.size() - 1);
+	p_impl->str_hash.insert(pair);
 	return pair.second;
 }
 
 
 StringView StringTable::get_str(std::size_t index) const
 {
-	if (index < impl()->str_array.size())
+	if (index < p_impl->str_array.size())
 	{
-		return *impl()->str_array[index];
+		return p_impl->str_array[index];
 	}
 	else
 	{

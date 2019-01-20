@@ -47,12 +47,6 @@ inline const StringView to_string(LogLevel level)
 
 
 /**
- * General log sink pointer.
- */
-using LogSinkPtr = std::shared_ptr<Sink>;
-
-
-/**
  * TextLogger log message with text mode to backend sink.
  */
 class TextLogger
@@ -61,7 +55,7 @@ public:
 	/**
 	 * Creates text logger.
 	 */
-	TextLogger(StringView name, LogSinkPtr sink_ptr);
+	TextLogger(StringView name, Sink& sink);
 
 	/**
 	 * Returns logger name.
@@ -140,20 +134,14 @@ private:
 
 	void generate_signature(LogLevel level);
 
-	void recore_location(const SourceLocation& location)
-	{
-		if (is_record_location() && is_valid(location))
-		{
-			m_writer.write(" [{}:{}][{}]", location.file(), location.line(), location.function());
-		}
-	}
+	void record_location(const SourceLocation& location);
 
 	void append_log_separator();
 
 	std::string m_name;
-	LogLevel m_level = LogLevel::INFO;
-	bool m_record_location = true;
-	LogSinkPtr m_sink_ptr;
+	LogLevel m_level;
+	bool m_record_location;
+	Sink& m_sink;
 	char m_write_target[WRITER_BUFFER_SIZE_DEFAULT];
 	TextWriter m_writer;
 };
@@ -167,9 +155,9 @@ void TextLogger::log(LogLevel level, const SourceLocation& location, const char*
 		m_writer.clear();
 		this->generate_signature(level);
 		m_writer.write(fmt, args ...);
-		this->recore_location(location);
+		this->record_location(location);
 		append_log_separator();
-		m_sink_ptr->write(m_writer.string_view());
+		m_sink.write(m_writer.string_view());
 	}
 }
 
@@ -182,9 +170,9 @@ void TextLogger::log(LogLevel level, const SourceLocation& location, const T& va
 		m_writer.clear();
 		this->generate_signature(level);
 		m_writer << value;
-		this->recore_location(location);
+		this->record_location(location);
 		append_log_separator();
-		m_sink_ptr->write(m_writer.string_view());
+		m_sink.write(m_writer.string_view());
 	}
 }
 
@@ -219,7 +207,7 @@ public:
 	/**
 	 * Creates binary logger.
 	 */
-	BinaryLogger(const std::string& name, LogSinkPtr sink_ptr, StringTablePtr str_table_ptr);
+	BinaryLogger(const std::string& name, Sink& sink, StringTable& str_table);
 
 	/**
 	 * Gets logger name.
@@ -291,13 +279,13 @@ private:
 	{
 		// signature + content + tail length.
 		SequenceView view(m_write_target, sizeof(BinaryMessageSignature) + m_writer.size() + sizeof(std::uint16_t));
-		m_sink_ptr->write(view);
+		m_sink.write(view);
 	}
 
 	std::string m_name;
-	LogLevel m_level = LogLevel::INFO;
-	LogSinkPtr m_sink_ptr;
-	StringTablePtr m_str_table_ptr;
+	LogLevel m_level;
+	Sink& m_sink;
+	StringTable& m_str_table;
 	char m_write_target[WRITER_BUFFER_SIZE_LARGE];
 	BinaryMessageSignature* m_signature;
 	BinaryStoreWriter m_writer;
@@ -341,7 +329,7 @@ void BinaryLogger::log(LogLevel level, const SourceLocation& location, const T& 
 class BinaryLogReader
 {
 public:
-	BinaryLogReader(StringView log_filename, StringTablePtr str_table_ptr);
+	BinaryLogReader(StringView log_filename, StringTable& str_table);
 
 	/**
 	 * @note Returns nullptr when have no log message to read.
@@ -394,7 +382,7 @@ private:
 	void jump_from_tail(std::size_t line);
 
 	FileStream m_file;
-	StringTablePtr m_str_table_ptr;
+	StringTable& m_str_table;
 	BinaryMessageSignature m_signature;
 	char m_write_target[WRITER_BUFFER_SIZE_LARGE];
 	BinaryRestoreWriter m_writer;

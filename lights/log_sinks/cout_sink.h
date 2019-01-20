@@ -8,7 +8,6 @@
 
 #include <cstddef>
 #include <iostream>
-#include <memory>
 
 #include "../sequence.h"
 #include "../ostream.h"
@@ -35,10 +34,10 @@ public:
 	/**
 	 * Returns instance.
 	 */
-	static std::shared_ptr<CoutSink> instance()
+	static CoutSink& instance()
 	{
-		static auto instance = std::make_shared<CoutSink>();
-		return instance;
+		static CoutSink inst;
+		return inst;
 	};
 };
 
@@ -61,10 +60,10 @@ public:
 	/**
 	 * Returns instance.
 	 */
-	static std::shared_ptr<CerrSink> instance()
+	static CerrSink& instance()
 	{
-		static auto instance = std::make_shared<CerrSink>();
-		return instance;
+		static CerrSink inst;
+		return inst;
 	};
 };
 
@@ -87,10 +86,10 @@ public:
 	/**
 	 * Returns instance.
 	 */
-	static std::shared_ptr<ClogSink> instance()
+	static ClogSink& instance()
 	{
-		static auto instance = std::make_shared<ClogSink>();
-		return instance;
+		static ClogSink inst;
+		return inst;
 	};
 };
 

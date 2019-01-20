@@ -47,7 +47,7 @@ void example_TextLogger()
 	LIGHTS_INFO(logger, "Only for a test");
 
 	// Rotate everyday.
-	auto time_file_sink = std::make_shared<lights::log_sinks::TimeRotatingFileSink>("daily_logger.log");
+	lights::log_sinks::TimeRotatingFileSink time_file_sink("daily_logger.log");
 	lights::TextLogger daily_logger("daily_logger", time_file_sink);
 	LIGHTS_INFO(logger, "Only for a test");
 }
@@ -55,10 +55,10 @@ void example_TextLogger()
 
 void example_BinaryLogger()
 {
-	auto str_table_ptr = lights::StringTable::create("log_str_table");
 	lights::StringView log_filename = "example_log.log";
-	auto file_sink = std::make_shared<lights::log_sinks::SimpleFileSink>(log_filename);
-	lights::BinaryLogger logger("bin_log", file_sink, str_table_ptr);
+	lights::log_sinks::SimpleFileSink file_sink(log_filename);
+	lights::StringTable str_table("log_str_table");
+	lights::BinaryLogger logger("bin_log", file_sink, str_table);
 
 	logger.set_level(lights::LogLevel::DEBUG);
 
@@ -75,7 +75,7 @@ void example_BinaryLogger()
 	LIGHTS_INFO(logger, "Only for a test");
 
 	// Read binary log.
-	lights::BinaryLogReader reader(log_filename, str_table_ptr);
+	lights::BinaryLogReader reader(log_filename, str_table);
 	while (!reader.eof())
 	{
 		auto log = reader.read();

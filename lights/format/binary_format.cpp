@@ -48,6 +48,7 @@ void BinaryStoreWriter::append(StringView str, bool store_in_table)
 			std::memcpy(m_buffer + m_length, str.data(), str.length());
 			m_length += str.length();
 		}
+		// TODO: How to store string when don't need to store in table?
 	}
 }
 

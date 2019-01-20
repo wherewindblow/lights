@@ -6,9 +6,6 @@
 
 #pragma once
 
-#include <cstddef>
-#include <memory>
-
 #include "../sequence.h"
 
 
@@ -24,10 +21,10 @@ public:
 	/**
 	 * Returns instance.
 	 */
-	static std::shared_ptr<NullSink> instance()
+	static NullSink& instance()
 	{
-		static auto instance = std::make_shared<NullSink>();
-		return instance;
+		static NullSink inst;
+		return inst;
 	};
 };
 

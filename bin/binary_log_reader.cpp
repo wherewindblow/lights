@@ -20,9 +20,8 @@ enum class ReadModeType
 
 void read_log(lights::StringView log_filename, lights::StringView str_table_filename, ReadModeType read_mode, std::streamoff line)
 {
-	auto str_table_ptr = lights::StringTable::create(str_table_filename);
-
-	lights::BinaryLogReader reader(log_filename, str_table_ptr);
+	lights::StringTable str_table(str_table_filename);
+	lights::BinaryLogReader reader(log_filename, str_table);
 	if (read_mode == ReadModeType::JUMP_TO_LINE)
 	{
 		reader.jump(line);

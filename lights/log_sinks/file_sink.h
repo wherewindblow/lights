@@ -9,12 +9,10 @@
 #include <cstddef>
 #include <cstring>
 #include <string>
-#include <memory>
 #include <mutex>
 
 #include "../sequence.h"
 #include "../file.h"
-#include "../exception.h"
 
 
 namespace lights {
@@ -31,7 +29,10 @@ public:
 	 * Creates writer.
 	 */
 	LogMessageWriter(FileStream* file = nullptr) :
-		m_file(file) {}
+		m_file(file),
+		m_buffer_length(0),
+		m_last_flush_time(0)
+	{}
 
 	/**
 	 * Sets log message write target.
@@ -75,9 +76,9 @@ public:
 	}
 
 private:
-	std::size_t m_buffer_length = 0;
-	FileStream* m_file = nullptr;
-	std::time_t m_last_flush_time = 0;
+	FileStream* m_file;
+	std::size_t m_buffer_length;
+	std::time_t m_last_flush_time;
 };
 
 
@@ -120,7 +121,7 @@ private:
 class SizeRotatingFileSink: public Sink
 {
 public:
-	SizeRotatingFileSink() = default;
+	SizeRotatingFileSink();
 
 	/**
 	 * Init file name format.
@@ -164,13 +165,13 @@ private:
 
 	void rotate(std::size_t expect_size);
 
-	bool can_init = true;
+	bool can_init;
 	std::string m_name_format;
-	std::size_t m_max_size = static_cast<std::size_t>(-1);
-	std::size_t m_max_files = static_cast<std::size_t>(-1);
+	std::size_t m_max_size;
+	std::size_t m_max_files;
 	FileStream m_file;
 	LogMessageWriter m_msg_writer;
-	std::size_t m_index = static_cast<std::size_t>(-1);
+	std::size_t m_index;
 	std::size_t m_current_size;
 	std::mutex m_mutex;
 };

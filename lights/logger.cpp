@@ -6,16 +6,19 @@
 
 #include "logger.h"
 
-#include <chrono>
+#include <memory>
 
 #include "precise_time.h"
 
 
 namespace lights {
 
-TextLogger::TextLogger(StringView name, LogSinkPtr sink_ptr) :
+TextLogger::TextLogger(StringView name, Sink& sink) :
 	m_name(name.data()),
-	m_sink_ptr(sink_ptr),
+	m_level(LogLevel::INFO),
+	m_record_location(true),
+	m_sink(sink),
+	m_write_target(),
 	m_writer(make_string(m_write_target))
 {}
 
@@ -27,9 +30,9 @@ void TextLogger::log(LogLevel level, const SourceLocation& location, const char*
 		m_writer.clear();
 		this->generate_signature(level);
 		m_writer.append(str);
-		this->recore_location(location);
+		this->record_location(location);
 		append_log_separator();
-		m_sink_ptr->write(m_writer.string_view());
+		m_sink.write(m_writer.string_view());
 	}
 }
 
@@ -59,6 +62,15 @@ void TextLogger::generate_signature(LogLevel level)
 }
 
 
+void TextLogger::record_location(const SourceLocation& location)
+{
+	if (is_record_location() && is_valid(location))
+	{
+		m_writer.write(" [{}:{}][{}]", location.file(), location.line(), location.function());
+	}
+}
+
+
 void TextLogger::append_log_separator()
 {
 	StringView end_line = env::end_line();
@@ -74,17 +86,19 @@ void TextLogger::append_log_separator()
 }
 
 
-BinaryLogger::BinaryLogger(const std::string& name, LogSinkPtr sink_ptr, StringTablePtr str_table_ptr) :
+BinaryLogger::BinaryLogger(const std::string& name, Sink& sink, StringTable& str_table) :
 	m_name(name),
-	m_sink_ptr(sink_ptr),
-	m_str_table_ptr(str_table_ptr),
+	m_level(LogLevel::INFO),
+	m_sink(sink),
+	m_str_table(str_table),
+	m_write_target(),
 	m_signature(reinterpret_cast<BinaryMessageSignature*>(m_write_target)),
 	m_writer(Sequence(m_write_target + sizeof(BinaryMessageSignature),
 					  sizeof(m_write_target) - sizeof(BinaryMessageSignature) - sizeof(std::uint16_t)),
 		// sizeof(std::uint16_t) is reverse for tail length.
-			 m_str_table_ptr)
+			 &m_str_table)
 {
-	m_signature->logger_id = static_cast<std::uint32_t>(str_table_ptr->get_index(name));
+	m_signature->logger_id = static_cast<std::uint32_t>(str_table.get_index(name));
 }
 
 
@@ -93,12 +107,12 @@ void BinaryLogger::generate_signature(LogLevel level, const SourceLocation& loca
 	auto time = current_precise_time();
 	m_signature->time_seconds = time.seconds;
 	m_signature->time_nanoseconds = time.nanoseconds;
-	auto file_id = m_str_table_ptr->get_index(location.file());
+	auto file_id = m_str_table.get_index(location.file());
 	m_signature->file_id = static_cast<std::uint32_t>(file_id);
-	auto function_id = m_str_table_ptr->get_index(location.function());
+	auto function_id = m_str_table.get_index(location.function());
 	m_signature->function_id = static_cast<std::uint32_t>(function_id);
 	m_signature->source_line = location.line();
-	m_signature->description_id = static_cast<std::uint32_t>(m_str_table_ptr->get_index(description));
+	m_signature->description_id = static_cast<std::uint32_t>(m_str_table.get_index(description));
 	m_signature->level = level;
 }
 
@@ -114,10 +128,10 @@ void BinaryLogger::log(LogLevel level, const SourceLocation& location, const cha
 }
 
 
-BinaryLogReader::BinaryLogReader(StringView log_filename, StringTablePtr str_table_ptr) :
+BinaryLogReader::BinaryLogReader(StringView log_filename, StringTable& str_table) :
 	m_file(log_filename, "rb"),
-	m_str_table_ptr(str_table_ptr),
-	m_writer(make_string(m_write_target), str_table_ptr)
+	m_str_table(str_table),
+	m_writer(make_string(m_write_target), &str_table)
 {
 }
 
@@ -140,16 +154,16 @@ StringView BinaryLogReader::read()
 						Timestamp(m_signature.time_seconds),
 						pad(m_signature.time_nanoseconds, '0', 10),
 						to_string(m_signature.level),
-						m_str_table_ptr->get_str(m_signature.logger_id));
+						m_str_table.get_str(m_signature.logger_id));
 
-	m_writer.write_binary(m_str_table_ptr->get_str(m_signature.description_id),
+	m_writer.write_binary(m_str_table.get_str(m_signature.description_id),
 						  arguments.get(),
 						  m_signature.argument_length);
 
 	m_writer.write_text("  [{}:{}] [{}]",
-						m_str_table_ptr->get_str(m_signature.file_id),
+						m_str_table.get_str(m_signature.file_id),
 						m_signature.source_line,
-						m_str_table_ptr->get_str(m_signature.function_id));
+						m_str_table.get_str(m_signature.function_id));
 
 	return m_writer.string_view();
 }
