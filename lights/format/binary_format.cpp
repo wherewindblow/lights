@@ -9,6 +9,90 @@
 
 namespace lights {
 
+/**
+ * Gets type code of boolean.
+ */
+inline BinaryTypeCode get_type_code(bool)
+{
+	return BinaryTypeCode::BOOL;
+}
+
+/**
+ * Gets type code of char.
+ */
+inline BinaryTypeCode get_type_code(char)
+{
+	return BinaryTypeCode::CHAR;
+}
+
+/**
+ * Gets type code of string.
+ */
+inline BinaryTypeCode get_type_code(const char*)
+{
+	return BinaryTypeCode::STRING;
+}
+
+/**
+ * Get @c BinaryTypeCode by integer type @c T.
+ */
+template <typename T>
+inline BinaryTypeCode get_type_code(T)
+{
+	int offset;
+	switch (std::numeric_limits<std::make_unsigned_t<T>>::digits)
+	{
+		case 8:
+			offset = 0;
+			break;
+		case 16:
+			offset = 1;
+			break;
+		case 32:
+			offset = 2;
+			break;
+		case 64:
+			offset = 3;
+			break;
+		default:
+			offset = 0;
+			break;
+	}
+
+	offset *= 2;
+	offset += !std::numeric_limits<T>::is_signed ? 1 : 0;
+	return static_cast<BinaryTypeCode>(static_cast<int>(BinaryTypeCode::INT8_T) + offset);
+}
+
+/**
+ * Get type with of type by BinaryTypeCode.
+ */
+inline std::uint8_t get_type_width(BinaryTypeCode code)
+{
+	static std::uint8_t widths[] = {
+		0, // Invalid.
+		1, 1, // Bool and char
+		1,    // String.
+		1, 1, // 8 bits
+		2, 2, // 16 bits
+		4, 4, // 32 bits
+		8, 8, // 64 bits
+		2,    // User-define composed type
+		4,    // String reference only store a string table index.
+	};
+
+	std::uint8_t index = static_cast<std::uint8_t>(code);
+	if (index < 0 || index >= static_cast<std::uint8_t>(BinaryTypeCode::MAX))
+	{
+		return widths[0];
+	}
+	else
+	{
+		return widths[index];
+	}
+}
+
+
 BinaryStoreWriter::BinaryStoreWriter(Sequence write_target, StringTable* str_table_ptr) :
 	m_use_default_buffer(!is_valid(write_target)),
 	m_buffer(is_valid(write_target) ?
@@ -20,6 +104,29 @@ BinaryStoreWriter::BinaryStoreWriter(Sequence write_target, StringTable* str_tab
 	m_composed_member_num(0),
 	m_str_table_ptr(str_table_ptr)
 {}
+
+
+BinaryStoreWriter::~BinaryStoreWriter()
+{
+	if (m_use_default_buffer)
+	{
+		delete[] m_buffer;
+	}
+}
+
+
+void BinaryStoreWriter::append(char ch)
+{
+	if (can_append(sizeof(BinaryTypeCode) + sizeof(ch)))
+	{
+		if (m_state == FormatComposedTypeState::STARTED)
+		{
+			++m_composed_member_num;
+		}
+		m_buffer[m_length++] = static_cast<std::uint8_t>(BinaryTypeCode::CHAR);
+		m_buffer[m_length++] = static_cast<std::uint8_t>(ch);
+	}
+}
 
 
 void BinaryStoreWriter::append(StringView str, bool store_in_table)
@@ -64,6 +171,79 @@ void BinaryStoreWriter::append(StringView str, bool store_in_table)
 		// TODO: How to store string when don't need to store in table?
 	}
 }
+
+
+#define LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type)        \
+	{                                                                   \
+		BinaryTypeCode type_code = get_type_code(n);                    \
+		if (can_append(sizeof(BinaryTypeCode) + get_type_width(type_code))) \
+		{                                                               \
+			if (m_state == FormatComposedTypeState::STARTED)            \
+			{                                                           \
+				++m_composed_member_num;                                \
+			}                                                           \
+			m_buffer[m_length++] = static_cast<std::uint8_t>(type_code);\
+			Type* p = reinterpret_cast<Type *>(&m_buffer[m_length]);    \
+			*p = n;                                                     \
+			m_length += get_type_width(type_code);                      \
+		}                                                               \
+		return *this;                                                   \
+	}
+
+BinaryStoreWriter& BinaryStoreWriter::operator<< (std::int8_t n) \
+{
+	LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(std::int8_t);
+}
+
+BinaryStoreWriter& BinaryStoreWriter::operator<< (std::uint8_t n) \
+{
+	LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(std::uint8_t);
+}
+
+
+/**
+ * Inserts a integer and convert to small integer type when can convert.
+ */
+#define LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(Type, FitSmallType) \
+	BinaryStoreWriter& BinaryStoreWriter::operator<< (Type n)          \
+	{                                                                  \
+		if (n > std::numeric_limits<FitSmallType>::max() || n < std::numeric_limits<FitSmallType>::min()) \
+		{                                                              \
+			LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type);  \
+		}                                                              \
+		else                                                           \
+		{                                                              \
+			return *this << static_cast<FitSmallType>(n);              \
+		}                                                              \
+	}
+
+LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(std::int16_t, std::int8_t);
+LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(std::int32_t, std::int16_t);
+LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER(std::int64_t, std::int32_t);
+
+#undef LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_SIGNED_INTEGER
+
+
+#define LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(Type, FitSmallType) \
+	BinaryStoreWriter& BinaryStoreWriter::operator<< (Type n)         \
+	{                                                                 \
+		if (n > std::numeric_limits<FitSmallType>::max())             \
+		{                                                             \
+			LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_INTEGER_BODY(Type); \
+		}                                                             \
+		else                                                          \
+		{                                                             \
+			return *this << static_cast<FitSmallType>(n);             \
+		}                                                             \
+	}
+
+LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(std::uint16_t, std::uint8_t);
+LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(std::uint32_t, std::uint16_t);
+LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER(std::uint64_t, std::uint32_t);
+
+#undef LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_UNSIGNED_INTEGER
+
+#undef LIGHTSIMPL_BINARY_STORE_WRITER_APPEND_INTEGER_BODY
 
 
 void BinaryRestoreWriter::write_binary(StringView fmt, const std::uint8_t* binary_store_args, std::size_t args_length)

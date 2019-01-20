@@ -133,27 +133,54 @@ TextWriter::TextWriter(String write_target) :
 {}
 
 
-void TextWriter::handle_full(char ch)
+TextWriter::~TextWriter()
 {
-	if (m_full_handler)
+	if (m_use_default_buffer)
 	{
-		m_full_handler(string_view());
-		clear();
-		if (sizeof(ch) <= max_size())
+		delete[] m_buffer;
+	}
+}
+
+
+void TextWriter::append(char ch)
+{
+	if (can_append(sizeof(ch)))
+	{
+		m_buffer[m_length] = ch;
+		++m_length;
+	}
+	else // Full
+	{
+		if (m_full_handler)
 		{
-			append(ch);
+			m_full_handler(string_view());
+			clear();
+			if (sizeof(ch) <= max_size())
+			{
+				append(ch);
+			}
 		}
 	}
 }
 
 
-void TextWriter::handle_not_enough_space(StringView str)
+void TextWriter::append(StringView str)
 {
-	// Append to the remaining place.
-	StringView part(str.data(), max_size() - m_length);
-	append(part);
-	str.move_forward(part.length());
-	handle_full(str);
+	if (can_append(str.length()))
+	{
+		copy_array(m_buffer + m_length, str.data(), str.length());
+		m_length += str.length();
+	}
+	else // Have not enough space to hold all.
+	{
+		// Append to the remaining place.
+		StringView part(str.data(), max_size() - m_length);
+		append(part);
+		str.move_forward(part.length());
+
+		// Handle for full situation.
+		handle_full(str);
+	}
 }
 
 
@@ -184,5 +211,23 @@ void TextWriter::handle_full(StringView str)
 		}
 	}
 }
+
+
+#define LIGHTSIMPL_TEXT_WRITER_INSERT_IMPL(Type)            \
+	TextWriter& TextWriter::operator<< (Type n)             \
+	{                                                       \
+		auto len = details::format_need_space(n);           \
+		if (can_append(len))                                \
+		{                                                   \
+			details::format_integer(n, m_buffer + m_length + len); \
+			m_length += len;                                \
+		}                                                   \
+		return *this;                                       \
+	}
+
+LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_INSERT_IMPL)
+
+#undef LIGHTSIMPL_TEXT_WRITER_INSERT_IMPL
+
 
 } // namespace lights

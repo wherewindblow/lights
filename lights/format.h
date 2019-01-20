@@ -588,12 +588,12 @@ inline void to_string(FormatSink<Backend> sink, char ch)
  * @details Why must explicit specialization it? Because if not do that, SFINAE will
  *          pass user-defined type into this template function and cause compile error.
  */
-#define LIGHTSIMPL_INTEGER_TO_STRING(Type)            \
-template <typename Backend>                       \
-inline void to_string(FormatSink<Backend> sink, Type n) \
-{                                                 \
-	details::IntegerFormater formater;            \
-	sink.append(formater.format(n));              \
+#define LIGHTSIMPL_INTEGER_TO_STRING(Type)              \
+template <typename Backend>                             \
+void to_string(FormatSink<Backend> sink, Type n) \
+{                                                       \
+	details::IntegerFormater formater;                  \
+	sink.append(formater.format(n));                    \
 }
 
 LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_INTEGER_TO_STRING)
@@ -605,7 +605,7 @@ LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_INTEGER_TO_STRING)
  * Converts float to string and put to format sink.
  */
 template <typename Backend>
-inline void to_string(FormatSink<Backend> sink, float n)
+void to_string(FormatSink<Backend> sink, float n)
 {
 	char buf[std::numeric_limits<float>::max_exponent10 + 1 +
 		std::numeric_limits<float>::digits10 + 1];
@@ -617,7 +617,7 @@ inline void to_string(FormatSink<Backend> sink, float n)
  * Converts double to string and put to format sink.
  */
 template <typename Backend>
-inline void to_string(FormatSink<Backend> sink, double n)
+void to_string(FormatSink<Backend> sink, double n)
 {
 	// 100 is the max exponent10 of double that can format in
 	// sprintf on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2).
@@ -630,7 +630,7 @@ inline void to_string(FormatSink<Backend> sink, double n)
  * Converts long double to string and put to format sink.
  */
 template <typename Backend>
-inline void to_string(FormatSink<Backend> sink, long double n)
+void to_string(FormatSink<Backend> sink, long double n)
 {
 	// 100 is the max exponent10 of long double that can format in
 	// sprintf on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2).
@@ -644,7 +644,7 @@ inline void to_string(FormatSink<Backend> sink, long double n)
  * Converts error number to string and put to format sink.
  */
 template <typename Backend>
-inline void to_string(FormatSink<Backend> sink, ErrorNumber error_no)
+void to_string(FormatSink<Backend> sink, ErrorNumber error_no)
 {
 	char buf[env::MAX_ERROR_STR_LEN];
 	const char* result = env::strerror(error_no.value, buf, env::MAX_ERROR_STR_LEN);
@@ -661,7 +661,7 @@ void to_string(FormatSink<Backend> sink, Timestamp timestamp)
 	env::localtime(&timestamp.value, &tm);
 
 	sink << static_cast<unsigned>(tm.tm_year + 1900) << '-';
-	// Why not use pad, because pad will it more complex and slow.
+	// Why not use pad, because padding will make it more complex and slow.
 	details::write_2_digit(sink, static_cast<unsigned>(tm.tm_mon + 1)) << '-';
 	details::write_2_digit(sink, static_cast<unsigned>(tm.tm_mday)) << ' ';
 	details::write_2_digit(sink, static_cast<unsigned>(tm.tm_hour)) << ':';
@@ -793,7 +793,7 @@ inline void to_string(FormatSink<Backend> sink, IntegerFormatSpec<Integer, detai
  * @param spec  A spec of format integer.
  */
 template <typename Backend, typename Integer>
-inline void to_string(FormatSink<Backend> sink, IntegerFormatSpec<Integer, details::DecimalSpecTag> spec)
+void to_string(FormatSink<Backend> sink, IntegerFormatSpec<Integer, details::DecimalSpecTag> spec)
 {
 	details::IntegerFormater formater;
 	StringView str = formater.format(spec.value);
@@ -959,13 +959,7 @@ public:
 	/**
 	 * Destroys text writer.
 	 */
-	~TextWriter()
-	{
-		if (m_use_default_buffer)
-		{
-			delete[] m_buffer;
-		}
-	}
+	~TextWriter();
 
 	/**
 	 * Basic append function to append a character.
@@ -974,18 +968,7 @@ public:
 	 * @note If the internal buffer is full will have no effect, unless have already
 	 *       set full handler.
 	 */
-	void append(char ch)
-	{
-		if (can_append(sizeof(ch)))
-		{
-			m_buffer[m_length] = ch;
-			++m_length;
-		}
-		else // Full
-		{
-			handle_full(ch);
-		}
-	}
+	void append(char ch);
 
 	/**
 	 * Basic append function to append len of characters.
@@ -995,18 +978,7 @@ public:
 	 * @note If the internal buffer is full will have no effect, unless have already
 	 *       set full handler.
 	 */
-	void append(StringView str)
-	{
-		if (can_append(str.length()))
-		{
-			copy_array(m_buffer + m_length, str.data(), str.length());
-			m_length += str.length();
-		}
-		else // Have not enough space to hold all.
-		{
-			handle_not_enough_space(str);
-		}
-	}
+	void append(StringView str);
 
 	/**
 	 * Forwards to lights::write() function.
@@ -1029,21 +1001,12 @@ public:
 	 * @note If the internal buffer is full will have no effect, unless have already
 	 *       set full handler.
 	 */
-#define LIGHTSIMPL_TEXT_WRITER_APPEND_INTEGER(Type)         \
-	TextWriter& operator<< (Type n)                         \
-	{                                                       \
-		auto len = details::format_need_space(n);           \
-		if (can_append(len))                                \
-		{                                                   \
-			details::format_integer(n, m_buffer + m_length + len); \
-			m_length += len;                                \
-		}                                                   \
-		return *this;                                       \
-	}
+#define LIGHTSIMPL_TEXT_WRITER_INSERT_DECLARE(Type) \
+	TextWriter& operator<< (Type n);
 
-	LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_APPEND_INTEGER)
+	LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_INSERT_DECLARE)
 
-#undef LIGHTSIMPL_TEXT_WRITER_APPEND_INTEGER
+#undef LIGHTSIMPL_TEXT_WRITER_INSERT_DECLARE
 
 	/**
 	 * Forwards to lights::operater<<() function.
@@ -1148,10 +1111,6 @@ private:
 	{
 		return m_length + len <= max_size();
 	}
-
-	void handle_full(char ch);
-
-	void handle_not_enough_space(StringView str);
 
 	void handle_full(StringView str);
 
@@ -1287,7 +1246,7 @@ LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_TO_STRING)
  *          you user-defined type.
  */
 template <typename... Args>
-inline std::string format(StringView fmt, const Args& ... args)
+std::string format(StringView fmt, const Args& ... args)
 {
 	std::string backend;
 	write(make_format_sink(backend), fmt, args ...);
