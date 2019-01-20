@@ -14,10 +14,10 @@ set(LIGHTS_SOURCE_FILES
         precise_time.h precise_time.cpp
 
         format/binary_format.h format/binary_format.cpp
-        log_sinks/stdout_sink.h
-        log_sinks/cout_sink.h
-        log_sinks/null_sink.h
-        log_sinks/file_sink.h log_sinks/file_sink.cpp)
+        sinks/stdout_sink.h
+        sinks/cout_sink.h
+        sinks/null_sink.h
+        sinks/file_sink.h sinks/file_sink.cpp)
 
 add_library(lights_shared SHARED ${LIGHTS_SOURCE_FILES})
 add_library(lights_static STATIC ${LIGHTS_SOURCE_FILES})

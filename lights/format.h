@@ -93,7 +93,7 @@ struct Timestamp
 };
 
 /**
- * Returns current error number.
+ * Returns current time stamp.
  */
 inline Timestamp current_timestamp()
 {

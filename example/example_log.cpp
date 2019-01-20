@@ -9,8 +9,8 @@
 #include <vector>
 
 #include <lights/logger.h>
-#include <lights/log_sinks/file_sink.h>
-#include <lights/log_sinks/stdout_sink.h>
+#include <lights/sinks/file_sink.h>
+#include <lights/sinks/stdout_sink.h>
 
 
 namespace lights {
@@ -26,7 +26,7 @@ enum Type: std::uint16_t
 
 void example_TextLogger()
 {
-	auto stdout_sink = lights::log_sinks::StdoutSink::instance();
+	lights::Sink& stdout_sink = lights::sinks::StdoutSink::instance();
 	lights::TextLogger logger("test", stdout_sink);
 
 	// Set which level can be log.
@@ -47,7 +47,7 @@ void example_TextLogger()
 	LIGHTS_INFO(logger, "Only for a test");
 
 	// Rotate everyday.
-	lights::log_sinks::TimeRotatingFileSink time_file_sink("daily_logger.log");
+	lights::sinks::TimeRotatingFileSink time_file_sink("daily_logger.log");
 	lights::TextLogger daily_logger("daily_logger", time_file_sink);
 	LIGHTS_INFO(logger, "Only for a test");
 }
@@ -56,7 +56,7 @@ void example_TextLogger()
 void example_BinaryLogger()
 {
 	lights::StringView log_filename = "example_log.log";
-	lights::log_sinks::SimpleFileSink file_sink(log_filename);
+	lights::sinks::SimpleFileSink file_sink(log_filename);
 	lights::StringTable str_table("log_str_table");
 	lights::BinaryLogger logger("bin_log", file_sink, str_table);
 

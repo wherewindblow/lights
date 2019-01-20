@@ -12,8 +12,9 @@
 #include "../sequence.h"
 #include "../file.h"
 
+
 namespace lights {
-namespace log_sinks {
+namespace sinks {
 
 /**
  * StdoutSink is wrapper sink of stdout_stream.
@@ -64,5 +65,5 @@ public:
 	};
 };
 
-} // namespace log_sinks
+} // namespace sinks
 } // namespace lights

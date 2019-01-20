@@ -11,7 +11,7 @@
 
 
 namespace lights {
-namespace log_sinks {
+namespace sinks {
 
 SimpleFileSink::SimpleFileSink(StringView filename) :
 	m_file(filename.data(), "ab+"),
@@ -245,5 +245,5 @@ void TimeRotatingFileSink::rotate()
 }
 
 
-} // namespace log_sinks
+} // namespace sinks
 } // namespace lights

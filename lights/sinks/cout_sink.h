@@ -14,7 +14,7 @@
 
 
 namespace lights {
-namespace log_sinks {
+namespace sinks {
 
 /**
  * CoutSink is wrapper sink of std::cout.
@@ -93,5 +93,5 @@ public:
 	};
 };
 
-} // namespace log_sinks
+} // namespace sinks
 } // namespace lights

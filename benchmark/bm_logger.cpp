@@ -10,7 +10,7 @@
 #include <benchmark/benchmark.h>
 #include <spdlog/spdlog.h>
 #include <lights/logger.h>
-#include <lights/log_sinks/file_sink.h>
+#include <lights/sinks/file_sink.h>
 
 
 #define LOGGER_FILENAME(device) device == 0 ? "/dev/null" : __func__
@@ -38,7 +38,7 @@ void BM_logger_spdlog_logger(benchmark::State& state)
 void BM_logger_lights_TextLogger(benchmark::State& state)
 {
 	int device = state.range(0);
-	lights::log_sinks::SimpleFileSink file_sink(LOGGER_FILENAME(device));
+	lights::sinks::SimpleFileSink file_sink(LOGGER_FILENAME(device));
 	lights::TextLogger logger("log", file_sink);
 //	logger.set_record_location(false);
 
@@ -54,7 +54,7 @@ void BM_logger_lights_TextLogger(benchmark::State& state)
 void BM_logger_more_lights_TextLogger(benchmark::State& state)
 {
 	int device = state.range(0);
-	lights::log_sinks::SimpleFileSink file_sink(LOGGER_FILENAME(device));
+	lights::sinks::SimpleFileSink file_sink(LOGGER_FILENAME(device));
 	lights::TextLogger logger("log", file_sink);
 
 	while (state.KeepRunning())
@@ -67,7 +67,7 @@ void BM_logger_more_lights_TextLogger(benchmark::State& state)
 void BM_logger_more_lights_BinaryLogger(benchmark::State& state)
 {
 	int device = state.range(0);
-	lights::log_sinks::SimpleFileSink file_sink(LOGGER_FILENAME(device));
+	lights::sinks::SimpleFileSink file_sink(LOGGER_FILENAME(device));
 	lights::StringTable str_table("log_str_table");
 	lights::BinaryLogger logger("bin-log", file_sink, str_table);
 

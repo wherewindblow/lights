@@ -16,7 +16,7 @@
 
 
 namespace lights {
-namespace log_sinks {
+namespace sinks {
 
 /**
  * LogMessageWriter ensure every log message is write to backend completely.
@@ -221,5 +221,5 @@ private:
 	std::mutex m_mutex;
 };
 
-} // namespace log_sinks
+} // namespace sinks
 } // namespace lights

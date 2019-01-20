@@ -10,7 +10,7 @@
 
 
 namespace lights {
-namespace log_sinks {
+namespace sinks {
 
 /**
  * NullSink will accept all data and do nothing.
@@ -28,5 +28,5 @@ public:
 	};
 };
 
-} // namespace log_sinks
+} // namespace sinks
 } // namespace lights

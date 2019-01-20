@@ -33,10 +33,10 @@ inline const char* end_line()
 }
 
 // In XSI-compliant (posix) version, 100 character is enough to put all error
-// string on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2) (Englist Version).
-// In another languague version may have to change to largger to
+// string on g++ (GCC) 6.2.1 20160916 (Red Hat 6.2.1-2) (English Version).
+// In another language version may have to change to larger to
 // hold all message.
-// In GNU-specific version 100 character can hold all unkown error.
+// In GNU-specific version 100 character can hold all unknown error.
 constexpr int MAX_ERROR_STR_LEN = 100;
 
 /**
