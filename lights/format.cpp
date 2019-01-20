@@ -124,6 +124,15 @@ LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_FORMAT_INTEGER);
 } // namespace details
 
 
+TextWriter::TextWriter(String write_target) :
+	m_use_default_buffer(!is_valid(write_target)),
+	m_buffer(is_valid(write_target) ? write_target.data() : new char[WRITER_BUFFER_SIZE_DEFAULT]),
+	m_length(0),
+	m_capacity(is_valid(write_target) ? write_target.length() : WRITER_BUFFER_SIZE_DEFAULT),
+	m_full_handler()
+{}
+
+
 void TextWriter::handle_full(char ch)
 {
 	if (m_full_handler)

@@ -9,6 +9,19 @@
 
 namespace lights {
 
+BinaryStoreWriter::BinaryStoreWriter(Sequence write_target, StringTable* str_table_ptr) :
+	m_use_default_buffer(!is_valid(write_target)),
+	m_buffer(is_valid(write_target) ?
+			 static_cast<std::uint8_t*>(write_target.data()) :
+			 new std::uint8_t[WRITER_BUFFER_SIZE_DEFAULT]),
+	m_length(0),
+	m_capacity(is_valid(write_target) ? write_target.length() : WRITER_BUFFER_SIZE_DEFAULT),
+	m_state(FormatComposedTypeState::NO_INIT),
+	m_composed_member_num(0),
+	m_str_table_ptr(str_table_ptr)
+{}
+
+
 void BinaryStoreWriter::append(StringView str, bool store_in_table)
 {
 	if (str.length() == 0)

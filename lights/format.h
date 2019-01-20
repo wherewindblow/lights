@@ -66,7 +66,6 @@ struct IntegerFormatSpec
  */
 struct ErrorNumber
 {
-	ErrorNumber() = default;
 	explicit ErrorNumber(int no): value(no) {}
 
 	int value;
@@ -86,7 +85,6 @@ inline ErrorNumber current_error()
  */
 struct Timestamp
 {
-	Timestamp() = default;
 	explicit Timestamp(std::time_t time): value(time) {}
 
 	std::time_t value;
@@ -956,11 +954,7 @@ public:
 	 * Create text writer.
 	 * @param write_target If write target is not specify, will use default write target with default size.
 	 */
-	TextWriter(String write_target = invalid_string()):
-		m_use_default_buffer(!is_valid(write_target)),
-		m_buffer(is_valid(write_target) ? write_target.data() : new char[WRITER_BUFFER_SIZE_DEFAULT]),
-		m_capacity(is_valid(write_target) ? write_target.length() : WRITER_BUFFER_SIZE_DEFAULT)
-	{}
+	TextWriter(String write_target = invalid_string());
 
 	/**
 	 * Destroys text writer.
@@ -1163,7 +1157,7 @@ private:
 
 	bool m_use_default_buffer;
 	char* m_buffer;
-	std::size_t m_length = 0;
+	std::size_t m_length;
 	std::size_t m_capacity;
 	FullHandler m_full_handler;
 };

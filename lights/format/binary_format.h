@@ -143,14 +143,7 @@ public:
 	 * Create binary store writer.
 	 * @param write_target If write target is not specify, will use default write target with default size.
 	 */
-	BinaryStoreWriter(Sequence write_target = invalid_sequence(), StringTable* str_table_ptr = nullptr):
-		m_use_default_buffer(!is_valid(write_target)),
-		m_buffer(is_valid(write_target) ?
-				 static_cast<std::uint8_t*>(write_target.data()) :
-				 new std::uint8_t[WRITER_BUFFER_SIZE_DEFAULT]),
-		m_capacity(is_valid(write_target) ? write_target.length() : WRITER_BUFFER_SIZE_DEFAULT),
-		m_str_table_ptr(str_table_ptr)
-	{}
+	BinaryStoreWriter(Sequence write_target = invalid_sequence(), StringTable* str_table_ptr = nullptr);
 
 	/**
 	 * Destroys binary store writer.
@@ -369,9 +362,9 @@ private:
 
 	bool m_use_default_buffer;
 	std::uint8_t* m_buffer;
-	std::size_t m_length = 0;
+	std::size_t m_length;
 	std::size_t m_capacity;
-	FormatComposedTypeState m_state = FormatComposedTypeState::NO_INIT;
+	FormatComposedTypeState m_state;
 	std::uint16_t m_composed_member_num = 0;
 	StringTable* m_str_table_ptr;
 };
