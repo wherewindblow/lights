@@ -85,7 +85,7 @@ enum Type
 
 /**
  * ErrorCodeDescriptions have without arguments description and with arguments description.
- * To get full descrition must use @c with_args and format with arguments.
+ * To get full description must use @c with_args and format with arguments.
  */
 class ErrorCodeDescriptions
 {

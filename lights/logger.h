@@ -54,11 +54,12 @@ class TextLogger
 public:
 	/**
 	 * Creates text logger.
+	 * @note Caller must ensure lifecycle of `sink`.
 	 */
 	TextLogger(StringView name, Sink& sink);
 
 	/**
-	 * Returns logger name.
+	 * Gets logger name.
 	 */
 	const std::string& get_name() const
 	{
@@ -66,7 +67,24 @@ public:
 	}
 
 	/**
-	 * Returns logger level.
+	 * Gets log sink.
+	 */
+	Sink& get_sink()
+	{
+		return m_sink;
+	}
+
+	/**
+	 * Set log sink.
+	 * @note Caller must ensure lifecycle of `sink`.
+	 */
+	void set_sink(Sink& sink)
+	{
+		m_sink = sink;
+	}
+
+	/**
+	 * Gets logger level.
 	 */
 	LogLevel get_level() const
 	{

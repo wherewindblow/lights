@@ -16,12 +16,13 @@ std::size_t format_need_space(Integer n)
 {
 	static_assert(std::is_integral<Integer>::value && "n only can be integer");
 
-	auto absolute = static_cast<std::make_unsigned_t<Integer>>(n);
+	using UnsignedInteger = std::make_unsigned_t<Integer>;
+	auto absolute = static_cast<UnsignedInteger>(n);
 	bool negative = n < 0;
 	unsigned count = 0;
 	if (negative)
 	{
-		absolute = 0 - absolute;
+		absolute = static_cast<UnsignedInteger>(0 - absolute);
 		++count;
 	}
 
@@ -60,11 +61,12 @@ char* format_integer(Integer n, char* output)
 {
 	static_assert(std::is_integral<Integer>::value && "n only can be integer");
 
-	auto absolute = static_cast<std::make_unsigned_t<Integer>>(n);
+	using UnsignedInteger = std::make_unsigned_t<Integer>;
+	auto absolute = static_cast<UnsignedInteger>(n);
 	bool negative = n < 0;
 	if (negative)
 	{
-		absolute = 0 - absolute;
+		absolute = static_cast<UnsignedInteger>(0 - absolute);
 	}
 
 	if (absolute == 0)
