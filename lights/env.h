@@ -18,6 +18,16 @@
 namespace lights {
 namespace env {
 
+#define LIGHTS_OS_LINUX            1
+#define LIGHTS_OS_WINDOWS          2
+
+#if defined(linux) || defined(__linux) || defined(__linux__)
+	#define LIGHTS_OS LIGHTS_OS_LINUX
+#elif defined(_WIN32) || defined(_WIN64)
+	#define LIGHTS_OS LIGHTS_OS_WINDOWS
+#endif
+
+
 /**
  * Sets pod type do not memory alignment.
  */

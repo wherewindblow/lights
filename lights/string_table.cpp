@@ -9,12 +9,13 @@
 #include <vector>
 #include <unordered_map>
 #include <fstream>
+#include <memory>
 
 #include "config.h"
 #include "env.h"
 #include "exception.h"
 
-#include <memory>
+
 namespace lights {
 
 namespace details {

@@ -141,6 +141,7 @@ void BinaryStoreWriter::append(StringView str, bool store_in_table)
 	}
 	else
 	{
+		// Store string in string table.
 		if (store_in_table && m_str_table_ptr)
 		{
 			BinaryTypeCode type_code = BinaryTypeCode::STRING_REF;
@@ -157,6 +158,7 @@ void BinaryStoreWriter::append(StringView str, bool store_in_table)
 				m_length += get_type_width(type_code);
 			}
 		}
+		// Store string in buffer as other value.
 		else if (can_append(str.length() + sizeof(BinaryTypeCode) + sizeof(std::uint8_t)))
 		{
 			if (m_state == FormatComposedTypeState::STARTED)
@@ -168,7 +170,6 @@ void BinaryStoreWriter::append(StringView str, bool store_in_table)
 			std::memcpy(m_buffer + m_length, str.data(), str.length());
 			m_length += str.length();
 		}
-		// TODO: How to store string when don't need to store in table?
 	}
 }
 
