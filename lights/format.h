@@ -213,7 +213,7 @@ static constexpr char digists[] =
 
 
 /**
- * Get the need space of format integer @c n.
+ * Gets the need space of format integer @c n.
  * @tparam Integer  Any integer type.
  * @param n         A integer that type of Integer.
  */
@@ -807,7 +807,7 @@ void to_string(FormatSink<Backend> sink, IntegerFormatSpec<Integer, details::Dec
 
 
 /**
- * Convert value to string and append to format sink. It'll invoke @c to_string()
+ * Converts value to string and append to format sink. It'll invoke @c to_string()
  * Aim to support append not string type to format sink.
  * @param sink   A FormatSink.
  * @param value  Any type value.
@@ -951,7 +951,7 @@ public:
 	using FullHandler = std::function<void(StringView)>;
 
 	/**
-	 * Create text writer.
+	 * Creates text writer.
 	 * @param write_target If write target is not specify, will use default write target with default size.
 	 */
 	TextWriter(String write_target = invalid_string());
@@ -989,7 +989,7 @@ public:
 	void write(StringView fmt, const Arg& value, const Args& ... args);
 
 	/**
-	 * Forward to lights::write() function.
+	 * Forwards to lights::write() function.
 	 * @note If the internal buffer is full will have no effect, unless have already
 	 *       set full handler.
 	 */
@@ -1211,14 +1211,14 @@ LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_TO_STRING)
 #define LIGHTS_CONCAT(a, b) LIGHTSIMPL_CONCAT(a, b)
 
 /**
- * Create a text writer with a buffer that in stack.
+ * Creates a text writer with a buffer that in stack.
  */
 #define LIGHTS_TEXT_WRITER(name, buffer_size) \
 	char LIGHTS_CONCAT(name##_write_target_, __LINE__)[buffer_size]; \
 	lights::TextWriter name({LIGHTS_CONCAT(name##_write_target_, __LINE__), buffer_size});
 
 /**
- * Create a text writer with default size.
+ * Creates a text writer with default size.
  */
 #define LIGHTS_DEFAULT_TEXT_WRITER(name) \
 	LIGHTS_TEXT_WRITER(name, lights::WRITER_BUFFER_SIZE_DEFAULT)

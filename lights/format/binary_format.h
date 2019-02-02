@@ -57,7 +57,7 @@ public:
 	};
 
 	/**
-	 * Create binary store writer.
+	 * Creates binary store writer.
 	 * @param write_target If write target is not specify, will use default write target with default size.
 	 */
 	BinaryStoreWriter(Sequence write_target = invalid_sequence(), StringTable* str_table_ptr = nullptr);
@@ -93,20 +93,20 @@ public:
 	void add_composed_type(const T& value);
 
 	/**
-	 * Forward to @c lights::write() function.
+	 * Forwards to @c lights::write() function.
 	 * @note If the internal buffer is full will have no effect.
 	 */
 	template <typename Arg, typename ... Args>
 	void write(StringView fmt, const Arg& value, const Args& ... args);
 
 	/**
-	 * Forward to @c lights::write() function.
+	 * Forwards to @c lights::write() function.
 	 * @note If the internal buffer is full will have no effect.
 	 */
 	void write(StringView fmt);
 
 	/**
-	 * Return the internal buffer.
+	 * Returns the internal buffer.
 	 */
 	const std::uint8_t* data() const
 	{
@@ -114,7 +114,7 @@ public:
 	}
 
 	/**
-	 * Return the internal buffer in c string but not null-terminated.
+	 * Returns the internal buffer in c string but not null-terminated.
 	 */
 	const char* c_str() const
 	{
@@ -122,7 +122,7 @@ public:
 	}
 
 	/**
-	 * Return a @c std::string that convert from internal buffer.
+	 * Returns a @c std::string that convert from internal buffer.
 	 */
 	std::string std_string() const
 	{
@@ -130,7 +130,7 @@ public:
 	}
 
 	/**
-	 * Return a @c StringView of internal buffer.
+	 * Returns a @c StringView of internal buffer.
 	 * @note The return value is only valid when this object have no change
 	 *       the area of return @c StringView.
 	 */
@@ -140,7 +140,7 @@ public:
 	}
 
 	/**
-	 * Return the length of internal buffer.
+	 * Returns the length of internal buffer.
 	 */
 	std::size_t length() const
 	{
@@ -148,7 +148,7 @@ public:
 	}
 
 	/**
-	 * Return the length of internal buffer.
+	 * Returns the length of internal buffer.
 	 * @details It's same as @c length() function.
 	 */
 	std::size_t size() const
@@ -157,7 +157,7 @@ public:
 	}
 
 	/**
-	 * Set the size of internal buffer.
+	 * Sets the size of internal buffer.
 	 * @note Must ensure @c new_size is less than @c capacity().
 	 */
 	void resize(std::size_t new_size)
@@ -166,7 +166,7 @@ public:
 	}
 
 	/**
-	 * Set the format result length to zero.
+	 * Clears format result.
 	 */
 	void clear()
 	{
@@ -174,7 +174,7 @@ public:
 	}
 
 	/**
-	 * Return the max size that format result can be.
+	 * Returns the max size that format result can be.
 	 */
 	std::size_t max_size() const
 	{
@@ -182,7 +182,7 @@ public:
 	}
 
 	/**
-	 * Return the internal buffer size.
+	 * Returns the internal buffer size.
 	 */
 	std::size_t capacity() const
 	{
@@ -190,9 +190,6 @@ public:
 	}
 
 private:
-	/**
-	 * Checks can append @c len data.
-	 */
 	bool can_append(std::size_t len)
 	{
 		return m_length + len <= max_size();
@@ -248,7 +245,7 @@ public:
 	}
 
 	/**
-	 * Get internal backend.
+	 * Gets internal backend.
 	 */
 	BinaryStoreWriter& get_internal_backend()
 	{
@@ -347,7 +344,7 @@ void BinaryStoreWriter::add_composed_type(const T& value)
 
 
 /**
- * Use @c BinaryStoreWriter member function to format integer to speed up.
+ * Uses @c BinaryStoreWriter member function to format integer to speed up.
  */
 #define LIGHTSIMPL_BINARY_STORE_WRITER_TO_STRING(Type) \
 inline void to_string(FormatSink<BinaryStoreWriter> sink, Type n) \
@@ -387,7 +384,7 @@ public:
 	}
 
 	/**
-	 * Forward to lights::write() function to format text.
+	 * Forwards to lights::write() function to format text.
 	 * @note If the internal buffer is full will have no effect.
 	 */
 	template <typename Arg, typename ... Args>
@@ -398,7 +395,7 @@ public:
 	}
 
 	/**
-	 * Forward to lights::write() function to format text.
+	 * Forwards to lights::write() function to format text.
 	 * @note If the internal buffer is full will have no effect.
 	 */
 	void write_text(StringView fmt)
@@ -407,13 +404,13 @@ public:
 	}
 
 	/**
-	 * Forward to lights::write() function to format binary.
+	 * Forwards to lights::write() function to format binary.
 	 * @note If the internal buffer is full will have no effect.
 	 */
 	void write_binary(StringView fmt, const std::uint8_t* binary_store_args, std::size_t args_length);
 
 	/**
-	 * Forward to lights::operater<<() function.
+	 * Forwards to lights::operater<<() function.
 	 * @return The reference of this object.
 	 * @note If the internal buffer is full will have no effect.
 	 */
@@ -425,7 +422,7 @@ public:
 	}
 
 	/**
-	 * Return a pointer to null-terminated character array that store in internal.
+	 * Returns a pointer to null-terminated character array that store in internal.
 	 */
 	const char* c_str() const
 	{
@@ -433,7 +430,7 @@ public:
 	}
 
 	/**
-	 * Return a @c std::string that convert from internal buffer.
+	 * Returns a @c std::string that convert from internal buffer.
 	 * @note This conversion will generate a data copy.
 	 */
 	std::string std_string() const
@@ -442,7 +439,7 @@ public:
 	}
 
 	/**
-	 * Return a @c StringView of internal buffer.
+	 * Returns a @c StringView of internal buffer.
 	 * @note The return value is only valid when this object have no change
 	 *       the area of return @c StringView.
 	 */
@@ -452,7 +449,7 @@ public:
 	}
 
 	/**
-	 * Return the length of internal buffer.
+	 * Returns the length of internal buffer.
 	 */
 	std::size_t length() const
 	{
@@ -460,7 +457,7 @@ public:
 	}
 
 	/**
-	 * Return the length of internal buffer.
+	 * Returns the length of internal buffer.
 	 * @details It's same as @c length() function.
 	 */
 	std::size_t size() const
@@ -469,7 +466,7 @@ public:
 	}
 
 	/**
-	 * Set the format result length to zero.
+	 * Sets the format result length to zero.
 	 */
 	void clear()
 	{
@@ -477,7 +474,7 @@ public:
 	}
 
 	/**
-	 * Return the max size that format result can be.
+	 * Returns the max size that format result can be.
 	 */
 	std::size_t max_size() const
 	{
@@ -485,7 +482,7 @@ public:
 	}
 
 	/**
-	 * Return the internal buffer size.
+	 * Returns the internal buffer size.
 	 */
 	std::size_t capacity() const
 	{
@@ -494,7 +491,8 @@ public:
 
 private:
 	/**
-	 * Write a argument and get the width of argument.
+	 * Writes a argument.
+	 * @return Width of argument.
 	 */
 	std::uint8_t write_argument(const uint8_t* binary_store_args);
 

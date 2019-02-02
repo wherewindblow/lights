@@ -81,7 +81,7 @@ public:
 	}
 
 	/**
-	 * Convert to std::string.
+	 * Converts to std::string.
 	 */
 	std::string to_std_string() const
 	{
@@ -89,7 +89,7 @@ public:
 	}
 
 	/**
-	 * Move string data address forward.
+	 * Moves string data address forward.
 	 */
 	void move_forward(std::size_t len)
 	{
@@ -172,7 +172,7 @@ public:
 	}
 
 	/**
-	 * Convert to std::string.
+	 * Converts to std::string.
 	 */
 	std::string to_std_string() const
 	{
@@ -180,7 +180,7 @@ public:
 	}
 
 	/**
-	 * Move string data address forward.
+	 * Moves string data address forward.
 	 */
 	void move_forward(std::size_t len)
 	{
@@ -247,7 +247,7 @@ public:
 	}
 
 	/**
-	 * Move string data address forward.
+	 * Moves string data address forward.
 	 */
 	void move_forward(std::size_t len)
 	{
@@ -321,7 +321,7 @@ public:
 	}
 
 	/**
-	 * Move string data address forward.
+	 * Moves string data address forward.
 	 */
 	void move_forward(std::size_t len)
 	{
@@ -336,7 +336,7 @@ private:
 
 
 /**
- * Convert sequence to string.
+ * Converts sequence to string.
  */
 inline String to_string(Sequence sequence)
 {
@@ -344,7 +344,7 @@ inline String to_string(Sequence sequence)
 }
 
 /**
- * Convert sequence view to string view.
+ * Converts sequence view to string view.
  */
 inline StringView to_string_view(SequenceView sequence)
 {

@@ -50,7 +50,7 @@ inline const char* end_line()
 constexpr int MAX_ERROR_STR_LEN = 100;
 
 /**
- * Return string version of error number.
+ * Returns string version of error number.
  * @param error_no  Enum of error.
  * @param buf       Use to hold error string sometime.
  * @note Must use return value as result, not @c buf. Because @c buf

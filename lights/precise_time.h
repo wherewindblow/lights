@@ -45,6 +45,9 @@ inline bool is_over_flow(std::int64_t a, std::int64_t b)
 }
 
 
+/**
+ * Plus operation of PreciseTime.
+ */
 inline PreciseTime operator+(const PreciseTime& left, const PreciseTime& right)
 {
 	PreciseTime result(left.seconds + right.seconds, left.nanoseconds + right.nanoseconds);
@@ -57,6 +60,9 @@ inline PreciseTime operator+(const PreciseTime& left, const PreciseTime& right)
 }
 
 
+/**
+ * Minus operation of PreciseTime.
+ */
 inline PreciseTime operator-(const PreciseTime& left, const PreciseTime& right)
 {
 	PreciseTime result(left.seconds - right.seconds, left.nanoseconds - right.nanoseconds);
@@ -69,6 +75,9 @@ inline PreciseTime operator-(const PreciseTime& left, const PreciseTime& right)
 }
 
 
+/**
+ * Multiple operation of PreciseTime.
+ */
 inline PreciseTime operator*(const PreciseTime& time, int n)
 {
 	PreciseTime result(time.seconds * n, time.nanoseconds * n);
@@ -81,6 +90,9 @@ inline PreciseTime operator*(const PreciseTime& time, int n)
 }
 
 
+/**
+ * Divide operation of PreciseTime.
+ */
 inline PreciseTime operator/(const PreciseTime& time, int n)
 {
 	PreciseTime result(time.seconds / n, time.nanoseconds / n);
@@ -91,6 +103,9 @@ inline PreciseTime operator/(const PreciseTime& time, int n)
 }
 
 
+/**
+ * Less than operation of PreciseTime.
+ */
 inline bool operator<(const PreciseTime& left, const PreciseTime& right)
 {
 	if (left.seconds != right.seconds)
@@ -101,6 +116,9 @@ inline bool operator<(const PreciseTime& left, const PreciseTime& right)
 }
 
 
+/**
+ * Greater than operation of PreciseTime.
+ */
 inline bool operator>(const PreciseTime& left, const PreciseTime& right)
 {
 	if (left.seconds != right.seconds)
@@ -117,31 +135,49 @@ inline bool operator>(const PreciseTime& left, const PreciseTime& right)
 PreciseTime current_precise_time();
 
 
+/**
+ * Converts nanosecond to microsecond.
+ */
 inline std::int64_t nanosecond_to_microsecond(std::int64_t nanosecond)
 {
 	return nanosecond / 1000;
 }
 
+/**
+ * Converts microsecond to nanosecond.
+ */
 inline std::int64_t microsecond_to_nanosecond(std::int64_t microsecond)
 {
 	return microsecond * 1000;
 }
 
+/**
+ * Converts nanosecond to millisecond.
+ */
 inline std::int64_t nanosecond_to_millisecond(std::int64_t nanosecond)
 {
 	return nanosecond / 1000000;
 }
 
+/**
+ * Converts millisecond to nanosecond.
+ */
 inline std::int64_t millisecond_to_nanosecond(std::int64_t millisecond)
 {
 	return millisecond * 1000000;
 }
 
+/**
+ * Converts microsecond to millisecond.
+ */
 inline std::int64_t microsecond_to_millisecond(std::int64_t microsecond)
 {
 	return microsecond / 1000;
 }
 
+/**
+ * Converts millisecond to microsecond.
+ */
 inline std::int64_t millisecond_to_microsecond(std::int64_t millisecond)
 {
 	return millisecond * 1000;
@@ -151,7 +187,7 @@ inline std::int64_t millisecond_to_microsecond(std::int64_t millisecond)
  * Puts precise time to format sink.
  */
 template <typename Backend>
-inline void to_string(FormatSink<Backend> sink, const PreciseTime& time)
+void to_string(FormatSink<Backend> sink, const PreciseTime& time)
 {
 	sink << time.seconds << '.' << pad(time.nanoseconds, '0', 9) << 's';
 }

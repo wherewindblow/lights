@@ -47,7 +47,7 @@ public:
 	}
 
 	/**
-	 * Automaticly close a file when there is a open file.
+	 * Closes a file automatically when there is a open file.
 	 */
 	~FileStream()
 	{

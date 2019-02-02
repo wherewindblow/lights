@@ -75,7 +75,7 @@ public:
 	}
 
 	/**
-	 * Set log sink.
+	 * Sets log sink.
 	 * @note Caller must ensure lifecycle of `sink`.
 	 */
 	void set_sink(Sink& sink)

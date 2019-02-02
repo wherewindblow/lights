@@ -33,8 +33,8 @@ const ErrorCodeDescriptions& LightsErrorCodeCategory::descriptions(int code) con
 	}
 	else
 	{
-		static ErrorCodeDescriptions unknow = {"Unknow error"};
-		return unknow;
+		static ErrorCodeDescriptions unknown = {"Unknown error"};
+		return unknown;
 	}
 }
 

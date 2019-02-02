@@ -40,19 +40,19 @@ public:
 	std::size_t get_index(StringView str);
 
 	/**
-	 * Add new string.
+	 * Adds new string.
 	 * @return Returns index of string.
 	 */
 	std::size_t add_str(StringView str);
 
 	/**
-	 * Get string by index.
+	 * Gets string by index.
 	 * @note Return nullptr if index is invalid.
 	 */
 	StringView get_str(std::size_t index) const;
 
 	/**
-	 * Get string by index.
+	 * Gets string by index.
 	 * @note Return nullptr if index is invalid.
 	 */
 	StringView operator[] (std::size_t index) const
