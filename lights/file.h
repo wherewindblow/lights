@@ -35,13 +35,16 @@ constexpr const int FILE_DEFAULT_BUFFER_SIZE = BUFSIZ;
 class FileStream
 {
 public:
-	FileStream() = default;
+	FileStream() :
+		m_std_file(nullptr)
+	{}
 
 	/**
 	 * Opens a file with @c filename and @c modes
 	 * @throw Thrown OpenFileError when have error.
 	 */
-	FileStream(StringView filename, StringView modes)
+	FileStream(StringView filename, StringView modes) :
+		FileStream()
 	{
 		open(filename, modes);
 	}
@@ -254,7 +257,7 @@ public:
 	friend FileStream& stderr_stream();
 
 private:
-	std::FILE* m_std_file = nullptr;
+	std::FILE* m_std_file;
 };
 
 /**

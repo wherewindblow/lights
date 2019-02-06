@@ -200,7 +200,7 @@ private:
 	std::size_t m_length;
 	std::size_t m_capacity;
 	FormatComposedTypeState m_state;
-	std::uint16_t m_composed_member_num = 0;
+	std::uint16_t m_composed_member_num;
 	StringTable* m_str_table_ptr;
 };
 
@@ -365,7 +365,9 @@ class BinaryRestoreWriter
 {
 public:
 	BinaryRestoreWriter(String write_target = invalid_string(), StringTable* str_table_ptr = nullptr) :
-		m_writer(write_target), m_str_table_ptr(str_table_ptr) {}
+		m_writer(write_target),
+		m_str_table_ptr(str_table_ptr)
+	{}
 
 	/**
 	 * @note If the internal buffer is full will have no effect.

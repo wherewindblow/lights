@@ -21,15 +21,7 @@ struct PreciseTime
 {
 	static const int NANOSECONDS_OF_SECOND = 1000000000;
 
-	PreciseTime() :
-		PreciseTime(0, 0)
-	{}
-
-	PreciseTime(std::int64_t seconds):
-		PreciseTime(seconds, 0)
-	{}
-
-	PreciseTime(std::int64_t seconds, std::int64_t nanoseconds):
+	PreciseTime(std::int64_t seconds = 0, std::int64_t nanoseconds = 0):
 		seconds(seconds), nanoseconds(nanoseconds)
 	{}
 

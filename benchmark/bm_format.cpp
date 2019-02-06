@@ -654,8 +654,13 @@ void BM_format_time_lights_to_string(benchmark::State& state)
 
 struct Coordinate
 {
-	Coordinate() = default;
-	int coordinate_x = 1, coordinate_y = 2;
+	Coordinate() :
+		coordinate_x(1),
+		coordinate_y(2)
+	{}
+
+	int coordinate_x;
+	int coordinate_y;
 };
 
 
@@ -676,9 +681,13 @@ inline void append(lights::FormatSink<Sink> out, const Coordinate& coordinate)
 
 struct CoordinateEx
 {
-	CoordinateEx() = default;
+	CoordinateEx() :
+		coordinate(),
+		coordinate_z(3)
+	{}
+
 	Coordinate coordinate;
-	int coordinate_z = 3;
+	int coordinate_z;
 };
 
 

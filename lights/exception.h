@@ -24,7 +24,6 @@ namespace lights {
 class SourceLocation
 {
 public:
-	SourceLocation() = default;
 	SourceLocation(const char* file, std::uint32_t line, const char* function):
 		m_file(file), m_function(function), m_line(line) {}
 
@@ -180,8 +179,12 @@ public:
 	/**
 	 * Creates exception.
 	 */
-	Exception(const SourceLocation& occur_location, int code, const ErrorCodeCategory& code_category = LightsErrorCodeCategory::instance()):
-		m_occur_location(occur_location), m_code(code), m_code_category(code_category)
+	Exception(const SourceLocation& occur_location,
+			  int code,
+			  const ErrorCodeCategory& code_category = LightsErrorCodeCategory::instance()):
+		m_occur_location(occur_location),
+		m_code(code),
+		m_code_category(code_category)
 	{
 	}
 
