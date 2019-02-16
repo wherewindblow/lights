@@ -12,6 +12,7 @@
 #include "env.h"
 #include "sequence.h"
 #include "exception.h"
+#include "non_copyable.h"
 
 
 namespace lights {
@@ -32,7 +33,7 @@ constexpr const int FILE_DEFAULT_BUFFER_SIZE = BUFSIZ;
 /**
  * FileStream provide operation with a file.
  */
-class FileStream
+class FileStream : public NonCopyable
 {
 public:
 	FileStream() :

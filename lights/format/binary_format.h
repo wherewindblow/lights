@@ -63,9 +63,19 @@ public:
 	BinaryStoreWriter(Sequence write_target = invalid_sequence(), StringTable* str_table_ptr = nullptr);
 
 	/**
+	 * Copies binary store writer.
+	 */
+	BinaryStoreWriter(const BinaryStoreWriter& rhs);
+
+	/**
 	 * Destroys binary store writer.
 	 */
 	~BinaryStoreWriter();
+
+	/**
+	 * Copies binary store writer.
+	 */
+	BinaryStoreWriter& operator=(const BinaryStoreWriter& rhs);
 
 	/**
 	 * @note If the internal buffer is full will have no effect.

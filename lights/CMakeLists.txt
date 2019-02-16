@@ -3,6 +3,7 @@ set(LIGHTS_SOURCE_FILES
         env.h
         sequence.h
         sink.h
+        non_copyable.h
         format.h format.cpp
         ostream.h
         file.h

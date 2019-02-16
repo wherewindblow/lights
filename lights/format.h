@@ -957,9 +957,19 @@ public:
 	TextWriter(String write_target = invalid_string());
 
 	/**
+	 * Copies text writer.
+	 */
+	TextWriter(const TextWriter& rhs);
+
+	/**
 	 * Destroys text writer.
 	 */
 	~TextWriter();
+
+	/**
+	 * Copies text writer.
+	 */
+	TextWriter& operator=(const TextWriter& rhs);
 
 	/**
 	 * Basic append function to append a character.

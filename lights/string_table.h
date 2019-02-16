@@ -7,6 +7,7 @@
 #pragma once
 
 #include "sequence.h"
+#include "non_copyable.h"
 
 
 namespace lights {
@@ -21,7 +22,7 @@ struct StringTableImpl;
 /**
  * StringTable record string with index.
  */
-class StringTable
+class StringTable : public NonCopyable
 {
 public:
 	/**
@@ -55,14 +56,19 @@ public:
 	 * Gets string by index.
 	 * @note Return nullptr if index is invalid.
 	 */
-	StringView operator[] (std::size_t index) const
-	{
-		return get_str(index);
-	}
+	StringView operator[] (std::size_t index) const;
 
 private:
 	using ImplementType = details::StringTableImpl;
 	ImplementType* p_impl;
 };
+
+
+// ========================== Inline implement. ==============================
+
+inline StringView StringTable::operator[](std::size_t index) const
+{
+	return get_str(index);
+}
 
 } // namespace lights

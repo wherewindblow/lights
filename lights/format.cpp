@@ -135,12 +135,37 @@ TextWriter::TextWriter(String write_target) :
 {}
 
 
+TextWriter::TextWriter(const TextWriter& rhs)
+{
+	*this = rhs;
+}
+
+
 TextWriter::~TextWriter()
 {
 	if (m_use_default_buffer)
 	{
 		delete[] m_buffer;
 	}
+}
+
+
+TextWriter& TextWriter::operator=(const TextWriter& rhs)
+{
+	if (&rhs != this)
+	{
+		if (m_use_default_buffer)
+		{
+			delete[] m_buffer;
+		}
+
+		m_use_default_buffer = rhs.m_use_default_buffer;
+		m_buffer = rhs.m_use_default_buffer ? new char[WRITER_BUFFER_SIZE_DEFAULT] : rhs.m_buffer;
+		m_length = rhs.m_length;
+		m_capacity = rhs.m_capacity;
+		m_full_handler = rhs.m_full_handler;
+	}
+	return *this;
 }
 
 

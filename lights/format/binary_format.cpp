@@ -106,12 +106,39 @@ BinaryStoreWriter::BinaryStoreWriter(Sequence write_target, StringTable* str_tab
 {}
 
 
+BinaryStoreWriter::BinaryStoreWriter(const BinaryStoreWriter& rhs)
+{
+	*this = rhs;
+}
+
+
 BinaryStoreWriter::~BinaryStoreWriter()
 {
 	if (m_use_default_buffer)
 	{
 		delete[] m_buffer;
 	}
+}
+
+
+BinaryStoreWriter& BinaryStoreWriter::operator=(const BinaryStoreWriter& rhs)
+{
+	if (&rhs != this)
+	{
+		if (m_use_default_buffer)
+		{
+			delete[] m_buffer;
+		}
+
+		m_use_default_buffer = rhs.m_use_default_buffer;
+		m_buffer = rhs.m_use_default_buffer ? new std::uint8_t[WRITER_BUFFER_SIZE_DEFAULT] : rhs.m_buffer;
+		m_length = rhs.m_length;
+		m_capacity = rhs.m_capacity;
+		m_state = rhs.m_state;
+		m_composed_member_num = rhs.m_composed_member_num;
+		m_str_table_ptr = rhs.m_str_table_ptr;
+	}
+	return *this;
 }
 
 
