@@ -70,7 +70,7 @@ inline const char* strerror(int error_no, char* buf, std::size_t len)
 	{
 		return "Unkown error";
 	}
-#else // GNU-specific version, buf only use when it is unkown.
+#else // GNU-specific version, buf only use when it is unknown.
 	return strerror_r(error_no, buf, sizeof(len));
 #endif
 }
