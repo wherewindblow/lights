@@ -61,61 +61,40 @@ public:
 	/**
 	 * Gets logger name.
 	 */
-	const std::string& get_name() const
-	{
-		return m_name;
-	}
+	const std::string& get_name() const;
 
 	/**
 	 * Gets log sink.
 	 */
-	Sink& get_sink()
-	{
-		return m_sink;
-	}
+	Sink& get_sink();
 
 	/**
 	 * Sets log sink.
 	 * @note Caller must ensure lifecycle of `sink`.
 	 */
-	void set_sink(Sink& sink)
-	{
-		m_sink = sink;
-	}
+	void set_sink(Sink& sink);
 
 	/**
 	 * Gets logger level.
 	 */
-	LogLevel get_level() const
-	{
-		return m_level;
-	}
+	LogLevel get_level() const;
 
 	/**
 	 * Sets logger level and all log message level is greater or equal to this
 	 * level will be record to sink.
 	 */
-	void set_level(LogLevel level)
-	{
-		m_level = level;
-	}
+	void set_level(LogLevel level);
 
 	/**
 	 * Checks is open switch of record source location. The default value is open.
 	 */
-	bool is_record_location() const
-	{
-		return m_record_location;
-	}
+	bool is_record_location() const;
 
 	/**
 	 * Sets switch of record source location.
 	 * @note Open switch can get more info, but also will raise output.
 	 */
-	void set_record_location(bool enable_record)
-	{
-		m_record_location = enable_record;
-	}
+	void set_record_location(bool enable_record);
 
 	/**
 	 * Formats @c fmt with @ args and log to sink.
@@ -145,10 +124,7 @@ public:
 	void log(LogLevel level, const SourceLocation& location, const T& value);
 
 private:
-	bool should_log(LogLevel level) const
-	{
-		return m_level <= level;
-	}
+	bool should_log(LogLevel level) const;
 
 	void generate_signature(LogLevel level);
 
@@ -163,36 +139,6 @@ private:
 	char m_write_target[WRITER_BUFFER_SIZE_DEFAULT];
 	TextWriter m_writer;
 };
-
-
-template <typename ... Args>
-void TextLogger::log(LogLevel level, const SourceLocation& location, const char* fmt, const Args& ... args)
-{
-	if (this->should_log(level))
-	{
-		m_writer.clear();
-		this->generate_signature(level);
-		m_writer.write(fmt, args ...);
-		this->record_location(location);
-		append_log_separator();
-		m_sink.write(m_writer.string_view());
-	}
-}
-
-
-template <typename T>
-void TextLogger::log(LogLevel level, const SourceLocation& location, const T& value)
-{
-	if (this->should_log(level))
-	{
-		m_writer.clear();
-		this->generate_signature(level);
-		m_writer << value;
-		this->record_location(location);
-		append_log_separator();
-		m_sink.write(m_writer.string_view());
-	}
-}
 
 
 /**
@@ -230,26 +176,17 @@ public:
 	/**
 	 * Gets logger name.
 	 */
-	std::string get_name() const
-	{
-		return m_name;
-	}
+	const std::string& get_name() const;
 
 	/**
 	 * Gets logger level.
 	 */
-	LogLevel get_level() const
-	{
-		return m_level;
-	}
+	LogLevel get_level() const;
 
 	/**
 	 * Sets logger level.
 	 */
-	void set_level(LogLevel level)
-	{
-		m_level = level;
-	}
+	void set_level(LogLevel level);
 
 	/**
 	 * Formats @c fmt with @ args and log to sink.
@@ -279,26 +216,13 @@ public:
 	void log(LogLevel level, const SourceLocation& location, const T& value);
 
 private:
-	bool should_log(LogLevel level) const
-	{
-		return m_level <= level;
-	}
+	bool should_log(LogLevel level) const;
 
 	void generate_signature(LogLevel level, const SourceLocation& location, StringView description);
 
-	void set_argument_length(std::uint16_t length)
-	{
-		m_signature->argument_length = length;
-		char* tail_length = m_write_target + sizeof(BinaryMessageSignature) + m_writer.length();
-		*reinterpret_cast<std::uint16_t*>(tail_length) = m_signature->argument_length;
-	}
+	void set_argument_length(std::uint16_t length);
 
-	void sink_msg()
-	{
-		// signature + content + tail length.
-		SequenceView view(m_write_target, sizeof(BinaryMessageSignature) + m_writer.size() + sizeof(std::uint16_t));
-		m_sink.write(view);
-	}
+	void sink_msg();
 
 	std::string m_name;
 	LogLevel m_level;
@@ -309,36 +233,6 @@ private:
 	BinaryStoreWriter m_writer;
 };
 
-
-template <typename ... Args>
-void BinaryLogger::log(LogLevel level, const SourceLocation& location, const char* fmt, const Args& ... args)
-{
-	if (this->should_log(level))
-	{
-		this->generate_signature(level, location, fmt);
-
-		m_writer.clear();
-		m_writer.write(fmt, args ...);
-		this->set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
-		this->sink_msg();
-	}
-}
-
-
-template <typename T>
-void BinaryLogger::log(LogLevel level, const SourceLocation& location, const T& value)
-{
-	if (this->should_log(level))
-	{
-		const StringView description = "{}";
-		this->generate_signature(level, location, description);
-
-		m_writer.clear();
-		m_writer.write(description, value);
-		this->set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
-		this->sink_msg();
-	}
-}
 
 
 /**
@@ -364,35 +258,22 @@ public:
 	/**
 	 * Jumps to file end.
 	 */
-	void jump_to_end()
-	{
-		m_file.seek(0, FileSeekWhence::END);
-	}
+	void jump_to_end();
 
 	/**
 	 * Returns is end of file.
 	 */
-	bool eof()
-	{
-		m_file.peek();
-		return m_file.eof();
-	}
+	bool eof();
 
 	/**
 	 * Checks have new message.
 	 */
-	bool have_new_message()
-	{
-		return static_cast<std::size_t>(m_file.tell()) < m_file.size();
-	}
+	bool have_new_message();
 
 	/**
 	 * Clear end of file flag.
 	 */
-	void clear_eof()
-	{
-		m_file.clear_error();
-	}
+	void clear_eof();
 
 private:
 	void jump_from_head(std::size_t line);
@@ -427,5 +308,162 @@ private:
 	LIGHTS_LOG(logger, lights::LogLevel::WARN, __VA_ARGS__);
 #define LIGHTS_ERROR(logger, ...) \
 	LIGHTS_LOG(logger, lights::LogLevel::ERROR, __VA_ARGS__);
+
+
+// ========================= Implement. =============================
+
+inline const std::string& TextLogger::get_name() const
+{
+	return m_name;
+}
+
+inline Sink& TextLogger::get_sink()
+{
+	return m_sink;
+}
+
+inline void TextLogger::set_sink(Sink& sink)
+{
+	m_sink = sink;
+}
+
+inline LogLevel TextLogger::get_level() const
+{
+	return m_level;
+}
+
+inline void TextLogger::set_level(LogLevel level)
+{
+	m_level = level;
+}
+
+inline bool TextLogger::is_record_location() const
+{
+	return m_record_location;
+}
+
+inline void TextLogger::set_record_location(bool enable_record)
+{
+	m_record_location = enable_record;
+}
+
+template <typename ... Args>
+void TextLogger::log(LogLevel level, const SourceLocation& location, const char* fmt, const Args& ... args)
+{
+	if (this->should_log(level))
+	{
+		m_writer.clear();
+		this->generate_signature(level);
+		m_writer.write(fmt, args ...);
+		this->record_location(location);
+		append_log_separator();
+		m_sink.write(m_writer.string_view());
+	}
+}
+
+template <typename T>
+void TextLogger::log(LogLevel level, const SourceLocation& location, const T& value)
+{
+	if (this->should_log(level))
+	{
+		m_writer.clear();
+		this->generate_signature(level);
+		m_writer << value;
+		this->record_location(location);
+		append_log_separator();
+		m_sink.write(m_writer.string_view());
+	}
+}
+
+inline bool TextLogger::should_log(LogLevel level) const
+{
+	return m_level <= level;
+}
+
+
+inline const std::string& BinaryLogger::get_name() const
+{
+	return m_name;
+}
+
+inline LogLevel BinaryLogger::get_level() const
+{
+	return m_level;
+}
+
+inline void BinaryLogger::set_level(LogLevel level)
+{
+	m_level = level;
+}
+
+template <typename ... Args>
+void BinaryLogger::log(LogLevel level, const SourceLocation& location, const char* fmt, const Args& ... args)
+{
+	if (this->should_log(level))
+	{
+		this->generate_signature(level, location, fmt);
+
+		m_writer.clear();
+		m_writer.write(fmt, args ...);
+		this->set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
+		this->sink_msg();
+	}
+}
+
+template <typename T>
+void BinaryLogger::log(LogLevel level, const SourceLocation& location, const T& value)
+{
+	if (this->should_log(level))
+	{
+		const StringView description = "{}";
+		this->generate_signature(level, location, description);
+
+		m_writer.clear();
+		m_writer.write(description, value);
+		this->set_argument_length(static_cast<std::uint16_t>(m_writer.length()));
+		this->sink_msg();
+	}
+}
+
+inline bool BinaryLogger::should_log(LogLevel level) const
+{
+	return m_level <= level;
+}
+
+inline void BinaryLogger::set_argument_length(std::uint16_t length)
+{
+	m_signature->argument_length = length;
+	char* tail_length = m_write_target + sizeof(BinaryMessageSignature) + m_writer.length();
+	*reinterpret_cast<std::uint16_t*>(tail_length) = m_signature->argument_length;
+}
+
+inline void BinaryLogger::sink_msg()
+{
+	// signature + content + tail length.
+	SequenceView view(m_write_target, sizeof(BinaryMessageSignature) + m_writer.size() + sizeof(std::uint16_t));
+	m_sink.write(view);
+}
+
+
+inline void BinaryLogReader::jump_to_end()
+{
+	m_file.seek(0, FileSeekWhence::END);
+}
+
+inline bool BinaryLogReader::eof()
+{
+	m_file.peek();
+	return m_file.eof();
+}
+
+inline bool BinaryLogReader::have_new_message()
+{
+	return static_cast<std::size_t>(m_file.tell()) < m_file.size();
+}
+
+inline void BinaryLogReader::clear_eof()
+{
+	m_file.clear_error();
+}
 
 } // namespace lights

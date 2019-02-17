@@ -413,4 +413,13 @@ std::uint8_t BinaryRestoreWriter::write_argument(const std::uint8_t* binary_stor
 	return width + sizeof(BinaryTypeCode);
 }
 
+
+void FormatSink<BinaryStoreWriter>::append(std::size_t num, char ch)
+{
+	for (std::size_t i = 0; i < num; ++i)
+	{
+		this->append(ch);
+	}
+}
+
 } // namespace lights

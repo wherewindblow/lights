@@ -16,7 +16,7 @@ namespace lights {
  * Uses for internal debug (for format and log).
  */
 #define LIGHTS_INTERNAL_DEBUG(format, ...) \
-	std::printf("file: %s, line: %d, func: %s > " format "\n", __FILE__, __LINE__, __func__, __VA_ARGS__);
+	std::printf(format " [%s:%d][%s]\n", __VA_ARGS__, __FILE__, __LINE__, __func__);
 
 /**
  * Adds static instance function of class.
@@ -30,7 +30,7 @@ static class_name* instance() \
 
 
 /**
- * Copys array elements to destination.
+ * Copies array elements to destination.
  */
 template <typename T>
 inline void copy_array(T* dest, const T* src, std::size_t num)
@@ -39,7 +39,7 @@ inline void copy_array(T* dest, const T* src, std::size_t num)
 }
 
 /**
- * Copys array elements to destination with check array size is same.
+ * Copies array elements to destination with check array size is same.
  */
 template <typename T, std::size_t N>
 inline void copy_array(T (&dest)[N], const T (&src)[N])

@@ -671,11 +671,11 @@ inline std::ostream& operator<<(std::ostream& ostream, const Coordinate& coordin
 }
 
 
-template <typename Sink>
-inline void append(lights::FormatSink<Sink> out, const Coordinate& coordinate)
+template <typename Backend>
+inline void append(lights::FormatSink<Backend> sink, const Coordinate& coordinate)
 {
 	using lights::operator<<;
-	out << coordinate.coordinate_x << ':' << coordinate.coordinate_y;
+	sink << coordinate.coordinate_x << ':' << coordinate.coordinate_y;
 }
 
 
@@ -724,7 +724,7 @@ void BM_format_custom_fmt_MemoryWriter(benchmark::State& state)
 }
 
 /**
- * Use `void append(lights::FormatSink<Backend> out, const Coordinate& coordinate)`
+ * Use `void append(lights::FormatSink<Backend> sink, const Coordinate& coordinate)`
  * is more faster than `std::ostream& operator<<(std::ostream& ostream, const Coordinate& coordinate)`
  */
 void BM_format_custom_lights_TextWriter(benchmark::State& state)

@@ -2,7 +2,7 @@ set(LIGHTS_SOURCE_FILES
         config.h
         env.h
         sequence.h
-        sink.h
+        sink.h sink.cpp
         non_copyable.h
         format.h format.cpp
         ostream.h

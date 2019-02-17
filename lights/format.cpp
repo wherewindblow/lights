@@ -257,4 +257,12 @@ LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_INSERT_IMPL)
 #undef LIGHTSIMPL_TEXT_WRITER_INSERT_IMPL
 
 
+void FormatSink<TextWriter>::append(std::size_t num, char ch)
+{
+	for (std::size_t i = 0; i < num; ++i)
+	{
+		this->append(ch);
+	}
+}
+
 } // namespace lights

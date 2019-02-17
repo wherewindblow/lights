@@ -29,30 +29,43 @@ public:
 	/**
 	 * Creates string buffer.
 	 */
-	explicit StringBuffer(FormatSink<Backend>& sink) :
-		m_sink(sink) {}
+	explicit StringBuffer(FormatSink<Backend>& sink);
 
 	/**
 	 * Inserts a character.
 	 */
-	virtual int_type overflow(int_type ch) override
-	{
-		m_sink.append(static_cast<char>(ch));
-		return ch;
-	}
+	virtual int_type overflow(int_type ch) override;
 
 	/**
 	 * Inserts multiple character.
 	 */
-	virtual std::streamsize	xsputn(const char* s, std::streamsize n) override
-	{
-		m_sink.append({s, static_cast<std::size_t>(n)});
-		return n;
-	}
+	virtual std::streamsize	xsputn(const char* s, std::streamsize n) override;
 
 private:
 	FormatSink<Backend>& m_sink;
 };
+
+
+template <typename Backend>
+StringBuffer<Backend>::StringBuffer(FormatSink <Backend>& sink) :
+	m_sink(sink)
+{}
+
+
+template <typename Backend>
+int StringBuffer<Backend>::overflow(int ch)
+{
+	m_sink.append(static_cast<char>(ch));
+	return ch;
+}
+
+
+template <typename Backend>
+std::streamsize StringBuffer<Backend>::xsputn(const char* s, std::streamsize n)
+{
+	m_sink.append({s, static_cast<std::size_t>(n)});
+	return n;
+}
 
 } // namespace details
 
@@ -62,13 +75,13 @@ private:
  * that use insertion operator with std::ostream and T.
  * Aim to support format with
  *   `std::ostream& operator<< (std::ostream& out, const T& value)`
- * @param out    A FormatSink.
+ * @param sink   A FormatSink.
  * @param value  User-defined type value.
  */
 template <typename Backend, typename T>
-inline void to_string(FormatSink<Backend> out, const T& value)
+inline void to_string(FormatSink<Backend> sink, const T& value)
 {
-	details::StringBuffer<Backend> buf(out);
+	details::StringBuffer<Backend> buf(sink);
 	std::ostream ostream(&buf);
 	ostream << value;
 }

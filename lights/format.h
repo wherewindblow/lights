@@ -169,7 +169,9 @@ public:
 	/**
 	 * Creates format sink.
 	 */
-	explicit FormatSink(std::string& backend) : m_backend(backend) {}
+	explicit FormatSink(std::string& backend) :
+		m_backend(backend)
+	{}
 
 	/**
 	 * Appends char to backend.
@@ -858,7 +860,7 @@ inline void append(FormatSink<Backend> sink, StringView str)
 /**
  * Inserts value into the sink. It'll invoke @c append()
  * Aim to support user can define
- *   `FormatSink<Backend> operator<< (FormatSink<Backend> out, const T& value)`
+ *   `FormatSink<Backend> operator<< (FormatSink<Backend> sink, const T& value)`
  * to format with user type.
  * @param sink   A FormatSink.
  * @param value  Built-in type or user-defined type value.
@@ -1026,102 +1028,73 @@ public:
 	 *       set full handler.
 	 */
 	template <typename T>
-	TextWriter& operator<< (const T& value)
-	{
-		make_format_sink(*this) << value;
-		return *this;
-	}
+	TextWriter& operator<< (const T& value);
 
 	/**
 	 * Returns a pointer to null-terminated character array that store in internal.
 	 */
-	const char* c_str() const
-	{
-		const_cast<TextWriter*>(this)->m_buffer[m_length] = '\0';
-		return m_buffer;
-	}
+	const char* c_str() const;
 
 	/**
 	 * Returns a @c std::string that convert from internal buffer.
 	 * @note This conversion will generate a data copy.
 	 */
-	std::string std_string() const
-	{
-		return string_view().to_std_string();
-	}
+	std::string std_string() const;
 
 	/**
 	 * Returns a @c StringView of internal buffer.
 	 * @note The return value is only valid when this object have no change
 	 *       the area of return @c StringView.
 	 */
-	StringView string_view() const
-	{
-		return { m_buffer, m_length };
-	}
+	StringView string_view() const;
 
 	/**
 	 * Returns the length of internal buffer.
 	 */
-	std::size_t length() const
-	{
-		return m_length;
-	}
+	std::size_t length() const;
 
 	/**
 	 * Returns the length of internal buffer.
 	 * @details It's same as @c length() function.
 	 */
-	std::size_t size() const
-	{
-		return m_length;
-	}
+	std::size_t size() const;
 
 	/**
 	 * Sets the format result length to zero.
 	 */
-	void clear()
-	{
-		m_length = 0;
-	}
+	void clear();
 
-	const FullHandler& get_full_handler() const
-	{
-		return m_full_handler;
-	}
+	/**
+	 * Gets full handler.
+	 */
+	const FullHandler& get_full_handler() const;
 
 	/**
 	 * Sets full handler to listen for internal buffer is full.
 	 * @details After set full handler, this handler will be call when internal buffer
 	 *          is full. And reset internal buffer and try to append argument.
 	 */
-	void set_full_handler(const FullHandler& full_handler)
-	{
-		m_full_handler = full_handler;
-	}
+	void set_full_handler(const FullHandler& full_handler);
 
 	/**
 	 * Returns the max size that format result can be.
 	 */
-	std::size_t max_size() const
-	{
-		return m_capacity - 1; // Remain a character to hold null character.
-	}
+	std::size_t max_size() const;
 
 	/**
 	 * Returns the internal buffer size.
 	 */
-	std::size_t capacity() const
-	{
-		return m_capacity;
-	}
+	std::size_t capacity() const;
 
 private:
-	bool can_append(std::size_t len)
-	{
-		return m_length + len <= max_size();
-	}
+	/**
+	 * Checks can append new content.
+	 */
+	bool can_append(std::size_t len);
 
+	/**
+	 * Handle the situation that buffer is full.
+	 */
 	void handle_full(StringView str);
 
 	bool m_use_default_buffer;
@@ -1142,62 +1115,31 @@ public:
 	/**
 	 * Creates format sink.
 	 */
-	explicit FormatSink(TextWriter& backend) : m_backend(backend) {}
+	explicit FormatSink(TextWriter& backend);
 
 	/**
 	 * Appends char to backend.
 	 */
-	void append(char ch)
-	{
-		m_backend.append(ch);
-	}
+	void append(char ch);
 
 	/**
 	 * Appends multiple same char to backend.
 	 */
-	void append(std::size_t num, char ch)
-	{
-		for (std::size_t i = 0; i < num; ++i)
-		{
-			this->append(ch);
-		}
-	}
+	void append(std::size_t num, char ch);
 
 	/**
 	 * Appends string to backend.
 	 */
-	void append(StringView str)
-	{
-		m_backend.append(str);
-	}
+	void append(StringView str);
 
 	/**
 	 * Gets internal backend.
 	 */
-	TextWriter& get_internal_backend()
-	{
-		return m_backend;
-	}
+	TextWriter& get_internal_backend();
 
 private:
 	TextWriter& m_backend;
 };
-
-
-template <typename Arg, typename ... Args>
-inline void TextWriter::write(StringView fmt, const Arg& value, const Args& ... args)
-{
-	// Must add namespace scope limit or cannot find suitable function.
-	lights::write(make_format_sink(*this), fmt, value, args ...);
-}
-
-/**
- * @note Must ensure the specialization of FormatSink is declare before use.
- */
-inline void TextWriter::write(StringView fmt)
-{
-	lights::write(make_format_sink(*this), fmt);
-}
 
 
 /**
@@ -1261,6 +1203,107 @@ std::string format(StringView fmt, const Args& ... args)
 	std::string backend;
 	write(make_format_sink(backend), fmt, args ...);
 	return backend;
+}
+
+
+// ============================= Implement. ===============================
+
+template <typename Arg, typename ... Args>
+inline void TextWriter::write(StringView fmt, const Arg& value, const Args& ... args)
+{
+	// Must add namespace scope limit or cannot find suitable function.
+	lights::write(make_format_sink(*this), fmt, value, args ...);
+}
+
+/**
+ * @note Must ensure the specialization of FormatSink is declare before use.
+ */
+inline void TextWriter::write(StringView fmt)
+{
+	lights::write(make_format_sink(*this), fmt);
+}
+
+template <typename T>
+inline TextWriter& TextWriter::operator<<(const T& value)
+{
+	make_format_sink(*this) << value;
+	return *this;
+}
+
+inline const char* TextWriter::c_str() const
+{
+	const_cast<TextWriter*>(this)->m_buffer[m_length] = '\0';
+	return m_buffer;
+}
+
+inline std::string TextWriter::std_string() const
+{
+	return string_view().to_std_string();
+}
+
+inline StringView TextWriter::string_view() const
+{
+	return { m_buffer, m_length };
+}
+
+inline std::size_t TextWriter::length() const
+{
+	return m_length;
+}
+
+inline std::size_t TextWriter::size() const
+{
+	return m_length;
+}
+
+inline void TextWriter::clear()
+{
+	m_length = 0;
+}
+
+inline const TextWriter::FullHandler& TextWriter::get_full_handler() const
+{
+	return m_full_handler;
+}
+
+inline void TextWriter::set_full_handler(const TextWriter::FullHandler& full_handler)
+{
+	m_full_handler = full_handler;
+}
+
+inline std::size_t TextWriter::max_size() const
+{
+	return m_capacity - 1; // Remain a character to hold null character.
+}
+
+inline std::size_t TextWriter::capacity() const
+{
+	return m_capacity;
+}
+
+inline bool TextWriter::can_append(std::size_t len)
+{
+	return m_length + len <= max_size();
+}
+
+
+inline FormatSink<TextWriter>::FormatSink(TextWriter& backend) :
+	m_backend(backend)
+{}
+
+inline TextWriter& FormatSink<TextWriter>::get_internal_backend()
+{
+	return m_backend;
+}
+
+inline void FormatSink<TextWriter>::append(StringView str)
+{
+	m_backend.append(str);
+}
+
+inline void FormatSink<TextWriter>::append(char ch)
+{
+	m_backend.append(ch);
 }
 
 } // namespace lights

@@ -80,37 +80,42 @@ public:
 	/**
 	 * Creates format sink.
 	 */
-	explicit FormatSink(Sink& sink) : m_backend(sink) {}
+	explicit FormatSink(Sink& sink);
 
 	/**
 	 * Appends char to backend.
 	 */
-	void append(char ch)
-	{
-		m_backend.write(SequenceView(&ch, sizeof(ch)));
-	}
+	void append(char ch);
 
 	/**
 	 * Appends multiple same char to backend.
 	 */
-	void append(std::size_t num, char ch)
-	{
-		for (std::size_t i = 0; i < num; ++i)
-		{
-			this->append(ch);
-		}
-	}
+	void append(std::size_t num, char ch);
 
 	/**
 	 * Appends string to backend.
 	 */
-	void append(StringView str)
-	{
-		m_backend.write(str);
-	}
+	void append(StringView str);
 
 private:
 	Sink& m_backend;
 };
+
+
+// ============================== Implement. ===============================
+
+inline FormatSink<Sink>::FormatSink(Sink& sink) :
+	m_backend(sink)
+{}
+
+inline void FormatSink<Sink>::append(char ch)
+{
+	m_backend.write(SequenceView(&ch, sizeof(ch)));
+}
+
+inline void FormatSink<Sink>::append(StringView str)
+{
+	m_backend.write(str);
+}
 
 } // namespace lights
