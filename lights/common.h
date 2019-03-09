@@ -16,7 +16,7 @@ namespace lights {
  * Uses for internal debug (for format and log).
  */
 #define LIGHTS_INTERNAL_DEBUG(format, ...) \
-	std::printf(format " [%s:%d][%s]\n", __VA_ARGS__, __FILE__, __LINE__, __func__);
+	std::printf(format " [%s:%d][%s]\n", __VA_ARGS__, __FILE__, __LINE__, __func__)
 
 /**
  * Adds static instance function of class.

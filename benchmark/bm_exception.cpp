@@ -368,7 +368,7 @@ void BM_exception_pad_std_exception(benchmark::State& state)
 	{
 		try
 		{
-			LIGHTS_DEFAULT_TEXT_WRITER(writer)
+			LIGHTS_DEFAULT_TEXT_WRITER(writer);
 			writer.write(EXCEPTION_FORMAT_ARGS);
 			throw std::runtime_error(writer.c_str());
 		}
@@ -393,7 +393,7 @@ void BM_exception_pad_std_exception_ptr(benchmark::State& state)
 	{
 		try
 		{
-			LIGHTS_DEFAULT_TEXT_WRITER(writer)
+			LIGHTS_DEFAULT_TEXT_WRITER(writer);
 			writer.write(EXCEPTION_FORMAT_ARGS);
 			throw std::make_shared<std::runtime_error>(writer.c_str());
 		}
@@ -441,7 +441,7 @@ void BM_exception_pad_boost_exception(benchmark::State& state)
 	{
 		try
 		{
-			LIGHTS_DEFAULT_TEXT_WRITER(writer)
+			LIGHTS_DEFAULT_TEXT_WRITER(writer);
 			writer.write(EXCEPTION_FORMAT_ARGS);
 			BOOST_THROW_EXCEPTION(std::runtime_error(writer.c_str()));
 		}

@@ -21,20 +21,20 @@
 namespace lights {
 
 #define LIGHTSIMPL_SIGNED_INTEGER_FUNCTION(macro) \
-	macro(std::int8_t)        \
-	macro(std::int16_t)       \
-	macro(std::int32_t)       \
-	macro(std::int64_t)
+	macro(std::int8_t);        \
+	macro(std::int16_t);       \
+	macro(std::int32_t);       \
+	macro(std::int64_t);
 
 #define LIGHTSIMPL_UNSIGNED_INTEGER_FUNCTION(macro) \
-	macro(std::uint8_t)       \
-	macro(std::uint16_t)      \
-	macro(std::uint32_t)      \
-	macro(std::uint64_t)
+	macro(std::uint8_t);       \
+	macro(std::uint16_t);      \
+	macro(std::uint32_t);      \
+	macro(std::uint64_t);
 
 #define LIGHTSIMPL_ALL_INTEGER_FUNCTION(macro) \
-	LIGHTSIMPL_SIGNED_INTEGER_FUNCTION(macro) \
-	LIGHTSIMPL_UNSIGNED_INTEGER_FUNCTION(macro)
+	LIGHTSIMPL_SIGNED_INTEGER_FUNCTION(macro); \
+	LIGHTSIMPL_UNSIGNED_INTEGER_FUNCTION(macro);
 
 
 /**
@@ -578,7 +578,7 @@ void to_string(FormatSink<Backend> sink, Type n) \
 	sink.append(formater.format(n));                    \
 }
 
-LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_INTEGER_TO_STRING)
+LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_INTEGER_TO_STRING);
 
 #undef LIGHTSIMPL_INTEGER_TO_STRING
 
@@ -966,7 +966,7 @@ public:
 #define LIGHTSIMPL_TEXT_WRITER_INSERT_DECLARE(Type) \
 	TextWriter& operator<< (Type n);
 
-	LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_INSERT_DECLARE)
+	LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_INSERT_DECLARE);
 
 #undef LIGHTSIMPL_TEXT_WRITER_INSERT_DECLARE
 
@@ -1101,7 +1101,7 @@ inline void to_string(FormatSink<TextWriter> sink, Type n) \
 	sink.get_internal_backend() << n; \
 }
 
-LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_TO_STRING)
+LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_TO_STRING);
 
 #undef LIGHTSIMPL_TEXT_WRITER_TO_STRING
 
@@ -1117,7 +1117,7 @@ LIGHTSIMPL_ALL_INTEGER_FUNCTION(LIGHTSIMPL_TEXT_WRITER_TO_STRING)
  */
 #define LIGHTS_TEXT_WRITER(name, buffer_size) \
 	char LIGHTS_CONCAT(name##_write_target_, __LINE__)[buffer_size]; \
-	lights::TextWriter name({LIGHTS_CONCAT(name##_write_target_, __LINE__), buffer_size});
+	lights::TextWriter name({LIGHTS_CONCAT(name##_write_target_, __LINE__), buffer_size})
 
 /**
  * Creates a text writer with default size.

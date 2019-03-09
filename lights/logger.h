@@ -290,7 +290,7 @@ private:
 
 #ifdef LIGHTS_OPEN_LOG
 #	define LIGHTS_LOG(logger, level, ...) \
-		logger.log(level, LIGHTS_CURRENT_SOURCE_LOCATION, __VA_ARGS__);
+		logger.log(level, LIGHTS_CURRENT_SOURCE_LOCATION, __VA_ARGS__)
 #else
 #	define LIGHTS_LOG(logger, level, ...)
 #endif
@@ -301,13 +301,13 @@ private:
  * @param ... Can use format string and arguments or just a any type value.
  */
 #define LIGHTS_DEBUG(logger, ...) \
-	LIGHTS_LOG(logger, lights::LogLevel::DEBUG, __VA_ARGS__);
+	LIGHTS_LOG(logger, lights::LogLevel::DEBUG, __VA_ARGS__)
 #define LIGHTS_INFO(logger, ...) \
-	LIGHTS_LOG(logger, lights::LogLevel::INFO, __VA_ARGS__);
+	LIGHTS_LOG(logger, lights::LogLevel::INFO, __VA_ARGS__)
 #define LIGHTS_WARN(logger, ...) \
-	LIGHTS_LOG(logger, lights::LogLevel::WARN, __VA_ARGS__);
+	LIGHTS_LOG(logger, lights::LogLevel::WARN, __VA_ARGS__)
 #define LIGHTS_ERROR(logger, ...) \
-	LIGHTS_LOG(logger, lights::LogLevel::ERROR, __VA_ARGS__);
+	LIGHTS_LOG(logger, lights::LogLevel::ERROR, __VA_ARGS__)
 
 
 // ========================= Implement. =============================

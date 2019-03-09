@@ -301,7 +301,7 @@ private:
  * @note Expand macro method is not standard.
  */
 #define LIGHTS_THROW_EXCEPTION(ExceptionType, ...) \
-        throw ExceptionType(LIGHTS_CURRENT_SOURCE_LOCATION, ##__VA_ARGS__);
+        throw ExceptionType(LIGHTS_CURRENT_SOURCE_LOCATION, ##__VA_ARGS__)
 
 
 #if LIGHTS_OPEN_ASSERTION == 1
@@ -311,7 +311,7 @@ private:
 	do { \
 		if (!(expr)) \
 			LIGHTS_THROW_EXCEPTION(lights::AssertionError, #expr); \
-	} while (false);
+	} while (false)
 #else
 #	define LIGHTS_ASSERT(expr)
 #endif
