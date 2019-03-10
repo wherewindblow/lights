@@ -200,7 +200,7 @@ void BM_exception_lights_Exception(benchmark::State& state)
 	{
 		try
 		{
-			LIGHTS_THROW_EXCEPTION(lights::Exception, lights::error_code::OPEN_FILE_FAILURE);
+			LIGHTS_THROW(lights::Exception, lights::error_code::OPEN_FILE_FAILURE);
 		}
 		catch (const lights::Exception& ex)
 		{
@@ -243,7 +243,7 @@ void BM_exception_str_lights_Exception(benchmark::State& state)
 	{
 		try
 		{
-			LIGHTS_THROW_EXCEPTION(lights::OpenFileError, __FILE__);
+			LIGHTS_THROW(lights::OpenFileError, __FILE__);
 		}
 		catch (const lights::Exception& ex)
 		{

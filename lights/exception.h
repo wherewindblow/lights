@@ -300,7 +300,7 @@ private:
  * @arg ... Expand to fmt and arg ...
  * @note Expand macro method is not standard.
  */
-#define LIGHTS_THROW_EXCEPTION(ExceptionType, ...) \
+#define LIGHTS_THROW(ExceptionType, ...) \
         throw ExceptionType(LIGHTS_CURRENT_SOURCE_LOCATION, ##__VA_ARGS__)
 
 
@@ -310,7 +310,7 @@ private:
 #	define LIGHTS_ASSERT(expr) \
 	do { \
 		if (!(expr)) \
-			LIGHTS_THROW_EXCEPTION(lights::AssertionError, #expr); \
+			LIGHTS_THROW(lights::AssertionError, #expr); \
 	} while (false)
 #else
 #	define LIGHTS_ASSERT(expr)

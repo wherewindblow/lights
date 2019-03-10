@@ -196,7 +196,7 @@ TimeRotatingFileSink::TimeRotatingFileSink(std::string name_format, time_t durat
 {
 	if (day_point > ONE_DAY_SECONDS)
 	{
-		LIGHTS_THROW_EXCEPTION(InvalidArgument, format("day_point {} is bigger than ONE_DAY_SECONDS", day_point));
+		LIGHTS_THROW(InvalidArgument, format("day_point {} is bigger than ONE_DAY_SECONDS", day_point));
 	}
 	std::time_t now = std::time(nullptr);
 	m_next_rotating_time = now;

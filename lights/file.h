@@ -71,7 +71,7 @@ public:
 		m_std_file = std::fopen(filename.data(), modes.data());
 		if (m_std_file == nullptr)
 		{
-			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
+			LIGHTS_THROW(OpenFileError, filename);
 		}
 	}
 
@@ -84,7 +84,7 @@ public:
 		if (std::freopen(filename.data(), modes.data(), m_std_file) == nullptr)
 		{
 			m_std_file = nullptr;
-			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
+			LIGHTS_THROW(OpenFileError, filename);
 		}
 	}
 

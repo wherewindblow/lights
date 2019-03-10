@@ -75,7 +75,7 @@ StringTable::StringTable(StringView filename):
 		p_impl->storage_file.open(filename.data(), std::ios_base::out); // Create file.
 		if (!p_impl->storage_file.is_open())
 		{
-			LIGHTS_THROW_EXCEPTION(OpenFileError, filename);
+			LIGHTS_THROW(OpenFileError, filename);
 		}
 	}
 }
