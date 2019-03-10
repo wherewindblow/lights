@@ -170,6 +170,7 @@ class BinaryLogger
 public:
 	/**
 	 * Creates binary logger.
+	 * @note Caller must ensure lifecycle of `sink` and `str_table`.
 	 */
 	BinaryLogger(const std::string& name, Sink& sink, StringTable& str_table);
 
@@ -177,6 +178,17 @@ public:
 	 * Gets logger name.
 	 */
 	const std::string& get_name() const;
+
+	/**
+	 * Gets log sink.
+	 */
+	Sink& get_sink();
+
+	/**
+	 * Sets log sink.
+	 * @note Caller must ensure lifecycle of `sink`.
+	 */
+	void set_sink(Sink& sink);
 
 	/**
 	 * Gets logger level.
@@ -384,6 +396,16 @@ inline bool TextLogger::should_log(LogLevel level) const
 inline const std::string& BinaryLogger::get_name() const
 {
 	return m_name;
+}
+
+inline Sink& BinaryLogger::get_sink()
+{
+	return m_sink;
+}
+
+inline void BinaryLogger::set_sink(Sink& sink)
+{
+	m_sink = sink;
 }
 
 inline LogLevel BinaryLogger::get_level() const
