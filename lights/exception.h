@@ -248,7 +248,8 @@ class AssertionError: public Exception
 {
 public:
 	AssertionError(const SourceLocation& occur_location, StringView description):
-		Exception(occur_location, error_code::ASSERTION_ERROR), m_description(description)
+		Exception(occur_location, error_code::ASSERTION_ERROR),
+		m_description(description)
 	{
 	}
 
@@ -266,7 +267,8 @@ class InvalidArgument: public Exception
 {
 public:
 	InvalidArgument(const SourceLocation& occur_location, StringView description):
-		Exception(occur_location, error_code::INVALID_ARGUMENT), m_description(description.to_std_string())
+		Exception(occur_location, error_code::INVALID_ARGUMENT),
+		m_description(description.to_std_string())
 	{
 	}
 
@@ -284,7 +286,9 @@ class OpenFileError: public Exception
 {
 public:
 	OpenFileError(const SourceLocation& occur_location, StringView filename):
-		Exception(occur_location, error_code::OPEN_FILE_FAILURE), m_filename(filename.to_std_string())
+		Exception(occur_location, error_code::OPEN_FILE_FAILURE),
+		m_filename(filename.to_std_string()),
+		m_error_no(errno)
 	{
 	}
 
@@ -292,6 +296,7 @@ public:
 
 private:
 	std::string m_filename;
+	int m_error_no;
 };
 
 

@@ -70,7 +70,7 @@ void OpenFileError::dump_message(Sink& out, ErrorCodeDescriptions::DescriptionTy
 	write(make_format_sink(out),
 		  get_description(description_type),
 		  m_filename,
-		  current_error());
+		  ErrorNumber(m_error_no));
 }
 
 
